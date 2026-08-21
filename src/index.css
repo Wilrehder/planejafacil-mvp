@@ -6,8 +6,24 @@
 
 @layer base {
   body {
-    @apply bg-surface-bg text-slate-800 font-sans antialiased selection:bg-brand-500 selection:text-white;
+    @apply bg-[#FAF8F5] text-slate-900 font-sans antialiased selection:bg-brand-600 selection:text-white;
   }
+}
+
+.font-serif-editorial {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+}
+
+.bg-warm-alabaster {
+  background-color: #FAF8F5;
+}
+
+.bg-warm-sand {
+  background-color: #F3EFEA;
+}
+
+.border-warm-muted {
+  border-color: #E5DFC;
 }
 
 /* Custom Scrollbar */
