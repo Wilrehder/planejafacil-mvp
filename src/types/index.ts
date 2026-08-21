@@ -27,6 +27,7 @@ export interface ConfiguredEnvironment {
   typeId: EnvironmentTypeId;
   name: string; // ex: 'Cozinha Principal', 'Quarto Casal'
   areaM2: number;
+  ceilingHeight?: number; // Pé-direito em metros (ex: 2.7m)
   wallCount: 1 | 2 | 3 | 4;
   walls: WallConfig[];
 }

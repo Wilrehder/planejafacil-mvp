@@ -36,7 +36,7 @@ interface AppContextType {
   // Multi-Environment Simulator
   simulator: SimulatorState;
   updateSimulator: (updates: Partial<SimulatorState>) => void;
-  addEnvironment: (typeId: EnvironmentTypeId, name: string, areaM2: number, wallCount: 1 | 2 | 3 | 4) => ConfiguredEnvironment;
+  addEnvironment: (typeId: EnvironmentTypeId, name: string, areaM2: number, wallCount: 1 | 2 | 3 | 4, ceilingHeight?: number) => ConfiguredEnvironment;
   updateEnvironment: (envId: string, updates: Partial<ConfiguredEnvironment>) => void;
   removeEnvironment: (envId: string) => void;
   updateEnvironmentWall: (envId: string, wallId: WallId, wallData: Partial<WallConfig>) => void;
@@ -130,7 +130,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     typeId: EnvironmentTypeId,
     name: string,
     areaM2: number,
-    wallCount: 1 | 2 | 3 | 4
+    wallCount: 1 | 2 | 3 | 4,
+    ceilingHeight: number = 2.7
   ): ConfiguredEnvironment => {
     const wallLabels: Record<WallId, string> = {
       wallA: 'Parede A',
@@ -144,11 +145,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const defaultWallLength = Math.max(1.5, Math.round((Math.sqrt(areaM2) / (wallCount > 2 ? 1.2 : 1)) * 10) / 10);
 
+    // INICIA 100% NADA SELECIONADO CONFORME PEDIDO PELO USUARIO
     const wallsConfig: WallConfig[] = selectedKeys.map((wKey) => ({
       id: wKey,
       label: wallLabels[wKey],
       length: defaultWallLength,
-      selectedFurnitureTypes: ['armario_inferior', 'armario_aereo'],
+      selectedFurnitureTypes: [],
       selectedSpecificItems: [],
     }));
 
@@ -157,6 +159,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       typeId,
       name: name || (typeId === 'cozinha' ? 'Cozinha Principal' : 'Ambiente'),
       areaM2: areaM2 || 10,
+      ceilingHeight: ceilingHeight || 2.7,
       wallCount,
       walls: wallsConfig,
     };

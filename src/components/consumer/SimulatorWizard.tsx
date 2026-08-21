@@ -5,22 +5,19 @@ import {
   Bath, 
   Bed, 
   Box, 
-  Briefcase, 
-  Check, 
   ChefHat, 
-  ChevronRight, 
   Flame, 
   Laptop, 
   Plus, 
   Printer, 
-  Ruler, 
-  ShieldCheck, 
+  RotateCcw, 
   Shirt, 
   Sofa, 
   Trash2, 
   Tv, 
   WashingMachine, 
-  Zap 
+  Zap,
+  Check
 } from 'lucide-react';
 import { 
   ENVIRONMENT_CATALOG, 
@@ -31,7 +28,7 @@ import {
   QUALITY_TIERS 
 } from '../../data/mockData';
 import { useApp } from '../../context/AppContext';
-import { ConfiguredEnvironment, EnvironmentTypeId, FinishTypeId, PurchaseTimelineId, QualityTierId, WallId } from '../../types';
+import { EnvironmentTypeId, FinishTypeId, PurchaseTimelineId, QualityTierId, WallId } from '../../types';
 import { ProposalPdfModal } from './ProposalPdfModal';
 
 export const SimulatorWizard: React.FC = () => {
@@ -39,11 +36,11 @@ export const SimulatorWizard: React.FC = () => {
     simulator, 
     updateSimulator, 
     addEnvironment, 
-    updateEnvironment, 
     removeEnvironment, 
     updateEnvironmentWall, 
     calculateEstimate, 
     addLead,
+    resetSimulator,
     setConsumerTab 
   } = useApp();
 
@@ -52,9 +49,21 @@ export const SimulatorWizard: React.FC = () => {
   const [newEnvTypeId, setNewEnvTypeId] = useState<EnvironmentTypeId>('cozinha');
   const [newEnvName, setNewEnvName] = useState('');
   const [newEnvArea, setNewEnvArea] = useState(12);
+  const [newEnvCeilingHeight, setNewEnvCeilingHeight] = useState(2.7);
   const [newEnvWallCount, setNewEnvWallCount] = useState<1 | 2 | 3 | 4>(3);
 
   const currentEditingEnv = simulator.environments.find((e) => e.id === simulator.currentEditingEnvId) || simulator.environments[0];
+
+  // Helper smooth scroll to top when changing steps
+  const goToStep = (nextStep: number) => {
+    updateSimulator({ step: nextStep });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleResetWizard = () => {
+    resetSimulator();
+    goToStep(1);
+  };
 
   // Helper for environment icons
   const renderEnvIcon = (iconName: string, className: string = 'w-6 h-6') => {
@@ -80,24 +89,25 @@ export const SimulatorWizard: React.FC = () => {
     setNewEnvTypeId(typeId);
     setNewEnvName(defaultName);
     setNewEnvArea(12);
+    setNewEnvCeilingHeight(2.7);
     setNewEnvWallCount(3);
-    updateSimulator({ step: 2 });
+    goToStep(2);
   };
 
   const handleSaveEnvInfo = () => {
-    const createdEnv = addEnvironment(newEnvTypeId, newEnvName, newEnvArea, newEnvWallCount);
+    const createdEnv = addEnvironment(newEnvTypeId, newEnvName, newEnvArea, newEnvWallCount, newEnvCeilingHeight);
     setActiveWallId('wallA');
-    updateSimulator({ currentEditingEnvId: createdEnv.id, step: 3 });
+    updateSimulator({ currentEditingEnvId: createdEnv.id });
+    goToStep(3);
   };
 
   const handleNextFromStep3 = () => {
-    // Salva e avança para a lista de ambientes ou finalização
-    updateSimulator({ step: 1 });
+    goToStep(1);
   };
 
   const handleGoToFinalization = () => {
     calculateEstimate();
-    updateSimulator({ step: 4 });
+    goToStep(4);
   };
 
   const handleSubmitLead = (e: React.FormEvent) => {
@@ -123,7 +133,7 @@ export const SimulatorWizard: React.FC = () => {
       estimatedMax: simulator.calculatedRange.max,
     });
 
-    updateSimulator({ step: 5 });
+    goToStep(5);
   };
 
   const formatCurrency = (val: number) => {
@@ -131,14 +141,14 @@ export const SimulatorWizard: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12">
+    <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12 font-sans">
       
       {/* Top Navigation Bar */}
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-6 flex items-center justify-between">
         <button
           onClick={() => {
             if (simulator.step > 1) {
-              updateSimulator({ step: simulator.step - 1 });
+              goToStep(simulator.step - 1);
             } else {
               setConsumerTab('landing');
             }
@@ -149,8 +159,21 @@ export const SimulatorWizard: React.FC = () => {
           <span>{simulator.step === 1 ? 'Voltar para Início' : 'Voltar'}</span>
         </button>
 
-        <div className="text-xs font-bold text-slate-500">
-          <span className="text-emerald-600">Etapa {simulator.step}</span> de 5
+        <div className="flex items-center space-x-4">
+          {simulator.environments.length > 0 && (
+            <button
+              onClick={handleResetWizard}
+              className="text-xs font-bold text-slate-400 hover:text-red-600 flex items-center space-x-1 transition-colors"
+              title="Limpar todos os dados e reiniciar"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Novo Orçamento</span>
+            </button>
+          )}
+
+          <div className="text-xs font-bold text-slate-500">
+            <span className="text-emerald-700">Etapa {simulator.step}</span> de 5
+          </div>
         </div>
       </div>
 
@@ -175,8 +198,8 @@ export const SimulatorWizard: React.FC = () => {
             </h2>
             <p className="text-sm text-slate-600">
               {simulator.environments.length > 0
-                ? 'Você pode adicionar outros cômodos ou avançar para finalizar o orçamento.'
-                : 'Selecione um cômodo para começar a configurar os móveis.'}
+                ? 'Você pode adicionar outros cômodos ao projeto ou avançar para finalizar.'
+                : 'Selecione um cômodo para começar a simulação (todos os campos iniciam vazios).'}
             </p>
           </div>
 
@@ -204,7 +227,7 @@ export const SimulatorWizard: React.FC = () => {
                         <div>
                           <div className="font-bold text-slate-900 text-sm">{env.name}</div>
                           <div className="text-xs text-slate-500">
-                            {env.areaM2}m² • {env.wallCount} {env.wallCount === 1 ? 'parede' : 'paredes'} ({totalMeters.toFixed(1)}m)
+                            {env.areaM2}m² • Pé-direito: {env.ceilingHeight || 2.7}m • {env.wallCount} {env.wallCount === 1 ? 'parede' : 'paredes'} ({totalMeters.toFixed(1)}m)
                           </div>
                         </div>
                       </div>
@@ -212,7 +235,8 @@ export const SimulatorWizard: React.FC = () => {
                       <div className="flex items-center space-x-2">
                         <button
                           onClick={() => {
-                            updateSimulator({ currentEditingEnvId: env.id, step: 3 });
+                            updateSimulator({ currentEditingEnvId: env.id });
+                            goToStep(3);
                           }}
                           className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-100"
                         >
@@ -279,7 +303,7 @@ export const SimulatorWizard: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* ETAPA 2: INFORMAÇÕES DO AMBIENTE (NOME, ÁREA M², QTD PAREDES) */}
+      {/* ETAPA 2: INFORMAÇÕES DO AMBIENTE (NOME, ÁREA M², PÉ-DIREITO, QTD PAREDES) */}
       {/* ========================================================================= */}
       {simulator.step === 2 && (
         <div className="space-y-8 animate-in fade-in duration-300">
@@ -289,7 +313,7 @@ export const SimulatorWizard: React.FC = () => {
               Informações do Ambiente
             </h2>
             <p className="text-sm text-slate-600">
-              Defina o nome e o tamanho aproximado para calcularmos os móveis.
+              Defina o nome, pé-direito e tamanho aproximado para calcularmos os móveis.
             </p>
           </div>
 
@@ -307,6 +331,30 @@ export const SimulatorWizard: React.FC = () => {
                 placeholder="ex.: Cozinha Principal, Quarto Casal"
                 className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 text-slate-900 font-semibold text-sm outline-none"
               />
+            </div>
+
+            {/* Pé-direito (Altura do Teto) */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Pé-direito (Altura do Teto)
+                </label>
+                <span className="text-emerald-700 font-extrabold text-sm">{newEnvCeilingHeight}m</span>
+              </div>
+              <input
+                type="range"
+                min="2.4"
+                max="4.0"
+                step="0.1"
+                value={newEnvCeilingHeight}
+                onChange={(e) => setNewEnvCeilingHeight(Number(e.target.value))}
+                className="w-full accent-emerald-600"
+              />
+              <div className="flex justify-between text-[11px] text-slate-400 font-medium">
+                <span>Padrão (2.4m)</span>
+                <span>Médio (2.7m)</span>
+                <span>Pé-direito Duplo (4.0m)</span>
+              </div>
             </div>
 
             {/* Área Aproximada m² */}
@@ -385,11 +433,11 @@ export const SimulatorWizard: React.FC = () => {
               Configuração das Paredes — {currentEditingEnv.name}
             </h2>
             <p className="text-sm text-slate-600">
-              Informe o comprimento de cada parede e marque os móveis desejados.
+              Informe o comprimento de cada parede e marque os móveis desejados (tudo inicia desmarcado).
             </p>
           </div>
 
-          {/* Wall Tabs Bar (Parede A, Parede B, Parede C...) */}
+          {/* Wall Tabs Bar */}
           <div className="flex items-center justify-center space-x-2 border-b border-slate-200 pb-4">
             {currentEditingEnv.walls.map((wall) => {
               const isActive = wall.id === activeWallId;
@@ -452,7 +500,7 @@ export const SimulatorWizard: React.FC = () => {
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {GENERAL_WALL_FURNITURE.map((furn) => {
-                      const isSelected = currentWall.selectedFurnitureTypes.includes(furn.id);
+                      const isSelected = (currentWall.selectedFurnitureTypes || []).includes(furn.id);
                       return (
                         <button
                           key={furn.id}
@@ -479,7 +527,7 @@ export const SimulatorWizard: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Itens Específicos do Ambiente */}
+                {/* Itens Específicos do Ambiente (Sem Duplicatas) */}
                 <div className="space-y-3 pt-4 border-t border-slate-100">
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                     Itens Específicos para {currentEditingEnv.name}:
@@ -487,7 +535,7 @@ export const SimulatorWizard: React.FC = () => {
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                     {specificItemsList.map((item) => {
-                      const isSelected = currentWall.selectedSpecificItems.includes(item.id);
+                      const isSelected = (currentWall.selectedSpecificItems || []).includes(item.id);
                       return (
                         <button
                           key={item.id}
@@ -656,7 +704,7 @@ export const SimulatorWizard: React.FC = () => {
                 <input
                   type="tel"
                   required
-                  placeholder="Seu Telefone / WhatsApp"
+                  placeholder="Seu Telefone de Contato"
                   value={simulator.clientInfo.phone}
                   onChange={(e) => updateSimulator({ clientInfo: { ...simulator.clientInfo, phone: e.target.value } })}
                   className="px-4 py-3 rounded-xl border border-slate-300 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-600"
@@ -710,7 +758,7 @@ export const SimulatorWizard: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* ETAPA 5: RESULTADO FINAL & DOWNLOAD DA PROPOSTA / WHATSAPP */}
+      {/* ETAPA 5: RESULTADO FINAL & DOWNLOAD DA PROPOSTA / ATENDIMENTO LOJA */}
       {/* ========================================================================= */}
       {simulator.step === 5 && (
         <div className="space-y-8 animate-in fade-in duration-300">
@@ -771,7 +819,9 @@ export const SimulatorWizard: React.FC = () => {
                 <div key={env.id} className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-slate-900 text-sm">{env.name}</span>
-                    <span className="text-xs font-semibold text-slate-500">{env.areaM2}m²</span>
+                    <span className="text-xs font-semibold text-slate-500">
+                      {env.areaM2}m² • Pé-direito: {env.ceilingHeight || 2.7}m
+                    </span>
                   </div>
 
                   <div className="text-xs text-slate-600 space-y-1">
