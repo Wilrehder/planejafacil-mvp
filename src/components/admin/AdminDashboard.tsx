@@ -20,7 +20,7 @@ import { SettingsView } from './SettingsView';
 import { StoresManager } from './StoresManager';
 
 export const AdminDashboard: React.FC = () => {
-  const { adminTab, setAdminTab, stores } = useApp();
+  const { adminTab, setAdminTab, stores, leads } = useApp();
 
   const menuItems: { id: AdminTab; label: string; icon: React.ComponentType<any> }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -34,6 +34,13 @@ export const AdminDashboard: React.FC = () => {
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val);
   };
+
+  const totalLeadsCount = leads.length;
+  const activeStoresCount = stores.filter((s) => s.status === 'Ativa').length;
+  const totalMRR = stores.reduce((acc, s) => acc + (s.monthlyRevenue || (s.plan === 'Diamond' ? 1990 : s.plan === 'Platinum' ? 990 : 490)), 0);
+  const avgTicket = leads.length > 0 
+    ? Math.round(leads.reduce((acc, l) => acc + ((l.estimatedMin + l.estimatedMax) / 2), 0) / leads.length)
+    : 28400;
 
   return (
     <div className="min-h-screen bg-surface-bg flex flex-col md:flex-row pb-20 md:pb-0">
@@ -117,29 +124,28 @@ export const AdminDashboard: React.FC = () => {
               
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
                 <div className="flex items-center justify-between text-slate-400">
-                  <span className="text-xs font-bold uppercase tracking-wider">Leads Hoje</span>
+                  <span className="text-xs font-bold uppercase tracking-wider">Total de Leads</span>
                   <div className="p-2 bg-blue-50 text-brand-600 rounded-xl">
                     <Users className="w-5 h-5" />
                   </div>
                 </div>
-                <div className="text-3xl font-black text-slate-900">42 leads</div>
+                <div className="text-3xl font-black text-slate-900">{totalLeadsCount} leads</div>
                 <div className="flex items-center space-x-1 text-xs font-bold text-emerald-600">
                   <ArrowUpRight className="w-3.5 h-3.5" />
-                  <span>+14.5% vs ontem</span>
+                  <span>Cadastrados no sistema</span>
                 </div>
               </div>
 
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
                 <div className="flex items-center justify-between text-slate-400">
-                  <span className="text-xs font-bold uppercase tracking-wider">Leads do Mês</span>
+                  <span className="text-xs font-bold uppercase tracking-wider">Lojas Credenciadas</span>
                   <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
                     <BarChart3 className="w-5 h-5" />
                   </div>
                 </div>
-                <div className="text-3xl font-black text-slate-900">1.280 leads</div>
+                <div className="text-3xl font-black text-slate-900">{stores.length} unidades</div>
                 <div className="flex items-center space-x-1 text-xs font-bold text-emerald-600">
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                  <span>+22.8% este mês</span>
+                  <span>Rede Smarth House</span>
                 </div>
               </div>
 
@@ -150,8 +156,8 @@ export const AdminDashboard: React.FC = () => {
                     <Store className="w-5 h-5" />
                   </div>
                 </div>
-                <div className="text-3xl font-black text-slate-900">{stores.length} lojas</div>
-                <div className="text-xs text-slate-500 font-medium">Rede credenciada</div>
+                <div className="text-3xl font-black text-slate-900">{activeStoresCount} ativas</div>
+                <div className="text-xs text-slate-500 font-medium">Recebendo orçamentos</div>
               </div>
 
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
@@ -161,8 +167,8 @@ export const AdminDashboard: React.FC = () => {
                     <DollarSign className="w-5 h-5" />
                   </div>
                 </div>
-                <div className="text-3xl font-black text-slate-900">{formatCurrency(28400)}</div>
-                <div className="text-xs text-slate-500 font-medium">Por simulação no projeto</div>
+                <div className="text-3xl font-black text-slate-900">{formatCurrency(avgTicket)}</div>
+                <div className="text-xs text-slate-500 font-medium">Por projeto simulação</div>
               </div>
 
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
@@ -172,8 +178,8 @@ export const AdminDashboard: React.FC = () => {
                     <Percent className="w-5 h-5" />
                   </div>
                 </div>
-                <div className="text-3xl font-black text-slate-900">18.4%</div>
-                <div className="text-xs text-emerald-600 font-bold">Encaminhados para lojas</div>
+                <div className="text-3xl font-black text-slate-900">25.0%</div>
+                <div className="text-xs text-emerald-600 font-bold">Vendas vs Leads</div>
               </div>
 
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
@@ -183,8 +189,8 @@ export const AdminDashboard: React.FC = () => {
                     <Zap className="w-5 h-5" />
                   </div>
                 </div>
-                <div className="text-3xl font-black text-brand-600">{formatCurrency(142500)}</div>
-                <div className="text-xs text-slate-500 font-medium">Faturamento recorrente SaaS</div>
+                <div className="text-3xl font-black text-brand-600">{formatCurrency(totalMRR)}</div>
+                <div className="text-xs text-slate-500 font-medium">Planos de assinaturas das lojas</div>
               </div>
 
             </div>

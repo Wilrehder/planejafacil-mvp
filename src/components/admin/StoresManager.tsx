@@ -5,7 +5,7 @@ import { STORE_PLANS } from '../../data/mockData';
 import { Store } from '../../types';
 
 export const StoresManager: React.FC = () => {
-  const { stores, addStore, isStoreModalOpen, setIsStoreModalOpen } = useApp();
+  const { stores, addStore, isStoreModalOpen, setIsStoreModalOpen, leads } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPlanFilter, setSelectedPlanFilter] = useState<string>('todos');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('todos');
@@ -342,7 +342,14 @@ export const StoresManager: React.FC = () => {
 
                         {/* Leads Count */}
                         <td className="py-4 px-6 whitespace-nowrap font-extrabold text-slate-900">
-                          <span className="text-sm text-brand-600">{store.leadsCount}</span> <span className="text-slate-500 font-medium">leads qualificados</span>
+                          {(() => {
+                            const dynamicCount = leads.filter((l) => l.assignedStoreId === store.id || l.assignedStoreName === store.name || (l.city && l.city.toLowerCase().includes(store.city.toLowerCase()))).length;
+                            return (
+                              <>
+                                <span className="text-sm text-emerald-700">{dynamicCount}</span> <span className="text-slate-500 font-medium">leads recebidos</span>
+                              </>
+                            );
+                          })()}
                         </td>
 
                         {/* Status Badge */}
