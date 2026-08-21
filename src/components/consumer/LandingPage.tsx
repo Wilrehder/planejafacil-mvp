@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   ArrowRight, 
   CheckCircle2, 
@@ -16,6 +16,41 @@ import { useApp } from '../../context/AppContext';
 export const LandingPage: React.FC = () => {
   const { setConsumerTab, setIsStoreModalOpen } = useApp();
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+
+  const heroSlides = [
+    {
+      id: 'cozinha',
+      image: '/hero_kitchen.png',
+      tag: 'Cozinha Gourmet de Luxo',
+      title: 'Cozinha Gourmet sob medida em Laca & Madeirado',
+      dims: '4.5m x 2.7m',
+      material: 'MDF Madeirado & Ilha de Quartzo',
+    },
+    {
+      id: 'closet',
+      image: '/hero_closet.png',
+      tag: 'Closet Casal com Vidro Reflecta',
+      title: 'Closet Suíte com Portas de Vidro & Fita LED',
+      dims: '3.8m x 2.8m',
+      material: 'MDF Madeirado & Iluminação LED',
+    },
+    {
+      id: 'living',
+      image: '/hero_living.png',
+      tag: 'Home Theater & Painel Ripado',
+      title: 'Painel de TV Ripado com Balcão Suspenso',
+      dims: '5.2m x 2.7m',
+      material: 'Painel Ripado & Acabamento Matt',
+    },
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlideIndex((prev) => (prev + 1) % heroSlides.length);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, [heroSlides.length]);
 
   const faqItems = [
     {
@@ -99,54 +134,85 @@ export const LandingPage: React.FC = () => {
 
             </div>
 
-            {/* Right Column: Hero Visual Card */}
+            {/* Right Column: Hero Visual Card with Animated Furniture Slideshow (No People) */}
             <div className="lg:col-span-5 relative">
               <div className="relative mx-auto max-w-md lg:max-w-none">
                 
                 {/* Decorative Blur Backing */}
                 <div className="absolute -inset-2 bg-gradient-to-r from-brand-600 to-emerald-500 rounded-3xl blur-xl opacity-20 transform hover:scale-105 transition-transform" />
 
-                {/* Main Card */}
-                <div className="relative rounded-3xl overflow-hidden bg-white shadow-2xl border border-slate-100">
-                  <div className="relative h-72 sm:h-96 w-full overflow-hidden">
-                    <img
-                      src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=1200&q=80"
-                      alt="Cozinha Planejada Sob Medida"
-                      className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-700"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-transparent" />
-                    
-                    {/* Floating Overlay Badge */}
-                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[11px] font-bold text-slate-800 shadow-md flex items-center space-x-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                      <span>Cálculo em Tempo Real</span>
-                    </div>
+                {/* Main Visual Card */}
+                <div className="relative rounded-3xl overflow-hidden bg-slate-900 shadow-2xl border border-slate-800">
+                  
+                  {/* Rotating Image Container */}
+                  <div className="relative h-72 sm:h-96 w-full overflow-hidden select-none">
+                    {heroSlides.map((slide, index) => {
+                      const isActive = index === currentSlideIndex;
+                      return (
+                        <div
+                          key={slide.id}
+                          className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
+                            isActive ? 'opacity-100 z-10 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'
+                          }`}
+                        >
+                          <img
+                            src={slide.image}
+                            alt={slide.title}
+                            className="w-full h-full object-cover transform scale-100 hover:scale-105 transition-transform duration-1000"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent" />
+                          
+                          {/* Live Calculation Tag */}
+                          <div className="absolute top-4 left-4 bg-slate-900/80 backdrop-blur-md px-3 py-1 rounded-full text-[11px] font-bold text-white border border-slate-700/80 shadow-md flex items-center space-x-2">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                            <span className="text-emerald-400">{slide.tag}</span>
+                          </div>
 
-                    <div className="absolute bottom-5 left-5 right-5 text-white space-y-1">
-                      <div className="text-[11px] font-medium text-blue-200 uppercase tracking-wider">Exemplo de Projeto</div>
-                      <div className="text-lg sm:text-xl font-bold">Cozinha Gourmet em Laca & Madeirado</div>
-                      <div className="flex items-center space-x-2 pt-1">
-                        <span className="text-xs sm:text-sm font-semibold text-emerald-400">Estimativa sob medida</span>
-                        <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded text-white">4.5m x 2.7m</span>
-                      </div>
+                          {/* Room Details Overlay */}
+                          <div className="absolute bottom-6 left-5 right-5 text-white space-y-1">
+                            <div className="text-[10px] font-bold text-brand-400 uppercase tracking-widest">Projeto Exemplo • {slide.material}</div>
+                            <div className="text-lg sm:text-xl font-extrabold text-white drop-shadow">{slide.title}</div>
+                            <div className="flex items-center space-x-2 pt-1">
+                              <span className="text-xs sm:text-sm font-bold text-emerald-400">Estimativa Transparente</span>
+                              <span className="text-[10px] bg-slate-800/80 border border-slate-700 px-2 py-0.5 rounded text-slate-200 font-mono">{slide.dims}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Interactive Carousel Indicators (Dots) */}
+                    <div className="absolute bottom-2 right-5 z-20 flex items-center space-x-1.5 bg-slate-950/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-slate-800">
+                      {heroSlides.map((_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setCurrentSlideIndex(idx)}
+                          className={`h-2 rounded-full transition-all duration-300 ${
+                            idx === currentSlideIndex ? 'w-5 bg-brand-500' : 'w-2 bg-slate-600 hover:bg-slate-400'
+                          }`}
+                          aria-label={`Slide ${idx + 1}`}
+                        />
+                      ))}
                     </div>
                   </div>
                   
-                  <div className="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between">
+                  {/* Card Footer Bar */}
+                  <div className="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between border-t border-slate-800">
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
                         <CheckCircle2 className="w-5 h-5" />
                       </div>
                       <div className="text-xs">
-                        <div className="font-semibold">Calculadora Inteligente Ativa</div>
-                        <div className="text-slate-400 text-[11px]">Tabela atualizada por região</div>
+                        <div className="font-semibold text-white">Calculadora Inteligente Ativa</div>
+                        <div className="text-slate-400 text-[11px]">Fotos reais de projetos entregues</div>
                       </div>
                     </div>
                     <button
                       onClick={() => setConsumerTab('simulator')}
-                      className="text-xs font-bold text-emerald-400 hover:text-emerald-300 underline underline-offset-4"
+                      className="text-xs font-bold text-emerald-400 hover:text-emerald-300 underline underline-offset-4 flex items-center space-x-1"
                     >
-                      Testar Agora &rarr;
+                      <span>Testar Agora</span>
+                      <span>&rarr;</span>
                     </button>
                   </div>
 
