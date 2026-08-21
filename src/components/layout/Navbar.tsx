@@ -1,0 +1,159 @@
+import React, { useState } from 'react';
+import { 
+  ChevronDown, 
+  ShieldCheck, 
+  Store, 
+  UserCheck, 
+  Zap 
+} from 'lucide-react';
+import { useApp } from '../../context/AppContext';
+import type { Role } from '../../types';
+
+export const Navbar: React.FC = () => {
+  const { role, setRole, setConsumerTab, consumerTab } = useApp();
+  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
+
+  const handleRoleChange = (newRole: Role) => {
+    setRole(newRole);
+    setIsRoleDropdownOpen(false);
+    if (newRole === 'consumer') {
+      setConsumerTab('landing');
+    }
+  };
+
+  return (
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 transition-all duration-300">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 sm:h-20">
+          
+          {/* Official Brand Logo */}
+          <div className="flex items-center space-x-3 cursor-pointer py-1" onClick={() => handleRoleChange('consumer')}>
+            <img 
+              src="/logo.png" 
+              alt="PlanejaFácil - Móveis Sob Medida" 
+              className="h-10 sm:h-12 w-auto object-contain transition-transform hover:scale-105"
+            />
+          </div>
+
+          {/* Navigation Links for Consumer View (Desktop) */}
+          {role === 'consumer' && (
+            <nav className="hidden lg:flex items-center space-x-8">
+              <button
+                onClick={() => setConsumerTab('landing')}
+                className={`text-sm font-bold transition-colors duration-200 ${
+                  consumerTab === 'landing' ? 'text-brand-600' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Início
+              </button>
+              <button
+                onClick={() => setConsumerTab('simulator')}
+                className={`text-sm font-bold transition-colors duration-200 ${
+                  consumerTab === 'simulator' ? 'text-brand-600' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Simulador
+              </button>
+              <a href="#como-funciona" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">
+                Como Funciona
+              </a>
+              <a href="#beneficios" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">
+                Vantagens
+              </a>
+              <a href="#faq" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">
+                Dúvidas
+              </a>
+            </nav>
+          )}
+
+          {/* Right Section: Role Switcher & Action CTA */}
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            
+            {/* Interactive Role Switcher Dropdown (Investor Demo Feature) */}
+            <div className="relative">
+              <button
+                onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
+                className="flex items-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-slate-100/90 hover:bg-slate-200 border border-slate-200 text-[11px] sm:text-xs font-semibold text-slate-700 transition-all shadow-sm"
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span className="hidden sm:inline">Modo:</span>
+                <span className="text-brand-600 font-bold">
+                  {role === 'consumer' && '👤 Consumidor'}
+                  {role === 'merchant' && '🏬 Lojista'}
+                  {role === 'admin' && '🛡️ Admin'}
+                </span>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+              </button>
+
+              {isRoleDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2.5 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="px-3 py-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">
+                    Alternar Perfis (Demonstração)
+                  </div>
+                  
+                  <button
+                    onClick={() => handleRoleChange('consumer')}
+                    className={`w-full flex items-center space-x-3 px-3.5 py-2.5 text-xs text-left font-medium transition-colors ${
+                      role === 'consumer' ? 'bg-brand-50 text-brand-700 font-bold' : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="p-1.5 rounded-lg bg-blue-100 text-brand-600">
+                      <UserCheck className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="font-semibold">Consumidor (PWA)</div>
+                      <div className="text-[10px] text-slate-400">Landing & Simulador Móvel</div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => handleRoleChange('merchant')}
+                    className={`w-full flex items-center space-x-3 px-3.5 py-2.5 text-xs text-left font-medium transition-colors ${
+                      role === 'merchant' ? 'bg-brand-50 text-brand-700 font-bold' : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="p-1.5 rounded-lg bg-amber-100 text-amber-600">
+                      <Store className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="font-semibold">Lojista Parceiro</div>
+                      <div className="text-[10px] text-slate-400">Portal de Leads e WhatsApp</div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => handleRoleChange('admin')}
+                    className={`w-full flex items-center space-x-3 px-3.5 py-2.5 text-xs text-left font-medium transition-colors ${
+                      role === 'admin' ? 'bg-brand-50 text-brand-700 font-bold' : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="p-1.5 rounded-lg bg-purple-100 text-purple-600">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="font-semibold">Administrador SaaS</div>
+                      <div className="text-[10px] text-slate-400">Dashboard & Mapa do Brasil</div>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Consumer CTA Button (Action Green) */}
+            {role === 'consumer' && (
+              <button
+                onClick={() => setConsumerTab('simulator')}
+                className="flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-xl bg-action-600 hover:bg-action-700 text-white font-extrabold text-[11px] sm:text-xs tracking-wider uppercase transition-all duration-300 shadow-emerald-glow hover:shadow-lg active:scale-95"
+              >
+                <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-white" />
+                <span>Simular</span>
+              </button>
+            )}
+
+          </div>
+
+        </div>
+      </div>
+    </header>
+  );
+};

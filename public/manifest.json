@@ -1,0 +1,17 @@
+{
+  "short_name": "PlanejaFácil",
+  "name": "PlanejaFácil - Móveis Sob Medida",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#F8FAFC",
+  "theme_color": "#2563EB",
+  "display": "standalone",
+  "orientation": "portrait"
+}
