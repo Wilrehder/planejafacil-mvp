@@ -268,7 +268,7 @@ export const MerchantDashboard: React.FC = () => {
 
                     <td className="py-4 px-6">
                       <span className="font-bold text-slate-900">{lead.environment}</span>
-                      <div className="text-[10px] text-slate-400">{lead.dimensions.areaM2.toFixed(1)} m²</div>
+                      {lead.dimensions && <div className="text-[10px] text-slate-400">{lead.dimensions.areaM2.toFixed(1)} m²</div>}
                     </td>
 
                     <td className="py-4 px-6 whitespace-nowrap font-bold text-emerald-600">

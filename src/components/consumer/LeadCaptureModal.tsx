@@ -19,7 +19,7 @@ export const LeadCaptureModal: React.FC = () => {
     phone: '(11) 99123-4567',
     whatsapp: '(11) 99123-4567',
     email: 'ana.mendes@email.com',
-    city: simulator.location.city || 'São Paulo',
+    city: simulator.clientInfo?.city || 'São Paulo',
   });
 
   const [isSuccess, setIsSuccess] = useState(false);
@@ -30,12 +30,7 @@ export const LeadCaptureModal: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const env = ENVIRONMENTS.find((ev) => ev.id === simulator.environmentId) || ENVIRONMENTS[0];
-    const finish = FINISHES.find((f) => f.id === simulator.finishId) || FINISHES[0];
-    const hardware = HARDWARE_OPTIONS.find((h) => h.id === simulator.hardwareId) || HARDWARE_OPTIONS[0];
-    const layout = LAYOUT_OPTIONS.find((l) => l.id === simulator.layoutTypeId) || LAYOUT_OPTIONS[0];
-    const doorType = DOOR_TYPE_OPTIONS.find((d) => d.id === simulator.doorTypeId) || DOOR_TYPE_OPTIONS[0];
-    const selectedMods = FURNITURE_MODULES.filter((m) => (simulator.selectedFurnitureModuleIds || []).includes(m.id)).map((m) => m.title);
+    const envSummaryStr = simulator.environments.map((env) => `${env.name} (${env.areaM2}m²)`).join(', ');
 
     const newLead = addLead({
       name: formData.name,
@@ -43,21 +38,10 @@ export const LeadCaptureModal: React.FC = () => {
       whatsapp: formData.whatsapp.replace(/\D/g, ''),
       email: formData.email,
       city: formData.city,
-      state: simulator.location.state || 'SP',
-      cep: simulator.location.cep || '04538-133',
-      environment: env.title,
-      furnitureModules: selectedMods,
-      layoutType: layout.title,
-      doorType: doorType.title,
-      dimensions: {
-        length: simulator.dimensions.length,
-        height: simulator.dimensions.height,
-        width: simulator.dimensions.width,
-        areaM2: simulator.dimensions.length * simulator.dimensions.height,
-      },
-      finishPattern: finish.title,
-      hardwareLevel: hardware.title,
-      additionalItems: simulator.additionalItemIds,
+      state: simulator.clientInfo.state || 'SP',
+      cep: simulator.clientInfo.cep || '04538-133',
+      environment: envSummaryStr || 'Cozinha Principal',
+      environmentsData: simulator.environments,
       estimatedMin: simulator.calculatedRange.min,
       estimatedMax: simulator.calculatedRange.max,
     });

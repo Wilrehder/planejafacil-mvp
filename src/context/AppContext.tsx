@@ -1,7 +1,20 @@
 import React, { createContext, useContext, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { ADDITIONAL_ITEMS, CORTECLOUD_MODULE_TEMPLATES, DOOR_TYPE_OPTIONS, ENVIRONMENTS, FINISHES, FURNITURE_MODULES, HARDWARE_OPTIONS, INITIAL_LEADS, INITIAL_STORES, LAYOUT_OPTIONS, ModuleTemplate } from '../data/mockData';
-import { AdminTab, Lead, LeadStatus, MerchantTab, PlacedModule, Role, SimulatorState, Store, WallAssignments, WallDimensions } from '../types';
+import { INITIAL_LEADS, INITIAL_STORES, QUALITY_TIERS } from '../data/mockData';
+import { 
+  AdminTab, 
+  ConfiguredEnvironment, 
+  EnvironmentTypeId, 
+  Lead, 
+  LeadStatus, 
+  MerchantTab, 
+  PlacedModule, 
+  Role, 
+  SimulatorState, 
+  Store, 
+  WallConfig, 
+  WallId 
+} from '../types';
 
 interface AppContextType {
   role: Role;
@@ -20,13 +33,13 @@ interface AppContextType {
   updateLeadStatus: (id: string, status: LeadStatus) => void;
   addStore: (newStore: Omit<Store, 'id' | 'leadsCount'>) => void;
 
-  // Simulator & Cortecloud 3D Studio
+  // Multi-Environment Simulator
   simulator: SimulatorState;
   updateSimulator: (updates: Partial<SimulatorState>) => void;
-  setModuleDimension: (moduleId: string, dimensionMeters: number) => void;
-  addPlacedModule: (template: ModuleTemplate, wall?: 'wallA' | 'wallB' | 'wallC') => void;
-  removePlacedModule: (id: string) => void;
-  updatePlacedModuleWidth: (id: string, widthMm: number) => void;
+  addEnvironment: (typeId: EnvironmentTypeId, name: string, areaM2: number, wallCount: 1 | 2 | 3 | 4) => ConfiguredEnvironment;
+  updateEnvironment: (envId: string, updates: Partial<ConfiguredEnvironment>) => void;
+  removeEnvironment: (envId: string) => void;
+  updateEnvironmentWall: (envId: string, wallId: WallId, wallData: Partial<WallConfig>) => void;
   resetSimulator: () => void;
   calculateEstimate: () => { min: number; max: number };
   
@@ -44,48 +57,54 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const initialPlacedModules: PlacedModule[] = [
-  { id: 'mod-1', moduleId: 'torre_quente', title: 'Torre Quente (Forno & Micro-ondas)', category: 'torre', wall: 'wallA', widthMm: 600, heightMm: 2200, depthMm: 600 },
-  { id: 'mod-2', moduleId: 'balcao_pia', title: 'Balcão Inferior da Pia (2 Portas)', category: 'base', wall: 'wallB', widthMm: 1200, heightMm: 720, depthMm: 600, doorsCount: 2 },
-  { id: 'mod-3', moduleId: 'aereo_vidro', title: 'Aéreo Basculante com Vidro Reflecta', category: 'aereo', wall: 'wallB', widthMm: 900, heightMm: 400, depthMm: 350, hasGlass: true },
-  { id: 'mod-4', moduleId: 'gaveteiro_base', title: 'Gaveteiro Inferior 3 Gavetas', category: 'base', wall: 'wallC', widthMm: 600, heightMm: 720, depthMm: 600, drawersCount: 3 },
-  { id: 'mod-5', moduleId: 'aereo_2portas', title: 'Armário Aéreo Superior (2 Portas)', category: 'aereo', wall: 'wallC', widthMm: 800, heightMm: 720, depthMm: 350, doorsCount: 2 },
-];
+const initialEnvironment: ConfiguredEnvironment = {
+  id: 'env-cozinha-1',
+  typeId: 'cozinha',
+  name: 'Cozinha Principal',
+  areaM2: 12,
+  wallCount: 3,
+  walls: [
+    {
+      id: 'wallA',
+      label: 'Parede A',
+      length: 2.5,
+      selectedFurnitureTypes: ['armario_inferior', 'armario_teto'],
+      selectedSpecificItems: ['torre_quente', 'espaco_geladeira'],
+    },
+    {
+      id: 'wallB',
+      label: 'Parede B',
+      length: 3.5,
+      selectedFurnitureTypes: ['armario_inferior', 'armario_aereo'],
+      selectedSpecificItems: ['espaco_microondas'],
+    },
+    {
+      id: 'wallC',
+      label: 'Parede C',
+      length: 2.0,
+      selectedFurnitureTypes: ['armario_inferior', 'prateleiras'],
+      selectedSpecificItems: ['ilha'],
+    },
+  ],
+};
 
 const initialSimulatorState: SimulatorState = {
   step: 1,
-  environmentId: 'cozinha',
-  selectedFurnitureModuleIds: ['cozinha_balcao', 'cozinha_aereos', 'cozinha_torre'],
-  placedModules: initialPlacedModules,
-  wallDimensions: {
-    wallA: 2.2, // Parede Esquerda
-    wallB: 3.5, // Parede Fundo
-    wallC: 2.0, // Parede Direita
-    height: 2.7, // Pé-direito
-  },
-  wallAssignments: {
-    wallAModules: ['torre_quente', 'paneleiro'],
-    wallBModules: ['balcao_pia', 'aereo_vidro'],
-    wallCModules: ['gaveteiro_base', 'aereo_2portas'],
-  },
-  layoutTypeId: 'em_u',
-  doorTypeId: 'giro_soft',
-  dimensions: {
-    length: 3.5,
-    height: 2.7,
-    width: 3.0,
-  },
-  finishId: 'mdf_branco',
-  hardwareId: 'intermediaria',
-  additionalItemIds: ['led', 'vidro'],
-  location: {
-    cep: '04538-133',
+  currentEditingEnvId: 'env-cozinha-1',
+  environments: [initialEnvironment],
+  qualityTierId: 'intermediario',
+  finishTypeId: 'madeirado',
+  purchaseTimelineId: 'ate_3_meses',
+  clientInfo: {
+    name: '',
+    phone: '',
+    email: '',
+    cep: '',
     city: 'São Paulo',
-    state: 'SP',
   },
   calculatedRange: {
-    min: 24800,
-    max: 31900,
+    min: 18500,
+    max: 23800,
   },
 };
 
@@ -104,50 +123,84 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
 
   const updateSimulator = (updates: Partial<SimulatorState>) => {
+    setSimulator((prev) => ({ ...prev, ...updates }));
+  };
+
+  const addEnvironment = (
+    typeId: EnvironmentTypeId,
+    name: string,
+    areaM2: number,
+    wallCount: 1 | 2 | 3 | 4
+  ): ConfiguredEnvironment => {
+    const wallLabels: Record<WallId, string> = {
+      wallA: 'Parede A',
+      wallB: 'Parede B',
+      wallC: 'Parede C',
+      wallD: 'Parede D',
+    };
+
+    const wallKeys: WallId[] = ['wallA', 'wallB', 'wallC', 'wallD'];
+    const selectedKeys = wallKeys.slice(0, wallCount);
+
+    const defaultWallLength = Math.max(1.5, Math.round((Math.sqrt(areaM2) / (wallCount > 2 ? 1.2 : 1)) * 10) / 10);
+
+    const wallsConfig: WallConfig[] = selectedKeys.map((wKey) => ({
+      id: wKey,
+      label: wallLabels[wKey],
+      length: defaultWallLength,
+      selectedFurnitureTypes: ['armario_inferior', 'armario_aereo'],
+      selectedSpecificItems: [],
+    }));
+
+    const newEnv: ConfiguredEnvironment = {
+      id: `env-${Date.now()}`,
+      typeId,
+      name: name || (typeId === 'cozinha' ? 'Cozinha Principal' : 'Ambiente'),
+      areaM2: areaM2 || 10,
+      wallCount,
+      walls: wallsConfig,
+    };
+
+    setSimulator((prev) => ({
+      ...prev,
+      environments: [...prev.environments, newEnv],
+      currentEditingEnvId: newEnv.id,
+      step: 2, // Avança para editar as informações/paredes do novo ambiente
+    }));
+
+    return newEnv;
+  };
+
+  const updateEnvironment = (envId: string, updates: Partial<ConfiguredEnvironment>) => {
+    setSimulator((prev) => ({
+      ...prev,
+      environments: prev.environments.map((env) =>
+        env.id === envId ? { ...env, ...updates } : env
+      ),
+    }));
+  };
+
+  const removeEnvironment = (envId: string) => {
     setSimulator((prev) => {
-      const next = { ...prev, ...updates };
-      return next;
+      const filtered = prev.environments.filter((e) => e.id !== envId);
+      return {
+        ...prev,
+        environments: filtered,
+        currentEditingEnvId: filtered.length > 0 ? filtered[0].id : null,
+      };
     });
   };
 
-  const setModuleDimension = (moduleId: string, dimensionMeters: number) => {
+  const updateEnvironmentWall = (envId: string, wallId: WallId, wallData: Partial<WallConfig>) => {
     setSimulator((prev) => ({
       ...prev,
-      moduleCustomDimensions: {
-        ...(prev.moduleCustomDimensions || {}),
-        [moduleId]: dimensionMeters,
-      },
-    }));
-  };
-
-  const addPlacedModule = (template: ModuleTemplate, wall: 'wallA' | 'wallB' | 'wallC' = 'wallB') => {
-    const newMod: PlacedModule = {
-      id: `mod-${Date.now()}`,
-      moduleId: template.templateId,
-      title: template.title,
-      category: template.category,
-      wall: wall,
-      widthMm: template.defaultWidthMm,
-      heightMm: template.defaultHeightMm,
-      depthMm: template.defaultDepthMm,
-    };
-    setSimulator((prev) => ({
-      ...prev,
-      placedModules: [...(prev.placedModules || []), newMod],
-    }));
-  };
-
-  const removePlacedModule = (id: string) => {
-    setSimulator((prev) => ({
-      ...prev,
-      placedModules: (prev.placedModules || []).filter((m) => m.id !== id),
-    }));
-  };
-
-  const updatePlacedModuleWidth = (id: string, widthMm: number) => {
-    setSimulator((prev) => ({
-      ...prev,
-      placedModules: (prev.placedModules || []).map((m) => (m.id === id ? { ...m, widthMm } : m)),
+      environments: prev.environments.map((env) => {
+        if (env.id !== envId) return env;
+        return {
+          ...env,
+          walls: env.walls.map((w) => (w.id === wallId ? { ...w, ...wallData } : w)),
+        };
+      }),
     }));
   };
 
@@ -156,50 +209,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const calculateEstimate = () => {
-    const env = ENVIRONMENTS.find((e) => e.id === simulator.environmentId) || ENVIRONMENTS[0];
-    const finish = FINISHES.find((f) => f.id === simulator.finishId) || FINISHES[0];
-    const hardware = HARDWARE_OPTIONS.find((h) => h.id === simulator.hardwareId) || HARDWARE_OPTIONS[0];
-    const layout = LAYOUT_OPTIONS.find((l) => l.id === simulator.layoutTypeId) || LAYOUT_OPTIONS[0];
-    const doorType = DOOR_TYPE_OPTIONS.find((d) => d.id === simulator.doorTypeId) || DOOR_TYPE_OPTIONS[0];
-
-    const areaM2 = simulator.dimensions.length * simulator.dimensions.height;
-    const baseM2Price = 1450; // Taxa média de marcenaria sob medida por m²
-
-    // Multiplicador do conjunto de módulos selecionados
-    let modulesMultiplier = 1.0;
-    if (simulator.selectedFurnitureModuleIds && simulator.selectedFurnitureModuleIds.length > 0) {
-      const selectedMods = FURNITURE_MODULES.filter((m) => simulator.selectedFurnitureModuleIds.includes(m.id));
-      if (selectedMods.length > 0) {
-        modulesMultiplier = selectedMods.reduce((acc, m) => acc + (m.extraMultiplier * 0.18), 0.7);
-      }
+    if (!simulator.environments || simulator.environments.length === 0) {
+      const fallbackRange = { min: 6500, max: 9200 };
+      setSimulator((prev) => ({ ...prev, calculatedRange: fallbackRange }));
+      return fallbackRange;
     }
 
-    let rawCost = areaM2 * baseM2Price * env.baseMultiplier * layout.multiplier * doorType.multiplier * finish.multiplier * hardware.multiplier * modulesMultiplier;
+    const tierObj = QUALITY_TIERS.find((t) => t.id === simulator.qualityTierId) || QUALITY_TIERS[1];
+    const tierMultiplier = tierObj.multiplier;
+    const baseLinearMeterPrice = 2400; // R$ 2.400 / metro linear base
 
-    // Se o cliente definiu a medida de cada peça individualmente, calcula com precisão por peça
-    if (simulator.moduleCustomDimensions && Object.keys(simulator.moduleCustomDimensions).length > 0) {
-      let customPiecesTotalLinearM = 0;
-      Object.entries(simulator.moduleCustomDimensions).forEach(([mId, lenM]) => {
-        const len = typeof lenM === 'number' ? lenM : parseFloat(String(lenM)) || 0;
-        if (simulator.selectedFurnitureModuleIds.includes(mId) && len > 0) {
-          customPiecesTotalLinearM += len;
-        }
+    let totalRawCost = 0;
+
+    simulator.environments.forEach((env) => {
+      let envTotalLinearM = 0;
+      let totalItemsCount = 0;
+
+      env.walls.forEach((wall) => {
+        const wallM = wall.length > 0 ? wall.length : 2.5;
+        envTotalLinearM += wallM;
+
+        const furnCount = wall.selectedFurnitureTypes ? wall.selectedFurnitureTypes.length : 1;
+        const specificCount = wall.selectedSpecificItems ? wall.selectedSpecificItems.length : 0;
+        totalItemsCount += furnCount + specificCount;
       });
-      if (customPiecesTotalLinearM > 0) {
-        rawCost = customPiecesTotalLinearM * simulator.dimensions.height * baseM2Price * env.baseMultiplier * layout.multiplier * doorType.multiplier * finish.multiplier * hardware.multiplier;
-      }
-    }
 
-    // Adiciona custo de itens adicionais selecionados (Fita LED, Vidro Reflecta, etc.)
-    simulator.additionalItemIds.forEach((itemId) => {
-      const item = ADDITIONAL_ITEMS.find((i) => i.id === itemId);
-      if (item) {
-        rawCost += item.extraCost;
+      // Se o comprimento total for 0, estima pelo m²
+      if (envTotalLinearM <= 0) {
+        envTotalLinearM = Math.sqrt(env.areaM2) * 2;
       }
+
+      const itemComplexityMultiplier = 1 + (totalItemsCount * 0.04);
+      const envCost = envTotalLinearM * baseLinearMeterPrice * tierMultiplier * itemComplexityMultiplier;
+      totalRawCost += envCost;
     });
 
-    const min = Math.round((rawCost * 0.92) / 100) * 100;
-    const max = Math.round((rawCost * 1.18) / 100) * 100;
+    const min = Math.round((totalRawCost * 0.9) / 100) * 100;
+    const max = Math.round((totalRawCost * 1.18) / 100) * 100;
 
     const range = { min, max };
     setSimulator((prev) => ({ ...prev, calculatedRange: range }));
@@ -207,7 +253,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addLead = (leadData: Omit<Lead, 'id' | 'createdAt' | 'assignedStoreId' | 'assignedStoreName' | 'status'>): Lead => {
-    // Pick store based on city or state
     const matchedStore = stores.find((s) => s.state === leadData.state) || stores[0];
 
     const newLead: Lead = {
@@ -221,7 +266,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setLeads((prev) => [newLead, ...prev]);
 
-    // Update store leads count
     setStores((prev) =>
       prev.map((s) => (s.id === matchedStore.id ? { ...s, leadsCount: s.leadsCount + 1 } : s))
     );
@@ -278,10 +322,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addStore,
         simulator,
         updateSimulator,
-        setModuleDimension,
-        addPlacedModule,
-        removePlacedModule,
-        updatePlacedModuleWidth,
+        addEnvironment,
+        updateEnvironment,
+        removeEnvironment,
+        updateEnvironmentWall,
         resetSimulator,
         calculateEstimate,
         isLeadCaptureOpen,

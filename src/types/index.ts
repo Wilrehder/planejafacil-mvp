@@ -1,34 +1,54 @@
 export type Role = 'consumer' | 'merchant' | 'admin';
 
-export interface AdditionalItemOption {
-  id: string;
-  title: string;
-  description: string;
-  extraCost: number;
+export type EnvironmentTypeId = 
+  | 'cozinha'
+  | 'sala'
+  | 'quarto'
+  | 'closet'
+  | 'office'
+  | 'banheiro'
+  | 'lavanderia'
+  | 'gourmet'
+  | 'painel'
+  | 'outro';
+
+export type WallId = 'wallA' | 'wallB' | 'wallC' | 'wallD';
+
+export interface WallConfig {
+  id: WallId;
+  label: string; // 'Parede A', 'Parede B', etc.
+  length: number; // em metros (ex: 3.5m)
+  selectedFurnitureTypes: string[]; // ex: ['armario_inferior', 'armario_aereo']
+  selectedSpecificItems: string[]; // ex: ['torre_quente', 'ilha']
 }
 
+export interface ConfiguredEnvironment {
+  id: string; // ex: 'env-171283921'
+  typeId: EnvironmentTypeId;
+  name: string; // ex: 'Cozinha Principal', 'Quarto Casal'
+  areaM2: number;
+  wallCount: 1 | 2 | 3 | 4;
+  walls: WallConfig[];
+}
+
+export type QualityTierId = 'economico' | 'intermediario' | 'premium' | 'alto_padrao';
+export type FinishTypeId = 'branco' | 'madeirado' | 'colorido' | 'laca' | 'nao_sei';
+export type PurchaseTimelineId = 'imediatamente' | 'ate_3_meses' | 'entre_3_6_meses' | 'pesquisando';
+
 export interface SimulatorState {
-  step: number;
-  environmentId: string;
-  selectedFurnitureModuleIds: string[];
-  moduleCustomDimensions?: Record<string, number>; // ex: { 'cozinha_balcao': 1.4, 'cozinha_torre': 0.6 }
-  placedModules: PlacedModule[];
-  wallDimensions?: WallDimensions;
-  wallAssignments?: WallAssignments;
-  layoutTypeId: 'reta' | 'em_l' | 'em_u' | 'com_ilha';
-  doorTypeId: string;
-  dimensions: {
-    length: number; // meters
-    height: number; // meters
-    width: number;  // meters
-  };
-  finishId: string;
-  hardwareId: string;
-  additionalItemIds: string[];
-  location: {
+  step: number; // 1: Lista/Seleção de Ambientes, 2: Info do Ambiente Atual, 3: Configuração das Paredes, 4: Padrão/Acabamento/Cliente, 5: Orçamento Final
+  currentEditingEnvId: string | null;
+  environments: ConfiguredEnvironment[];
+  qualityTierId: QualityTierId;
+  finishTypeId: FinishTypeId;
+  purchaseTimelineId: PurchaseTimelineId;
+  clientInfo: {
+    name: string;
+    phone: string;
+    email: string;
     cep: string;
     city: string;
-    state: string;
+    state?: string;
   };
   calculatedRange: {
     min: number;
@@ -38,7 +58,6 @@ export interface SimulatorState {
 
 export type AdminTab = 'dashboard' | 'leads' | 'stores' | 'regions' | 'reports' | 'financial' | 'settings';
 export type MerchantTab = 'dashboard' | 'leads' | 'settings';
-
 export type LeadStatus = 'novo' | 'em_atendimento' | 'orcado' | 'convertido' | 'perdido';
 
 export interface Lead {
@@ -50,19 +69,22 @@ export interface Lead {
   city: string;
   state: string;
   cep: string;
-  environment: string;
+  environment: string; // ex: "Cozinha (3.5m²), Quarto Casal (12m²)"
+  qualityTier?: string;
+  finishPattern?: string;
+  hardwareLevel?: string;
+  purchaseTimeline?: string;
+  additionalItems?: string[];
   furnitureModules?: string[];
   layoutType?: string;
   doorType?: string;
-  dimensions: {
+  dimensions?: {
     length: number;
     height: number;
     width: number;
     areaM2: number;
   };
-  finishPattern: string;
-  hardwareLevel: string;
-  additionalItems: string[];
+  environmentsData?: ConfiguredEnvironment[];
   estimatedMin: number;
   estimatedMax: number;
   assignedStoreId: string;
@@ -106,6 +128,14 @@ export interface RegionStat {
   leadsCount: number;
   storesCount: number;
   totalVolume: number;
+}
+
+// Intermediary Legacy Types for Catalog Support
+export interface AdditionalItemOption {
+  id: string;
+  title: string;
+  description: string;
+  extraCost: number;
 }
 
 export interface FurnitureModuleOption {
@@ -154,31 +184,29 @@ export interface HardwareOption {
   brand: string;
 }
 
-export interface WallDimensions {
-  wallA: number; // Parede A / Esquerda (em metros, ex: 2.2)
-  wallB: number; // Parede B / Fundo (em metros, ex: 3.5)
-  wallC: number; // Parede C / Direita (em metros, ex: 2.0)
-  height: number; // Pé-direito piso ao teto (em metros, ex: 2.7)
-}
-
-export interface WallAssignments {
-  wallAModules: string[]; // Módulos na Parede A (ex: torre_quente, paneleiro)
-  wallBModules: string[]; // Módulos na Parede B (ex: balcao_pia, aereos)
-  wallCModules: string[]; // Módulos na Parede C (ex: cooktop, gaveteiro)
-}
-
 export interface PlacedModule {
   id: string;
   moduleId: string;
   title: string;
   category: 'base' | 'aereo' | 'torre' | 'ilha' | 'painel' | 'closet';
   wall?: 'wallA' | 'wallB' | 'wallC';
-  widthMm: number;  // em milímetros (ex: 800mm)
-  heightMm: number; // em milímetros (ex: 720mm)
-  depthMm: number;  // em milímetros (ex: 600mm)
+  widthMm: number;
+  heightMm: number;
+  depthMm: number;
   drawersCount?: number;
   doorsCount?: number;
   hasGlass?: boolean;
 }
 
+export interface WallDimensions {
+  wallA: number;
+  wallB: number;
+  wallC: number;
+  height: number;
+}
 
+export interface WallAssignments {
+  wallAModules: string[];
+  wallBModules: string[];
+  wallCModules: string[];
+}

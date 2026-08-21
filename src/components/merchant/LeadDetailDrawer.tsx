@@ -35,7 +35,7 @@ export const LeadDetailDrawer: React.FC = () => {
   };
 
   const whatsappMessage = encodeURIComponent(
-    `Olá ${lead.name}! Sou especialista da loja parceira Planeja Fácil. Recebi sua solicitação de orçamento para a ${lead.environment} (${lead.dimensions.areaM2.toFixed(1)}m²). Podemos agendar uma apresentação do projeto 3D?`
+    `Olá ${lead.name}! Sou especialista da loja parceira PlanejaFácil. Recebi sua solicitação de orçamento para os ambientes: ${lead.environment}. Podemos agendar uma apresentação do projeto 3D?`
   );
 
   return (
@@ -149,44 +149,30 @@ export const LeadDetailDrawer: React.FC = () => {
             <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4 text-xs">
               
               <div className="flex justify-between items-center pb-3 border-b border-slate-100">
-                <span className="text-slate-500 font-semibold">Ambiente:</span>
+                <span className="text-slate-500 font-semibold">Ambientes:</span>
                 <span className="font-extrabold text-slate-900 text-sm">{lead.environment}</span>
               </div>
 
-              {lead.layoutType && (
-                <div className="flex justify-between items-center pb-3 border-b border-slate-100">
-                  <span className="text-slate-500 font-semibold">Formato/Layout:</span>
-                  <span className="font-bold text-slate-900">{lead.layoutType}</span>
-                </div>
-              )}
-
-              {lead.furnitureModules && lead.furnitureModules.length > 0 && (
-                <div className="pb-3 border-b border-slate-100 space-y-1">
-                  <span className="text-slate-500 font-semibold block">Módulos & Peças Escolhidas:</span>
-                  <div className="flex flex-wrap gap-1">
-                    {lead.furnitureModules.map((mod: string, i: number) => (
-                      <span key={i} className="px-2 py-0.5 bg-brand-50 text-brand-700 font-bold text-[11px] rounded border border-brand-200">
-                        {mod}
-                      </span>
+              {lead.environmentsData && lead.environmentsData.length > 0 && (
+                <div className="pb-3 border-b border-slate-100 space-y-2">
+                  <span className="text-slate-500 font-semibold block">Detalhamento dos Cômodos:</span>
+                  <div className="space-y-2">
+                    {lead.environmentsData.map((env, idx) => (
+                      <div key={idx} className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px] space-y-1">
+                        <div className="font-bold text-slate-900 flex justify-between">
+                          <span>{env.name}</span>
+                          <span className="text-emerald-700 font-mono">{env.areaM2} m² • {env.wallCount} Paredes</span>
+                        </div>
+                        {env.walls.map((w) => (
+                          <div key={w.id} className="text-slate-600 text-[10px]">
+                            {w.label} ({w.length}m): {w.selectedFurnitureTypes.length} móveis, {w.selectedSpecificItems.length} itens específicos
+                          </div>
+                        ))}
+                      </div>
                     ))}
                   </div>
                 </div>
               )}
-
-              {lead.doorType && (
-                <div className="flex justify-between items-center pb-3 border-b border-slate-100">
-                  <span className="text-slate-500 font-semibold">Tipo de Abertura / Portas:</span>
-                  <span className="font-bold text-slate-900">{lead.doorType}</span>
-                </div>
-              )}
-
-              <div className="flex justify-between items-center pb-3 border-b border-slate-100">
-                <span className="text-slate-500 font-semibold">Medidas Estimadas:</span>
-                <span className="font-bold text-slate-900">
-                  {lead.dimensions.length}m (comp) x {lead.dimensions.height}m (alt) x {lead.dimensions.width}m (larg) —{' '}
-                  <strong className="text-brand-600">{lead.dimensions.areaM2.toFixed(1)} m²</strong>
-                </span>
-              </div>
 
               <div className="flex justify-between items-center pb-3 border-b border-slate-100">
                 <span className="text-slate-500 font-semibold">Padrão de Acabamento:</span>
@@ -198,21 +184,19 @@ export const LeadDetailDrawer: React.FC = () => {
                 <span className="font-bold text-slate-900">{lead.hardwareLevel}</span>
               </div>
 
-              <div>
-                <span className="text-slate-500 font-semibold block mb-2">Itens Adicionais Selecionados:</span>
-                {lead.additionalItems.length === 0 ? (
-                  <span className="text-slate-400 italic">Nenhum opcional selecionado</span>
-                ) : (
+              {lead.additionalItems && lead.additionalItems.length > 0 && (
+                <div>
+                  <span className="text-slate-500 font-semibold block mb-2">Itens Adicionais Selecionados:</span>
                   <div className="space-y-1">
-                    {lead.additionalItems.map((item, i) => (
+                    {lead.additionalItems.map((item: string, i: number) => (
                       <div key={i} className="font-bold text-slate-800 flex items-center space-x-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                         <span>{item}</span>
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
             </div>
           </div>

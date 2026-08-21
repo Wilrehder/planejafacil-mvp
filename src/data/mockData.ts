@@ -27,6 +27,150 @@ export const LAYOUT_OPTIONS: LayoutOption[] = [
   },
 ];
 
+// Novas Estruturas para o Simulador Multi-Ambientes
+export interface EnvironmentTypeItem {
+  id: string; // ex: 'cozinha'
+  title: string;
+  subtitle: string;
+  iconName: string;
+}
+
+export const ENVIRONMENT_CATALOG: EnvironmentTypeItem[] = [
+  { id: 'cozinha', title: 'Cozinha', subtitle: 'Armários, torre quente e ilha', iconName: 'ChefHat' },
+  { id: 'sala', title: 'Sala de Estar', subtitle: 'Painéis, racks e estantes', iconName: 'Sofa' },
+  { id: 'quarto', title: 'Dormitório / Quarto', subtitle: 'Guarda-roupas e cabeceiras', iconName: 'Bed' },
+  { id: 'closet', title: 'Closet', subtitle: 'Módulos abertos e gaveteiros', iconName: 'Shirt' },
+  { id: 'office', title: 'Home Office', subtitle: 'Bancadas e estantes para trabalho', iconName: 'Laptop' },
+  { id: 'banheiro', title: 'Banheiro', subtitle: 'Gabinetes e espelheiras', iconName: 'Bath' },
+  { id: 'lavanderia', title: 'Lavanderia', subtitle: 'Armários e espaço lavadora', iconName: 'WashingMachine' },
+  { id: 'gourmet', title: 'Área Gourmet', subtitle: 'Bancada, churrasqueira e adega', iconName: 'Flame' },
+  { id: 'painel', title: 'Painel de TV', subtitle: 'Painel ripado e rack suspenso', iconName: 'Tv' },
+  { id: 'outro', title: 'Outro Ambiente', subtitle: 'Móveis sob medida personalizados', iconName: 'Box' },
+];
+
+export const GENERAL_WALL_FURNITURE = [
+  { id: 'armario_inferior', title: 'Armário Inferior', desc: 'Balcão de base no piso' },
+  { id: 'armario_aereo', title: 'Armário Aéreo', desc: 'Módulos suspensos na parede' },
+  { id: 'armario_teto', title: 'Armário até o Teto', desc: 'Fechamento vertical completo' },
+  { id: 'nichos', title: 'Nichos Decorativos', desc: 'Aberturas abertas organizadoras' },
+  { id: 'prateleiras', title: 'Prateleiras Flutuantes', desc: 'Prateleiras encorpadas fixas' },
+  { id: 'painel', title: 'Painel de Madeira', desc: 'Revestimento de parede/ripado' },
+];
+
+export const ENVIRONMENT_SPECIFIC_ITEMS_MAP: Record<string, { id: string; title: string }[]> = {
+  cozinha: [
+    { id: 'torre_quente', title: 'Torre quente' },
+    { id: 'ilha', title: 'Ilha' },
+    { id: 'peninsula', title: 'Península' },
+    { id: 'cristaleira', title: 'Cristaleira' },
+    { id: 'adega', title: 'Adega' },
+    { id: 'despensa', title: 'Despensa' },
+    { id: 'espaco_geladeira', title: 'Espaço para geladeira' },
+    { id: 'espaco_lavaloucas', title: 'Espaço para lava-louças' },
+    { id: 'espaco_microondas', title: 'Espaço para micro-ondas' },
+    { id: 'coifa', title: 'Coifa' },
+  ],
+  quarto: [
+    { id: 'guarda_roupa', title: 'Guarda-roupa' },
+    { id: 'cabeceira', title: 'Cabeceira' },
+    { id: 'painel_tv', title: 'Painel de TV' },
+    { id: 'criado_mudo', title: 'Criado-mudo' },
+    { id: 'penteadeira', title: 'Penteadeira' },
+    { id: 'maleiro', title: 'Maleiro' },
+    { id: 'sapateira', title: 'Sapateira' },
+    { id: 'nichos_quarto', title: 'Nichos' },
+  ],
+  closet: [
+    { id: 'cabideiros', title: 'Cabideiros' },
+    { id: 'gaveteiros', title: 'Gaveteiros' },
+    { id: 'sapateira_closet', title: 'Sapateira' },
+    { id: 'nichos_closet', title: 'Nichos' },
+    { id: 'prateleiras_closet', title: 'Prateleiras' },
+    { id: 'ilha_central', title: 'Ilha central' },
+    { id: 'espelho', title: 'Espelho' },
+    { id: 'banco', title: 'Banco' },
+  ],
+  sala: [
+    { id: 'painel_tv_sala', title: 'Painel de TV' },
+    { id: 'rack', title: 'Rack' },
+    { id: 'estante', title: 'Estante' },
+    { id: 'aparador', title: 'Aparador' },
+    { id: 'cristaleira_sala', title: 'Cristaleira' },
+    { id: 'bar', title: 'Bar' },
+  ],
+  office: [
+    { id: 'mesa', title: 'Mesa' },
+    { id: 'gaveteiro_office', title: 'Gaveteiro' },
+    { id: 'estante_office', title: 'Estante' },
+    { id: 'armario_superior', title: 'Armário superior' },
+    { id: 'armario_inferior_office', title: 'Armário inferior' },
+    { id: 'nichos_office', title: 'Nichos' },
+    { id: 'torre_documentos', title: 'Torre para documentos' },
+  ],
+  banheiro: [
+    { id: 'gabinete', title: 'Gabinete' },
+    { id: 'espelheira', title: 'Espelheira' },
+    { id: 'armario_superior_banheiro', title: 'Armário superior' },
+    { id: 'nichos_banheiro', title: 'Nichos' },
+    { id: 'torre_lateral', title: 'Torre lateral' },
+  ],
+  lavanderia: [
+    { id: 'armario_inferior_lav', title: 'Armário inferior' },
+    { id: 'armario_superior_lav', title: 'Armário superior' },
+    { id: 'torre_lav', title: 'Torre' },
+    { id: 'bancada_lav', title: 'Bancada' },
+    { id: 'vassoureiro', title: 'Vassoureiro' },
+    { id: 'espaco_maquina', title: 'Espaço para máquina' },
+    { id: 'espaco_secadora', title: 'Espaço para secadora' },
+    { id: 'tanque', title: 'Tanque' },
+  ],
+  gourmet: [
+    { id: 'bancada_gourmet', title: 'Bancada' },
+    { id: 'armarios_inferiores_g', title: 'Armários inferiores' },
+    { id: 'armarios_superiores_g', title: 'Armários superiores' },
+    { id: 'churrasqueira', title: 'Churrasqueira' },
+    { id: 'chopeira', title: 'Chopeira' },
+    { id: 'adega_gourmet', title: 'Adega' },
+    { id: 'cervejeira', title: 'Cervejeira' },
+    { id: 'cooktop_gourmet', title: 'Cooktop' },
+    { id: 'forno_gourmet', title: 'Forno' },
+    { id: 'painel_gourmet', title: 'Painel' },
+  ],
+  painel: [
+    { id: 'painel_tv_unico', title: 'Painel de TV' },
+    { id: 'rack_suspenso', title: 'Rack Suspenso' },
+    { id: 'fita_led', title: 'Iluminação Fita LED' },
+    { id: 'nicho_equipamento', title: 'Nicho para Equipamentos' },
+  ],
+  outro: [
+    { id: 'armario_generico', title: 'Armário sob medida' },
+    { id: 'bancada_generica', title: 'Bancada de apoio' },
+    { id: 'prateleira_generica', title: 'Prateleiras' },
+  ],
+};
+
+export const QUALITY_TIERS = [
+  { id: 'economico', title: 'Econômico', desc: 'MDF Padrão Branco, ferragens essenciais.', multiplier: 1.0 },
+  { id: 'intermediario', title: 'Intermediário', desc: 'MDF Madeirado, corrediças com amortecedor.', multiplier: 1.25 },
+  { id: 'premium', title: 'Premium', desc: 'MDF Laca/Madeirado nobre, amortecimento soft-close.', multiplier: 1.6 },
+  { id: 'alto_padrao', title: 'Alto Padrão', desc: 'Laca italiana, perfis alumínio, vidros reflecta e LED.', multiplier: 2.1 },
+];
+
+export const FINISH_OPTIONS_CATALOG = [
+  { id: 'branco', title: 'Branco Texturizado' },
+  { id: 'madeirado', title: 'Madeirado Natural' },
+  { id: 'colorido', title: 'Colorido (Cinza, Grafite, Fendi)' },
+  { id: 'laca', title: 'Laca de Alto Brilho / Fosca' },
+  { id: 'nao_sei', title: 'Ainda não sei' },
+];
+
+export const PURCHASE_TIMELINES_CATALOG = [
+  { id: 'imediatamente', title: 'Imediatamente' },
+  { id: 'ate_3_meses', title: 'Até 3 meses' },
+  { id: 'entre_3_6_meses', title: 'Entre 3 e 6 meses' },
+  { id: 'pesquisando', title: 'Apenas pesquisando' },
+];
+
 export const DOOR_TYPE_OPTIONS: DoorTypeOption[] = [
   {
     id: 'giro_soft',
