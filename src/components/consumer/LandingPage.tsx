@@ -3,14 +3,13 @@ import {
   ArrowRight, 
   Check, 
   ChevronDown, 
-  HelpCircle, 
   ShieldCheck, 
-  Sparkles, 
   Store, 
   Zap,
-  Maximize2,
-  Building2,
-  CheckCircle2
+  Calculator,
+  Compass,
+  FileCheck,
+  Building2
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -23,188 +22,123 @@ export const LandingPage: React.FC = () => {
     {
       id: 'cozinha',
       image: '/hero_kitchen.png',
-      tag: 'Cozinha Gourmet',
-      title: 'Cozinha Gourmet sob medida em Laca & Madeirado',
-      dims: '4.5m x 2.7m',
-      material: 'MDF Madeirado & Ilha de Quartzo',
+      alt: 'Cozinha Planejada Sob Medida',
     },
     {
       id: 'closet',
       image: '/hero_closet.png',
-      tag: 'Closet Suíte Master',
-      title: 'Closet Casal com Portas de Vidro & Fita LED',
-      dims: '3.8m x 2.8m',
-      material: 'MDF Madeirado & Iluminação LED',
+      alt: 'Closet Casal Sob Medida',
     },
     {
       id: 'living',
       image: '/hero_living.png',
-      tag: 'Home Theater',
-      title: 'Painel de TV Ripado com Balcão Suspenso',
-      dims: '5.2m x 2.7m',
-      material: 'Painel Ripado & Acabamento Matt',
+      alt: 'Home Theater e Painel Sob Medida',
     },
   ];
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlideIndex((prev) => (prev + 1) % heroSlides.length);
-    }, 5000);
+    }, 4500);
     return () => clearInterval(timer);
   }, [heroSlides.length]);
 
   const faqItems = [
     {
       q: 'Como é calculada a estimativa de preço?',
-      a: 'Nossa inteligência considera as medidas do ambiente, a complexidade do projeto, o padrão do acabamento (ex: MDF, Madeirado, Laca), o nível das ferragens e os adicionais como fita de LED ou vidro, aplicando a média atualizada da sua região.'
+      a: 'Nossa plataforma considera as dimensões do seu espaço, os módulos escolhidos, o padrão de acabamento (MDF, Madeirado, Laca) e o nível de ferragens, aplicando a média de preços praticada por lojas e marcenarias credenciadas da sua região.'
     },
     {
-      q: 'A simulação é realmente gratuita e sem compromisso?',
-      a: 'Sim! Você pode realizar quantas simulações desejar gratuitamente. A estimativa é exibida na hora na sua tela. Você só envia seus dados se decidir receber o projeto 3D de uma loja parceira.'
+      q: 'A simulação é realmente gratuita?',
+      a: 'Sim, a simulação é 100% gratuita e não exige cadastro prévio para visualizar o orçamento estimado.'
     },
     {
-      q: 'Quanto tempo demora para uma loja parceira entrar em contato?',
-      a: 'Assim que você solicita o orçamento detalhado, seu projeto é encaminhado para o painel da loja parceira credenciada mais próxima. Geralmente o especialista entra em contato em menos de 24 horas úteis.'
+      q: 'Como funciona o envio do orçamento para as lojas?',
+      a: 'Após simular, você pode optar por enviar a especificação do seu projeto para lojas parceiras credenciadas da sua cidade para receber um atendimento personalizado e agendar uma visita.'
     },
     {
-      q: 'Vocês realizam a fabricação dos móveis diretamente?',
-      a: 'O PlanejaFácil é uma tecnologia parceira que conecta consumidores interessados em móveis sob medida com lojas de fábrica credenciadas que possuem showroom físico, garantia e equipe de montagem própria.'
+      q: 'Sou lojista ou marceneiro, como posso receber estes projetos?',
+      a: 'Lojas físicas e marcenarias estruturadas podem assinar um de nossos planos (Gold, Platinum ou Diamond) para receber os projetos dos clientes da sua região diretamente no painel B2B.'
     }
   ];
 
   return (
-    <div className="bg-[#FAF8F5] text-slate-900 min-h-screen font-sans selection:bg-brand-600 selection:text-white space-y-24 sm:space-y-32 pb-24">
+    <div className="bg-slate-50 text-slate-900 min-h-screen font-sans">
       
-      {/* HERO SECTION - ARCHITECTURAL EDITORIAL DESIGN */}
-      <section className="relative pt-8 sm:pt-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+      {/* HERO SECTION - CLEAN & PROFESSIONAL DESIGN */}
+      <section className="pt-10 sm:pt-16 pb-16 sm:pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
           
-          {/* Left Column: Minimalist Typography & Main CTA */}
-          <div className="lg:col-span-7 space-y-8 text-left">
+          {/* Left Column: Direct Title & CTA */}
+          <div className="lg:col-span-7 space-y-6">
             
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-slate-200/60 border border-slate-300/60 text-slate-700 text-xs font-semibold uppercase tracking-widest">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-              <span>Simulação Inteligente & Sob Medida</span>
-            </div>
-
-            <h1 className="text-4xl sm:text-6xl font-normal tracking-tight text-slate-950 font-serif-editorial leading-[1.1]">
-              Design com propósito.<br />
-              <span className="italic font-light text-slate-700">Eleve o valor do seu espaço.</span>
+            <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-[1.15]">
+              Descubra quanto custa seu <span className="text-emerald-600">móvel planejado</span>.
             </h1>
 
-            <p className="text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-xl">
-              Descubra em menos de 2 minutos a estimativa real de custo para o seu projeto de marcenaria planejada e conecte-se com lojas físicas credenciadas na sua região.
+            <p className="text-base sm:text-xl text-slate-600 font-normal leading-relaxed max-w-xl">
+              Simule o orçamento do seu projeto em menos de 2 minutos e receba a estimativa de lojas e marcenarias parceiras da sua região.
             </p>
 
-            {/* Action CTA Button */}
+            {/* Direct Action Button */}
             <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
               <button
                 onClick={() => setConsumerTab('simulator')}
-                className="px-9 py-4 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-bold text-sm tracking-wider uppercase transition-all duration-300 shadow-emerald-glow flex items-center justify-center space-x-3 group"
+                className="px-8 py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-extrabold text-sm tracking-wider uppercase transition-all shadow-lg shadow-emerald-600/20 flex items-center justify-center space-x-3 group"
               >
-                <Zap className="w-4 h-4 fill-white" />
+                <Zap className="w-5 h-5 fill-white" />
                 <span>Simular Orçamento Agora</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
-
-              <div className="flex items-center justify-center sm:justify-start space-x-2 text-xs text-slate-500 font-medium py-1">
-                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Sem necessidade de cadastro prévio</span>
-              </div>
             </div>
 
-            {/* Clean Minimalist Stats Row (Inspiration Style) */}
-            <div className="pt-8 border-t border-slate-200/80 grid grid-cols-3 gap-6">
-              <div>
-                <div className="text-2xl sm:text-3xl font-light font-serif-editorial text-slate-900">100%</div>
-                <div className="text-xs text-slate-500 font-medium mt-0.5">Grátis & Transparente</div>
+            <div className="pt-6 flex items-center space-x-6 text-xs font-semibold text-slate-500 border-t border-slate-200/80">
+              <div className="flex items-center space-x-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>Sem necessidade de cadastro</span>
               </div>
-              <div>
-                <div className="text-2xl sm:text-3xl font-light font-serif-editorial text-slate-900">2 min</div>
-                <div className="text-xs text-slate-500 font-medium mt-0.5">Estimativa Instantânea</div>
-              </div>
-              <div>
-                <div className="text-2xl sm:text-3xl font-light font-serif-editorial text-slate-900">+50</div>
-                <div className="text-xs text-slate-500 font-medium mt-0.5">Lojas Credenciadas</div>
+              <div className="flex items-center space-x-2">
+                <Check className="w-4 h-4 text-emerald-600" />
+                <span>Tabela regional atualizada</span>
               </div>
             </div>
 
           </div>
 
-          {/* Right Column: Clean Architectural Showcase (No People) */}
-          <div className="lg:col-span-5 relative">
-            <div className="relative mx-auto max-w-md lg:max-w-none">
-              
-              {/* Minimalist Card Container */}
-              <div className="relative rounded-3xl overflow-hidden bg-slate-950 shadow-2xl border border-slate-800">
-                
-                {/* Slideshow Image */}
-                <div className="relative h-80 sm:h-[420px] w-full overflow-hidden select-none">
-                  {heroSlides.map((slide, index) => {
-                    const isActive = index === currentSlideIndex;
-                    return (
-                      <div
-                        key={slide.id}
-                        className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-                          isActive ? 'opacity-100 z-10' : 'opacity-0 z-0'
-                        }`}
-                      >
-                        <img
-                          src={slide.image}
-                          alt={slide.title}
-                          className="w-full h-full object-cover transform scale-100 hover:scale-105 transition-transform duration-1000"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent" />
-                        
-                        {/* Clean Tag */}
-                        <div className="absolute top-4 left-4 bg-slate-950/80 backdrop-blur-md px-3 py-1 rounded-full text-[11px] font-bold text-white border border-slate-700/60 flex items-center space-x-2">
-                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                          <span>{slide.tag}</span>
-                        </div>
-
-                        {/* Room Info */}
-                        <div className="absolute bottom-6 left-6 right-6 text-white space-y-1">
-                          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{slide.material}</div>
-                          <div className="text-lg sm:text-xl font-bold font-serif-editorial text-white">{slide.title}</div>
-                          <div className="flex items-center space-x-2 pt-1 text-xs text-slate-300">
-                            <span className="font-mono bg-white/10 px-2 py-0.5 rounded text-[11px]">{slide.dims}</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* Carousel Dots */}
-                  <div className="absolute bottom-4 right-6 z-20 flex items-center space-x-2 bg-slate-950/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-800">
-                    {heroSlides.map((_, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setCurrentSlideIndex(idx)}
-                        className={`h-1.5 rounded-full transition-all duration-300 ${
-                          idx === currentSlideIndex ? 'w-6 bg-emerald-400' : 'w-1.5 bg-slate-600 hover:bg-slate-400'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Minimalist Card Footer */}
-                <div className="p-4 bg-slate-900 text-white flex items-center justify-between border-t border-slate-800/80">
-                  <div className="text-xs text-slate-400 font-medium">
-                    Projetos reais de lojas parceiras credenciadas
-                  </div>
-                  <button
-                    onClick={() => setConsumerTab('simulator')}
-                    className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center space-x-1"
+          {/* Right Column: Clean Room Image Slideshow (No Text Overlays or Badges) */}
+          <div className="lg:col-span-5">
+            <div className="relative rounded-2xl overflow-hidden shadow-xl border border-slate-200 bg-slate-900 h-80 sm:h-[420px] w-full">
+              {heroSlides.map((slide, index) => {
+                const isActive = index === currentSlideIndex;
+                return (
+                  <div
+                    key={slide.id}
+                    className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
+                      isActive ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                    }`}
                   >
-                    <span>Testar Agora</span>
-                    <span>&rarr;</span>
-                  </button>
-                </div>
+                    <img
+                      src={slide.image}
+                      alt={slide.alt}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                );
+              })}
 
+              {/* Clean Navigation Dots */}
+              <div className="absolute bottom-4 right-4 z-10 flex items-center space-x-2 bg-slate-900/70 backdrop-blur-sm px-3 py-1.5 rounded-full border border-slate-700">
+                {heroSlides.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentSlideIndex(idx)}
+                    className={`h-2 rounded-full transition-all ${
+                      idx === currentSlideIndex ? 'w-6 bg-emerald-500' : 'w-2 bg-slate-500 hover:bg-slate-300'
+                    }`}
+                    aria-label={`Slide ${idx + 1}`}
+                  />
+                ))}
               </div>
-
             </div>
           </div>
 
@@ -212,103 +146,69 @@ export const LandingPage: React.FC = () => {
       </section>
 
 
-      {/* SECTION 01: SOBRE A PLATAFORMA & PROPOSTA */}
-      <section id="sobre" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+      {/* SECTION: COMO FUNCIONA */}
+      <section id="como-funciona" className="py-16 bg-white border-y border-slate-200/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
-          <div className="lg:col-span-4 space-y-2">
-            <div className="text-4xl sm:text-5xl font-light font-serif-editorial text-slate-400">01</div>
-            <div className="text-xs font-bold uppercase tracking-widest text-slate-500">Sobre a Plataforma</div>
-          </div>
-
-          <div className="lg:col-span-8 space-y-6">
-            <h2 className="text-3xl sm:text-4xl font-normal font-serif-editorial text-slate-950 leading-tight">
-              Design com inteligência. Orçamentos sem surpresas.
+          <div className="max-w-3xl mx-auto text-center space-y-3 mb-12">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+              Como funciona o PlanejaFácil
             </h2>
-            <p className="text-base sm:text-lg text-slate-600 leading-relaxed font-normal">
-              O PlanejaFácil foi desenvolvido para simplificar a jornada de quem deseja mobiliar sua casa. Unimos tecnologia intuitiva de simulação a tabelas regionais atualizadas de marcenaria sob medida, conectando você diretamente com os melhores fabricantes e showrooms da sua cidade.
+            <p className="text-slate-600 text-sm sm:text-base">
+              Um processo simples e direto para ajudar você a planejar seu ambiente.
             </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4">
-              <div className="p-6 rounded-2xl bg-white border border-slate-200/80 space-y-2">
-                <div className="text-sm font-bold text-slate-900">Transparência em Acabamentos</div>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Entenda exatamente como cada escolha de MDF, Lacas, Vidros Reflecta e Ferragens impacta o custo final.
-                </p>
-              </div>
-
-              <div className="p-6 rounded-2xl bg-white border border-slate-200/80 space-y-2">
-                <div className="text-sm font-bold text-slate-900">Lojas com Showroom Físico</div>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Conexão apenas com marcenarias credenciadas que possuem contrato, garantia e fábrica estruturada.
-                </p>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-
-      {/* SECTION 02: COMO FUNCIONA (4 STEPS) */}
-      <section id="como-funciona" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="border-t border-slate-200/80 pt-16 space-y-12">
-          
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-baseline">
-            <div className="lg:col-span-4 space-y-2">
-              <div className="text-4xl sm:text-5xl font-light font-serif-editorial text-slate-400">02</div>
-              <div className="text-xs font-bold uppercase tracking-widest text-slate-500">Como Funciona</div>
-            </div>
-
-            <div className="lg:col-span-8">
-              <h2 className="text-2xl sm:text-3xl font-normal font-serif-editorial text-slate-900">
-                Uma jornada fluida em 4 passos simples.
-              </h2>
-            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             
-            <div className="p-6 rounded-3xl bg-white border border-slate-200/80 space-y-4">
-              <div className="text-2xl font-serif-editorial text-slate-400">01</div>
+            <div className="p-6 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3">
+              <div className="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                1
+              </div>
               <h3 className="text-base font-bold text-slate-900">Escolha o Ambiente</h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Selecione o cômodo desejado (Cozinha, Dormitório, Closet, Home Theater, Banheiro ou Escritório).
+                Selecione o cômodo desejado: Cozinha, Dormitório, Closet, Home Theater ou Banheiro.
               </p>
             </div>
 
-            <div className="p-6 rounded-3xl bg-white border border-slate-200/80 space-y-4">
-              <div className="text-2xl font-serif-editorial text-slate-400">02</div>
-              <h3 className="text-base font-bold text-slate-900">Personalize Módulos</h3>
+            <div className="p-6 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3">
+              <div className="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                2
+              </div>
+              <h3 className="text-base font-bold text-slate-900">Informe as Medidas</h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Adicione balcões, aéreos, torres de eletros, escolha acabamentos e ajuste as dimensões do ambiente.
+                Insira o tamanho das paredes e escolha os móveis desejados (balcões, armários, aéreos).
               </p>
             </div>
 
-            <div className="p-6 rounded-3xl bg-white border border-slate-200/80 space-y-4">
-              <div className="text-2xl font-serif-editorial text-slate-400">03</div>
+            <div className="p-6 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3">
+              <div className="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                3
+              </div>
               <h3 className="text-base font-bold text-slate-900">Veja o Orçamento</h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                O sistema calcula na hora a estimativa com base na tabela regional média de marcenarias parceiras.
+                Visualise na hora a faixa estimada de valor calculada com base em marceneiros da sua região.
               </p>
             </div>
 
-            <div className="p-6 rounded-3xl bg-white border border-slate-200/80 space-y-4">
-              <div className="text-2xl font-serif-editorial text-slate-400">04</div>
-              <h3 className="text-base font-bold text-slate-900">Receba a Proposta</h3>
+            <div className="p-6 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3">
+              <div className="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                4
+              </div>
+              <h3 className="text-base font-bold text-slate-900">Receba Propostas</h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Baixe o PDF técnico detalhado ou solicite atendimento de uma loja credenciada da sua cidade.
+                Se desejar, solicite o contato de uma loja parceira credenciada para finalizar seu projeto.
               </p>
             </div>
 
           </div>
 
-          <div className="pt-4 text-center">
+          <div className="mt-10 text-center">
             <button
               onClick={() => setConsumerTab('simulator')}
-              className="px-9 py-4 rounded-full bg-slate-950 hover:bg-slate-900 text-white font-bold text-xs uppercase tracking-widest transition-all"
+              className="px-8 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider transition-all"
             >
-              Iniciar Minha Simulação
+              Iniciar Simulação
             </button>
           </div>
 
@@ -316,158 +216,129 @@ export const LandingPage: React.FC = () => {
       </section>
 
 
-      {/* SECTION 03: PLANOS B2B PARA LOJAS PARCEIRAS & MARCENARIAS */}
-      <section id="lojas-parceiras" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="border-t border-slate-200/80 pt-16 space-y-12">
-          
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-baseline">
-            <div className="lg:col-span-4 space-y-2">
-              <div className="text-4xl sm:text-5xl font-light font-serif-editorial text-slate-400">03</div>
-              <div className="text-xs font-bold uppercase tracking-widest text-slate-500">Rede Credenciada</div>
-            </div>
+      {/* SECTION: PLANOS B2B PARA LOJAS PARCEIRAS */}
+      <section id="lojas-parceiras" className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div className="max-w-3xl mx-auto text-center space-y-3 mb-12">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            Planos para Lojas e Marcenarias Parceiras
+          </h2>
+          <p className="text-slate-600 text-sm sm:text-base">
+            Receba solicitações de orçamentos e projetos de clientes da sua cidade.
+          </p>
+        </div>
 
-            <div className="lg:col-span-8">
-              <h2 className="text-2xl sm:text-3xl font-normal font-serif-editorial text-slate-900">
-                Planos de Assinatura para Lojas & Marcenarias Parceiras.
-              </h2>
-              <p className="text-sm text-slate-600 mt-2">
-                Receba projetos prontos com especificações técnicas e Leads altamente qualificados da sua cidade.
-              </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          {/* PLANO GOLD */}
+          <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between space-y-6">
+            <div className="space-y-4">
+              <div>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Plano Gold</span>
+                <div className="text-3xl font-extrabold text-slate-900 mt-1">R$ 490 <span className="text-xs text-slate-500 font-normal">/mês</span></div>
+                <div className="text-xs text-emerald-700 font-semibold mt-1">Até 30 solicitações de clientes/mês</div>
+              </div>
+              <ul className="space-y-2.5 text-xs text-slate-600 pt-4 border-t border-slate-100">
+                <li className="flex items-center space-x-2"><Check className="w-4 h-4 text-emerald-600" /><span>1 Cidade principal</span></li>
+                <li className="flex items-center space-x-2"><Check className="w-4 h-4 text-emerald-600" /><span>Notificações por WhatsApp</span></li>
+                <li className="flex items-center space-x-2"><Check className="w-4 h-4 text-emerald-600" /><span>Painel de gestão de leads</span></li>
+              </ul>
             </div>
+            <button
+              onClick={() => setIsStoreModalOpen(true)}
+              className="w-full py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-xs uppercase tracking-wider transition-colors"
+            >
+              Quero Me Cadastrar
+            </button>
           </div>
 
-          {/* Clean B2B Plan Matrix */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
-            {/* PLANO GOLD */}
-            <div className="p-8 rounded-3xl bg-white border border-slate-200/80 flex flex-col justify-between space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Starter</span>
-                  <span className="text-xs font-bold px-2.5 py-0.5 bg-slate-100 rounded-full text-slate-700">Gold</span>
-                </div>
-                <div>
-                  <div className="text-3xl font-serif-editorial font-bold text-slate-900">R$ 490 <span className="text-xs font-sans text-slate-500 font-normal">/mês</span></div>
-                  <div className="text-xs font-semibold text-emerald-700 mt-1">Até 30 Leads Qualificados/mês</div>
-                </div>
-                <ul className="space-y-2.5 text-xs text-slate-600 pt-4 border-t border-slate-100">
-                  <li className="flex items-start space-x-2"><Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" /><span>1 Cidade Principal + 2 Vizinhos</span></li>
-                  <li className="flex items-start space-x-2"><Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" /><span>Alertas instantâneos por WhatsApp</span></li>
-                  <li className="flex items-start space-x-2"><Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" /><span>Proposta Técnica em PDF</span></li>
-                  <li className="flex items-start space-x-2"><Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" /><span>Painel B2B do Lojista</span></li>
-                </ul>
+          {/* PLANO PLATINUM */}
+          <div className="p-6 rounded-2xl bg-slate-900 text-white shadow-xl flex flex-col justify-between space-y-6 border border-slate-800">
+            <div className="space-y-4">
+              <div>
+                <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Plano Platinum</span>
+                <div className="text-3xl font-extrabold text-white mt-1">R$ 990 <span className="text-xs text-slate-400 font-normal">/mês</span></div>
+                <div className="text-xs text-emerald-400 font-semibold mt-1">Até 80 solicitações de clientes/mês</div>
               </div>
-              <button
-                onClick={() => setIsStoreModalOpen(true)}
-                className="w-full py-3 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-xs uppercase transition-colors"
-              >
-                Credenciar no Gold
-              </button>
+              <ul className="space-y-2.5 text-xs text-slate-300 pt-4 border-t border-slate-800">
+                <li className="flex items-center space-x-2"><Check className="w-4 h-4 text-emerald-400" /><span>Fila prioritária de envio</span></li>
+                <li className="flex items-center space-x-2"><Check className="w-4 h-4 text-emerald-400" /><span>Região metropolitana (até 10 cidades)</span></li>
+                <li className="flex items-center space-x-2"><Check className="w-4 h-4 text-emerald-400" /><span>Envio de projeto em PDF e medidas</span></li>
+                <li className="flex items-center space-x-2"><Check className="w-4 h-4 text-emerald-400" /><span>Selo de Loja Credenciada</span></li>
+              </ul>
             </div>
+            <button
+              onClick={() => setIsStoreModalOpen(true)}
+              className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider transition-colors"
+            >
+              Quero Me Cadastrar
+            </button>
+          </div>
 
-            {/* PLANO PLATINUM (RECOMENDADO) */}
-            <div className="p-8 rounded-3xl bg-slate-950 text-white shadow-xl flex flex-col justify-between space-y-6 relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-0.5 bg-emerald-500 text-slate-950 font-bold text-[10px] uppercase tracking-wider rounded-full">
-                Mais Vendido
+          {/* PLANO DIAMOND */}
+          <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between space-y-6">
+            <div className="space-y-4">
+              <div>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Plano Diamond</span>
+                <div className="text-3xl font-extrabold text-slate-900 mt-1">R$ 1.990 <span className="text-xs text-slate-500 font-normal">/mês</span></div>
+                <div className="text-xs text-emerald-700 font-semibold mt-1">Solicitações ilimitadas / Exclusividade</div>
               </div>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Pro</span>
-                  <span className="text-xs font-bold px-2.5 py-0.5 bg-emerald-500/20 text-emerald-400 rounded-full">Platinum</span>
-                </div>
-                <div>
-                  <div className="text-3xl font-serif-editorial font-bold text-white">R$ 990 <span className="text-xs font-sans text-slate-400 font-normal">/mês</span></div>
-                  <div className="text-xs font-semibold text-emerald-400 mt-1">Até 80 Leads Qualificados/mês</div>
-                </div>
-                <ul className="space-y-2.5 text-xs text-slate-300 pt-4 border-t border-slate-800">
-                  <li className="flex items-start space-x-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" /><span>Fila Prioritária de Leads</span></li>
-                  <li className="flex items-start space-x-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" /><span>Região Metropolitana (até 10 Cidades)</span></li>
-                  <li className="flex items-start space-x-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" /><span>CRM B2B com Funil de Vendas</span></li>
-                  <li className="flex items-start space-x-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" /><span>Projeto 3D Renderizado + Medidas</span></li>
-                  <li className="flex items-start space-x-2"><Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" /><span>Selo "Loja Parceira Verificada"</span></li>
-                </ul>
-              </div>
-              <button
-                onClick={() => setIsStoreModalOpen(true)}
-                className="w-full py-3 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase shadow-emerald-glow transition-all"
-              >
-                Credenciar no Platinum
-              </button>
+              <ul className="space-y-2.5 text-xs text-slate-600 pt-4 border-t border-slate-100">
+                <li className="flex items-center space-x-2"><Check className="w-4 h-4 text-emerald-600" /><span>Prioridade total na região</span></li>
+                <li className="flex items-center space-x-2"><Check className="w-4 h-4 text-emerald-600" /><span>Múltiplas filiais ou estado inteiro</span></li>
+                <li className="flex items-center space-x-2"><Check className="w-4 h-4 text-emerald-600" /><span>Integração com CRM / WhatsApp API</span></li>
+                <li className="flex items-center space-x-2"><Check className="w-4 h-4 text-emerald-600" /><span>Gerente de conta dedicado</span></li>
+              </ul>
             </div>
-
-            {/* PLANO DIAMOND */}
-            <div className="p-8 rounded-3xl bg-white border border-slate-200/80 flex flex-col justify-between space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Enterprise</span>
-                  <span className="text-xs font-bold px-2.5 py-0.5 bg-slate-100 rounded-full text-slate-700">Diamond</span>
-                </div>
-                <div>
-                  <div className="text-3xl font-serif-editorial font-bold text-slate-900">R$ 1.990 <span className="text-xs font-sans text-slate-500 font-normal">/mês</span></div>
-                  <div className="text-xs font-semibold text-emerald-700 mt-1">Leads ILIMITADOS / Exclusividade</div>
-                </div>
-                <ul className="space-y-2.5 text-xs text-slate-600 pt-4 border-t border-slate-100">
-                  <li className="flex items-start space-x-2"><Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" /><span>Prioridade Absoluta de Envio</span></li>
-                  <li className="flex items-start space-x-2"><Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" /><span>Estado Inteiro ou Múltiplas Filiais</span></li>
-                  <li className="flex items-start space-x-2"><Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" /><span>Integração via API / Webhooks CRM</span></li>
-                  <li className="flex items-start space-x-2"><Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" /><span>Plano de Corte Técnico (Cortecloud)</span></li>
-                  <li className="flex items-start space-x-2"><Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" /><span>Gerente de Contas Dedicado</span></li>
-                </ul>
-              </div>
-              <button
-                onClick={() => setIsStoreModalOpen(true)}
-                className="w-full py-3 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-xs uppercase transition-colors"
-              >
-                Credenciar no Diamond
-              </button>
-            </div>
-
+            <button
+              onClick={() => setIsStoreModalOpen(true)}
+              className="w-full py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-xs uppercase tracking-wider transition-colors"
+            >
+              Quero Me Cadastrar
+            </button>
           </div>
 
         </div>
+
       </section>
 
 
-      {/* SECTION 04: FAQ SANFONA EDITORIAL */}
-      <section id="faq" className="max-w-4xl mx-auto px-4 sm:px-6">
-        <div className="border-t border-slate-200/80 pt-16 space-y-10">
-          
-          <div className="space-y-2">
-            <div className="text-4xl sm:text-5xl font-light font-serif-editorial text-slate-400">04</div>
-            <div className="text-xs font-bold uppercase tracking-widest text-slate-500">Perguntas Frequentes</div>
-            <h2 className="text-2xl sm:text-3xl font-normal font-serif-editorial text-slate-900">
-              Tire suas dúvidas antes de começar.
-            </h2>
-          </div>
-
-          <div className="space-y-4">
-            {faqItems.map((item, index) => {
-              const isOpen = openFaqIndex === index;
-              return (
-                <div
-                  key={index}
-                  className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden transition-all duration-200"
-                >
-                  <button
-                    onClick={() => setOpenFaqIndex(isOpen ? null : index)}
-                    className="w-full p-6 text-left flex items-center justify-between space-x-4 focus:outline-none"
-                  >
-                    <span className="font-bold text-slate-900 text-base">
-                      {item.q}
-                    </span>
-                    <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180 text-emerald-600' : ''}`} />
-                  </button>
-                  {isOpen && (
-                    <div className="px-6 pb-6 text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-4 animate-in fade-in duration-200">
-                      {item.a}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
+      {/* SECTION: FAQ ACCORDION */}
+      <section id="faq" className="py-16 max-w-4xl mx-auto px-4 sm:px-6">
+        
+        <div className="text-center space-y-3 mb-10">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            Perguntas Frequentes
+          </h2>
         </div>
+
+        <div className="space-y-3">
+          {faqItems.map((item, index) => {
+            const isOpen = openFaqIndex === index;
+            return (
+              <div
+                key={index}
+                className="bg-white rounded-xl border border-slate-200/80 overflow-hidden"
+              >
+                <button
+                  onClick={() => setOpenFaqIndex(isOpen ? null : index)}
+                  className="w-full p-5 text-left flex items-center justify-between space-x-4 focus:outline-none"
+                >
+                  <span className="font-bold text-slate-900 text-sm sm:text-base">
+                    {item.q}
+                  </span>
+                  <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180 text-emerald-600' : ''}`} />
+                </button>
+                {isOpen && (
+                  <div className="px-5 pb-5 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
+                    {item.a}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
       </section>
 
     </div>
