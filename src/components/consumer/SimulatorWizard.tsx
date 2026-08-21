@@ -750,14 +750,11 @@ export const SimulatorWizard: React.FC = () => {
 
               <button
                 onClick={() => {
-                  const text = encodeURIComponent(
-                    `Olá! Fiz uma simulação de móveis no PlanejaFácil. Orçamento estimado: ${formatCurrency(simulator.calculatedRange.min)} - ${formatCurrency(simulator.calculatedRange.max)}. Gostaria de atendimento!`
-                  );
-                  window.open(`https://wa.me/5511999999999?text=${text}`, '_blank');
+                  alert('Seu projeto foi enviado com sucesso para a loja parceira da sua região! Um consultor entrará em contato.');
                 }}
-                className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center space-x-2 shadow-emerald-glow"
+                className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center space-x-2"
               >
-                <span>Solicitar Atendimento no WhatsApp</span>
+                <span>Solicitar Contato da Loja Parceira</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
