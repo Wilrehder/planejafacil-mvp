@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Zap, Store, HelpCircle } from 'lucide-react';
+import { Home, Calculator, Store, HelpCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const MobileBottomNav: React.FC = () => {
@@ -37,7 +37,7 @@ export const MobileBottomNav: React.FC = () => {
               : 'text-[#439346] bg-[#EBF7EC] border border-[#439346]/30 font-bold'
           }`}
         >
-          <Zap className="w-5 h-5 fill-current" />
+          <Calculator className="w-5 h-5 stroke-[2.2]" />
           <span className="text-[10px] tracking-tight">Simular</span>
         </button>
 

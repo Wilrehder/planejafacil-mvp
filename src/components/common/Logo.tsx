@@ -16,25 +16,25 @@ export const Logo: React.FC<LogoProps> = ({
   const isDarkBg = variant === 'dark';
 
   const iconSizes = {
-    sm: 'w-8 h-8',
-    md: 'w-10 h-10',
-    lg: 'w-14 h-14',
+    sm: 'w-7 h-7 sm:w-8 sm:h-8',
+    md: 'w-8 h-8 sm:w-10 sm:h-10',
+    lg: 'w-10 h-10 sm:w-14 sm:h-14',
   };
 
   const textSizes = {
-    sm: 'text-lg',
-    md: 'text-2xl',
-    lg: 'text-3xl',
+    sm: 'text-base sm:text-lg',
+    md: 'text-lg sm:text-2xl',
+    lg: 'text-2xl sm:text-3xl',
   };
 
   const subtitleSizes = {
-    sm: 'text-[9px]',
-    md: 'text-[11px]',
-    lg: 'text-xs',
+    sm: 'text-[8px] sm:text-[9px]',
+    md: 'text-[9px] sm:text-[11px]',
+    lg: 'text-[10px] sm:text-xs',
   };
 
   return (
-    <div className={`flex items-center space-x-2.5 select-none ${className}`}>
+    <div className={`flex items-center space-x-2 sm:space-x-2.5 select-none ${className}`}>
       {/* Brand Icon SVG: House + Cabinet Grid + Green Checkmark Swoosh */}
       <div className={`relative shrink-0 ${iconSizes[size]}`}>
         <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-sm">

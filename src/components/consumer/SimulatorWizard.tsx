@@ -801,9 +801,8 @@ export const SimulatorWizard: React.FC = () => {
             <div className="pt-4">
               <button
                 type="submit"
-                className="w-full py-4 rounded-xl bg-[#439346] hover:bg-[#387F3B] text-white font-extrabold text-sm uppercase tracking-wider transition-all flex items-center justify-center space-x-2 shadow-lg shadow-[#439346]/20"
+                className="w-full py-4 rounded-xl bg-[#439346] hover:bg-[#387F3B] active:scale-98 text-white font-extrabold text-sm sm:text-base uppercase tracking-wider transition-all flex items-center justify-center space-x-2 shadow-lg shadow-[#439346]/25"
               >
-                <Zap className="w-5 h-5 fill-white" />
                 <span>Gerar Orçamento Estimado</span>
               </button>
             </div>

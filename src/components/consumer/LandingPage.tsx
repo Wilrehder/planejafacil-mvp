@@ -4,7 +4,6 @@ import {
   Check, 
   ChevronDown, 
   ShieldCheck, 
-  Zap,
   ChefHat,
   Shirt,
   Laptop,
@@ -12,10 +11,9 @@ import {
   Bath
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { Logo } from '../common/Logo';
 
 export const LandingPage: React.FC = () => {
-  const { setConsumerTab, setIsStoreModalOpen } = useApp();
+  const { setConsumerTab } = useApp();
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
 
@@ -67,54 +65,47 @@ export const LandingPage: React.FC = () => {
     },
     {
       q: 'Sou lojista ou marceneiro, como posso receber estes projetos?',
-      a: 'Lojas físicas e marcenarias estruturadas podem assinar um de nossos planos (Gold, Platinum ou Diamond) para receber os projetos dos clientes da sua região diretamente no painel B2B.'
+      a: 'Lojas físicas e marcenarias estruturadas podem entrar em contato com nossa equipe para integração no painel B2B.'
     }
   ];
 
   return (
-    <div className="bg-[#F4F6F9] text-slate-900 min-h-screen font-sans pb-12">
+    <div className="bg-[#F4F6F9] text-slate-900 min-h-screen font-sans pb-16">
       
       {/* ========================================================================= */}
-      {/* HERO SECTION MATCHING REFERENCE SCREEN 2 (NAVY BANNER + SIMULE SEU PLANEJADO) */}
+      {/* HERO SECTION - MOBILE FIRST & HARMONIOUS DESIGN */}
       {/* ========================================================================= */}
-      <section className="relative bg-[#1B2B48] text-white pt-6 pb-20 px-4 sm:px-6 lg:px-8 rounded-b-[2.5rem] shadow-xl overflow-hidden">
+      <section className="relative bg-[#1B2B48] text-white pt-6 sm:pt-10 pb-16 sm:pb-20 px-4 sm:px-6 lg:px-8 rounded-b-[2rem] sm:rounded-b-[2.5rem] shadow-xl overflow-hidden">
         
         {/* Subtle decorative background gradient */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#1B2B48] via-[#1B2B48] to-[#142036] opacity-90 pointer-events-none" />
         
-        <div className="relative max-w-4xl mx-auto space-y-8 text-center pt-2 sm:pt-6">
+        <div className="relative max-w-4xl mx-auto space-y-6 sm:space-y-8 text-center">
           
-          {/* Top Logo Container matching reference header */}
-          <div className="flex justify-center mb-4">
-            <div className="inline-flex items-center px-5 py-2.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 shadow-lg">
-              <Logo variant="dark" size="md" />
-            </div>
-          </div>
-
           {/* Headline matching exact reference text */}
-          <div className="space-y-3">
-            <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-[1.15]">
+          <div className="space-y-2.5 sm:space-y-3 pt-2">
+            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-snug sm:leading-[1.15]">
               Simule seu Planejado<br />em Minutos!
             </h1>
-            <p className="text-sm sm:text-lg text-slate-300 max-w-xl mx-auto font-medium">
+            <p className="text-xs sm:text-base text-slate-300 max-w-xl mx-auto font-medium leading-relaxed">
               Escolha seu ambiente, defina o tamanho e descubra o valor estimado instantaneamente.
             </p>
           </div>
 
-          {/* Quick Environment Selector Cards Bar (Screen 2 reference style) */}
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 pt-2 max-w-3xl mx-auto">
+          {/* Quick Environment Selector Cards Bar */}
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3.5 pt-1 max-w-3xl mx-auto">
             {quickCategories.map((cat, idx) => {
               const IconComp = cat.icon;
               return (
                 <button
                   key={idx}
                   onClick={() => setConsumerTab('simulator')}
-                  className="bg-white/90 hover:bg-white text-[#1B2B48] p-3.5 rounded-2xl shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1 flex flex-col items-center justify-center space-y-2 group border border-white/20"
+                  className="bg-white/95 hover:bg-white text-[#1B2B48] p-2.5 sm:p-3.5 rounded-2xl shadow-sm hover:shadow-md transition-all flex flex-col items-center justify-center space-y-1.5 group border border-white/20 active:scale-95"
                 >
-                  <div className="p-2.5 rounded-xl bg-[#EBF7EC] text-[#439346] group-hover:scale-110 transition-transform">
-                    <IconComp className="w-5 h-5 stroke-[2.5]" />
+                  <div className="p-2 sm:p-2.5 rounded-xl bg-[#EBF7EC] text-[#439346] group-hover:scale-110 transition-transform">
+                    <IconComp className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
                   </div>
-                  <span className="text-xs font-bold text-[#1B2B48] group-hover:text-[#439346] transition-colors leading-tight">
+                  <span className="text-[11px] sm:text-xs font-bold text-[#1B2B48] group-hover:text-[#439346] transition-colors leading-tight">
                     {cat.title}
                   </span>
                 </button>
@@ -123,8 +114,8 @@ export const LandingPage: React.FC = () => {
           </div>
 
           {/* Room Image Showcase Card */}
-          <div className="max-w-2xl mx-auto pt-2">
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-white/20 bg-slate-900 h-64 sm:h-80 w-full group">
+          <div className="max-w-2xl mx-auto pt-1">
+            <div className="relative rounded-2xl overflow-hidden shadow-xl border-2 sm:border-4 border-white/20 bg-slate-900 h-52 sm:h-80 w-full group">
               {heroSlides.map((slide, index) => {
                 const isActive = index === currentSlideIndex;
                 return (
@@ -144,13 +135,13 @@ export const LandingPage: React.FC = () => {
               })}
 
               {/* Navigation Dots */}
-              <div className="absolute bottom-3 right-3 z-10 flex items-center space-x-1.5 bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-700">
+              <div className="absolute bottom-2.5 right-2.5 z-10 flex items-center space-x-1.5 bg-slate-900/80 backdrop-blur-md px-2.5 py-1 rounded-full border border-slate-700">
                 {heroSlides.map((_, idx) => (
                   <button
                     key={idx}
                     onClick={() => setCurrentSlideIndex(idx)}
-                    className={`h-2 rounded-full transition-all ${
-                      idx === currentSlideIndex ? 'w-5 bg-[#439346]' : 'w-2 bg-slate-500 hover:bg-slate-300'
+                    className={`h-1.5 sm:h-2 rounded-full transition-all ${
+                      idx === currentSlideIndex ? 'w-4 sm:w-5 bg-[#439346]' : 'w-1.5 sm:w-2 bg-slate-500 hover:bg-slate-300'
                     }`}
                     aria-label={`Slide ${idx + 1}`}
                   />
@@ -159,24 +150,23 @@ export const LandingPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Primary Action Button (Reference exact green CTA: Faça seu Orçamento) */}
+          {/* Primary Action Button (Reference exact green CTA: Faça seu Orçamento - NO ZAP ICON) */}
           <div className="pt-2 max-w-md mx-auto">
             <button
               onClick={() => setConsumerTab('simulator')}
-              className="w-full py-4 px-8 rounded-xl bg-[#439346] hover:bg-[#387F3B] active:scale-98 text-white font-black text-base sm:text-lg tracking-wide uppercase transition-all shadow-xl shadow-[#439346]/30 flex items-center justify-center space-x-3 group"
+              className="w-full py-4 px-6 rounded-xl bg-[#439346] hover:bg-[#387F3B] active:scale-98 text-white font-extrabold text-sm sm:text-base tracking-wider uppercase transition-all shadow-xl shadow-[#439346]/25 flex items-center justify-center space-x-2 group"
             >
-              <Zap className="w-5 h-5 fill-white" />
               <span>Faça seu Orçamento</span>
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
 
-            <div className="pt-4 flex items-center justify-center space-x-6 text-xs font-semibold text-slate-300">
+            <div className="pt-3.5 flex items-center justify-center space-x-4 sm:space-x-6 text-[11px] sm:text-xs font-semibold text-slate-300">
               <div className="flex items-center space-x-1.5">
-                <ShieldCheck className="w-4 h-4 text-[#439346]" />
+                <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#439346]" />
                 <span>100% Gratuito</span>
               </div>
               <div className="flex items-center space-x-1.5">
-                <Check className="w-4 h-4 text-[#439346]" />
+                <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#439346]" />
                 <span>Sem Necessidade de Cadastro</span>
               </div>
             </div>
@@ -188,64 +178,64 @@ export const LandingPage: React.FC = () => {
       {/* ========================================================================= */}
       {/* SECTION: COMO FUNCIONA O PLANEJAFÁCIL */}
       {/* ========================================================================= */}
-      <section id="como-funciona" className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl mx-auto text-center space-y-3 mb-12">
-          <h2 className="text-2xl sm:text-3xl font-black text-[#1B2B48] tracking-tight">
+      <section id="como-funciona" className="py-12 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto text-center space-y-2 sm:space-y-3 mb-10 sm:mb-12">
+          <h2 className="text-xl sm:text-3xl font-extrabold text-[#1B2B48] tracking-tight">
             Como funciona o PlanejaFácil
           </h2>
-          <p className="text-slate-600 text-sm sm:text-base">
+          <p className="text-slate-600 text-xs sm:text-base font-medium">
             Um processo simples e transparente para planejar o orçamento do seu imóvel.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           
-          <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-shadow space-y-4">
-            <div className="w-12 h-12 rounded-xl bg-[#EBF7EC] text-[#439346] flex items-center justify-center font-black text-lg">
+          <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 shadow-sm hover:shadow-md transition-shadow space-y-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#EBF7EC] text-[#439346] flex items-center justify-center font-extrabold text-base sm:text-lg">
               1
             </div>
-            <h3 className="text-base font-bold text-[#1B2B48]">Escolha o Ambiente</h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <h3 className="text-sm sm:text-base font-bold text-[#1B2B48]">Escolha o Ambiente</h3>
+            <p className="text-xs text-slate-600 leading-relaxed font-medium">
               Selecione o cômodo desejado: Cozinha, Dormitório, Closet, Home Theater ou Banheiro.
             </p>
           </div>
 
-          <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-shadow space-y-4">
-            <div className="w-12 h-12 rounded-xl bg-[#EBF7EC] text-[#439346] flex items-center justify-center font-black text-lg">
+          <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 shadow-sm hover:shadow-md transition-shadow space-y-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#EBF7EC] text-[#439346] flex items-center justify-center font-extrabold text-base sm:text-lg">
               2
             </div>
-            <h3 className="text-base font-bold text-[#1B2B48]">Informe as Medidas</h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <h3 className="text-sm sm:text-base font-bold text-[#1B2B48]">Informe as Medidas</h3>
+            <p className="text-xs text-slate-600 leading-relaxed font-medium">
               Insira o tamanho das paredes e escolha os móveis desejados (balcões, armários, aéreos).
             </p>
           </div>
 
-          <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-shadow space-y-4">
-            <div className="w-12 h-12 rounded-xl bg-[#EBF7EC] text-[#439346] flex items-center justify-center font-black text-lg">
+          <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 shadow-sm hover:shadow-md transition-shadow space-y-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#EBF7EC] text-[#439346] flex items-center justify-center font-extrabold text-base sm:text-lg">
               3
             </div>
-            <h3 className="text-base font-bold text-[#1B2B48]">Veja o Orçamento</h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <h3 className="text-sm sm:text-base font-bold text-[#1B2B48]">Veja o Orçamento</h3>
+            <p className="text-xs text-slate-600 leading-relaxed font-medium">
               Visualise na hora a faixa estimada de valor calculada com base em marceneiros da sua região.
             </p>
           </div>
 
-          <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-shadow space-y-4">
-            <div className="w-12 h-12 rounded-xl bg-[#EBF7EC] text-[#439346] flex items-center justify-center font-black text-lg">
+          <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 shadow-sm hover:shadow-md transition-shadow space-y-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#EBF7EC] text-[#439346] flex items-center justify-center font-extrabold text-base sm:text-lg">
               4
             </div>
-            <h3 className="text-base font-bold text-[#1B2B48]">Receba Propostas</h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <h3 className="text-sm sm:text-base font-bold text-[#1B2B48]">Receba Propostas</h3>
+            <p className="text-xs text-slate-600 leading-relaxed font-medium">
               Se desejar, solicite o contato de uma loja parceira credenciada para finalizar seu projeto.
             </p>
           </div>
 
         </div>
 
-        <div className="mt-10 text-center">
+        <div className="mt-8 sm:mt-10 text-center">
           <button
             onClick={() => setConsumerTab('simulator')}
-            className="px-8 py-3.5 rounded-xl bg-[#1B2B48] hover:bg-[#121E34] text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-md"
+            className="px-8 py-3.5 rounded-xl bg-[#1B2B48] hover:bg-[#121E34] text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-md active:scale-95"
           >
             Iniciar Simulação
           </button>
@@ -253,15 +243,13 @@ export const LandingPage: React.FC = () => {
 
       </section>
 
-
-
       {/* ========================================================================= */}
       {/* SECTION: FAQ ACCORDION */}
       {/* ========================================================================= */}
-      <section id="faq" className="py-16 max-w-4xl mx-auto px-4 sm:px-6">
+      <section id="faq" className="py-12 sm:py-16 max-w-4xl mx-auto px-4 sm:px-6">
         
-        <div className="text-center space-y-3 mb-10">
-          <h2 className="text-2xl sm:text-3xl font-black text-[#1B2B48] tracking-tight">
+        <div className="text-center space-y-2 sm:space-y-3 mb-8 sm:mb-10">
+          <h2 className="text-xl sm:text-3xl font-extrabold text-[#1B2B48] tracking-tight">
             Perguntas Frequentes
           </h2>
         </div>
@@ -276,15 +264,15 @@ export const LandingPage: React.FC = () => {
               >
                 <button
                   onClick={() => setOpenFaqIndex(isOpen ? null : index)}
-                  className="w-full p-5 text-left flex items-center justify-between space-x-4 focus:outline-none"
+                  className="w-full p-4 sm:p-5 text-left flex items-center justify-between space-x-3 focus:outline-none"
                 >
-                  <span className="font-bold text-[#1B2B48] text-sm sm:text-base">
+                  <span className="font-bold text-[#1B2B48] text-xs sm:text-base">
                     {item.q}
                   </span>
                   <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180 text-[#439346]' : ''}`} />
                 </button>
                 {isOpen && (
-                  <div className="px-5 pb-5 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
+                  <div className="px-4 sm:px-5 pb-4 sm:pb-5 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3 font-medium">
                     {item.a}
                   </div>
                 )}
