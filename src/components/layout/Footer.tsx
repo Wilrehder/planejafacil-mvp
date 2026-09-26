@@ -1,29 +1,26 @@
 import React from 'react';
 import { ShieldCheck, Star } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { Logo } from '../common/Logo';
 
 export const Footer: React.FC = () => {
   const { setConsumerTab } = useApp();
 
   return (
-    <footer className="bg-slate-900 text-slate-300 border-t border-slate-800 pt-12 sm:pt-16 pb-24 sm:pb-12">
+    <footer className="bg-[#121E34] text-slate-300 border-t border-slate-800 pt-12 sm:pt-16 pb-24 sm:pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 sm:gap-10 pb-10 border-b border-slate-800">
           
           {/* Brand Info */}
           <div className="space-y-4 md:col-span-1">
             <div className="flex items-center space-x-3">
-              <img 
-                src="/logo.png" 
-                alt="PlanejaFácil - Móveis Sob Medida" 
-                className="h-10 w-auto object-contain brightness-0 invert"
-              />
+              <Logo variant="dark" size="md" />
             </div>
             <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
               A plataforma inteligente que conecta você às melhores lojas de móveis sob medida da sua região com estimativa de preço transparente.
             </p>
             <div className="flex items-center space-x-2 text-xs text-slate-400 bg-slate-800/80 px-3 py-2 rounded-xl border border-slate-700/60 w-fit">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <ShieldCheck className="w-4 h-4 text-[#439346]" />
               <span>Plataforma Segura & Verificada</span>
             </div>
           </div>

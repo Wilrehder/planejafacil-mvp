@@ -80,14 +80,14 @@ export const LeadCaptureModal: React.FC = () => {
           <div className="p-6 sm:p-8 space-y-6">
             
             <div className="space-y-2 text-left">
-              <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-brand-50 text-brand-700 text-xs font-bold uppercase tracking-wider">
+              <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-[#EBF7EC] text-[#439346] text-xs font-bold uppercase tracking-wider">
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>Solicitação de Orçamento Sem Compromisso</span>
               </div>
-              <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+              <h3 className="text-2xl font-black text-[#1B2B48] tracking-tight">
                 Receba seu orçamento detalhado
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 font-medium">
                 Preencha seus dados para encaminharmos o projeto 3D à loja parceira credenciada da sua região.
               </p>
             </div>
@@ -95,7 +95,7 @@ export const LeadCaptureModal: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-4 text-left">
               
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Nome Completo</label>
+                <label className="block text-xs font-bold text-[#1B2B48] uppercase mb-1">Nome Completo</label>
                 <div className="relative">
                   <input
                     type="text"
@@ -103,7 +103,7 @@ export const LeadCaptureModal: React.FC = () => {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="Ex: Ana Carolina Mendes"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 font-medium text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 font-medium text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#439346]"
                   />
                   <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                 </div>
@@ -111,7 +111,7 @@ export const LeadCaptureModal: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Telefone</label>
+                  <label className="block text-xs font-bold text-[#1B2B48] uppercase mb-1">Telefone</label>
                   <div className="relative">
                     <input
                       type="text"
@@ -119,14 +119,14 @@ export const LeadCaptureModal: React.FC = () => {
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       placeholder="(11) 99999-9999"
-                      className="w-full pl-10 pr-3 py-3 rounded-xl border border-slate-200 font-medium text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600"
+                      className="w-full pl-10 pr-3 py-3 rounded-xl border border-slate-200 font-medium text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#439346]"
                     />
                     <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">WhatsApp</label>
+                  <label className="block text-xs font-bold text-[#1B2B48] uppercase mb-1">WhatsApp</label>
                   <div className="relative">
                     <input
                       type="text"
@@ -134,15 +134,15 @@ export const LeadCaptureModal: React.FC = () => {
                       value={formData.whatsapp}
                       onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
                       placeholder="(11) 99999-9999"
-                      className="w-full pl-10 pr-3 py-3 rounded-xl border border-slate-200 font-medium text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600"
+                      className="w-full pl-10 pr-3 py-3 rounded-xl border border-slate-200 font-medium text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#439346]"
                     />
-                    <Phone className="w-4 h-4 text-emerald-500 absolute left-3.5 top-3.5" />
+                    <Phone className="w-4 h-4 text-[#439346] absolute left-3.5 top-3.5" />
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">E-mail</label>
+                <label className="block text-xs font-bold text-[#1B2B48] uppercase mb-1">E-mail</label>
                 <div className="relative">
                   <input
                     type="email"
@@ -150,14 +150,14 @@ export const LeadCaptureModal: React.FC = () => {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="seu.email@exemplo.com"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 font-medium text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 font-medium text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#439346]"
                   />
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Cidade / Região</label>
+                <label className="block text-xs font-bold text-[#1B2B48] uppercase mb-1">Cidade / Região</label>
                 <div className="relative">
                   <input
                     type="text"
@@ -165,17 +165,17 @@ export const LeadCaptureModal: React.FC = () => {
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                     placeholder="Sua Cidade"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 font-medium text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 font-medium text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#439346]"
                   />
                   <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                 </div>
               </div>
 
-              {/* Main Green Action Button requested */}
+              {/* Main Green Action Button */}
               <div className="pt-3">
                 <button
                   type="submit"
-                  className="w-full py-4 rounded-2xl bg-action-600 hover:bg-action-700 text-white font-extrabold text-sm uppercase tracking-wider transition-all duration-300 shadow-emerald-glow hover:shadow-lg flex items-center justify-center space-x-2"
+                  className="w-full py-4 rounded-xl bg-[#439346] hover:bg-[#387F3B] text-white font-extrabold text-sm uppercase tracking-wider transition-all duration-300 shadow-md flex items-center justify-center space-x-2"
                 >
                   <span>QUERO RECEBER MEU ORÇAMENTO</span>
                   <ArrowRight className="w-4 h-4" />
@@ -188,31 +188,31 @@ export const LeadCaptureModal: React.FC = () => {
           
           /* SUCCESS STATE */
           <div className="p-8 text-center space-y-6 animate-in zoom-in-95 duration-300">
-            <div className="w-20 h-20 rounded-full bg-emerald-100 text-action-600 flex items-center justify-center mx-auto shadow-emerald-glow">
+            <div className="w-20 h-20 rounded-full bg-[#EBF7EC] text-[#439346] flex items-center justify-center mx-auto shadow-lg">
               <CheckCircle2 className="w-12 h-12 stroke-[2.5]" />
             </div>
 
             <div className="space-y-3">
-              <h3 className="text-2xl font-black text-slate-900">Solicitação Enviada!</h3>
+              <h3 className="text-2xl font-black text-[#1B2B48]">Solicitação Enviada!</h3>
               <p className="text-sm text-slate-600 leading-relaxed font-medium">
                 "Obrigado! Sua solicitação foi enviada para uma loja parceira da sua região. Em breve um especialista entrará em contato."
               </p>
             </div>
 
             {/* Investor demo shortcut info */}
-            <div className="p-4 bg-brand-50 rounded-2xl border border-brand-200 text-xs text-brand-900 space-y-2 text-left">
-              <div className="font-bold flex items-center space-x-1">
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-700 space-y-2 text-left">
+              <div className="font-bold flex items-center space-x-1 text-[#1B2B48]">
                 <span>💡 Demonstração Interativa em Tempo Real:</span>
               </div>
-              <p className="text-brand-700">
-                Seu lead (<strong className="text-slate-900">#{createdLeadId}</strong>) foi adicionado ao sistema! Clique no botão abaixo para alternar para o <strong>Painel do Lojista</strong> e ver este pedido em tempo real.
+              <p className="text-slate-600 font-medium">
+                Seu lead (<strong className="text-[#1B2B48]">#{createdLeadId}</strong>) foi adicionado ao sistema! Clique no botão abaixo para alternar para o <strong>Painel do Lojista</strong> e ver este pedido em tempo real.
               </p>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <button
                 onClick={handleGoToMerchantDemo}
-                className="flex-1 py-3 px-4 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold uppercase tracking-wider transition-colors shadow-blue-glow"
+                className="flex-1 py-3 px-4 rounded-xl bg-[#1B2B48] hover:bg-[#121E34] text-white text-xs font-bold uppercase tracking-wider transition-colors shadow-md"
               >
                 Ver no Painel do Lojista &rarr;
               </button>

@@ -7,6 +7,7 @@ import {
   Zap 
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { Logo } from '../common/Logo';
 import type { Role } from '../../types';
 
 export const Navbar: React.FC = () => {
@@ -22,17 +23,13 @@ export const Navbar: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 transition-all duration-300">
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-sm transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20">
           
-          {/* Official Brand Logo */}
+          {/* Official Brand Logo matching Reference */}
           <div className="flex items-center space-x-3 cursor-pointer py-1" onClick={() => handleRoleChange('consumer')}>
-            <img 
-              src="/logo.png" 
-              alt="PlanejaFácil - Móveis Sob Medida" 
-              className="h-10 sm:h-12 w-auto object-contain transition-transform hover:scale-105"
-            />
+            <Logo variant="light" size="md" />
           </div>
 
           {/* Navigation Links for Consumer View (Desktop) */}
@@ -41,7 +38,7 @@ export const Navbar: React.FC = () => {
               <button
                 onClick={() => setConsumerTab('landing')}
                 className={`text-sm font-bold transition-colors duration-200 ${
-                  consumerTab === 'landing' ? 'text-brand-600' : 'text-slate-600 hover:text-slate-900'
+                  consumerTab === 'landing' ? 'text-[#1B2B48] border-b-2 border-[#439346] pb-1' : 'text-slate-600 hover:text-[#1B2B48]'
                 }`}
               >
                 Início
@@ -49,18 +46,18 @@ export const Navbar: React.FC = () => {
               <button
                 onClick={() => setConsumerTab('simulator')}
                 className={`text-sm font-bold transition-colors duration-200 ${
-                  consumerTab === 'simulator' ? 'text-brand-600' : 'text-slate-600 hover:text-slate-900'
+                  consumerTab === 'simulator' ? 'text-[#1B2B48] border-b-2 border-[#439346] pb-1' : 'text-slate-600 hover:text-[#1B2B48]'
                 }`}
               >
                 Simulador
               </button>
-              <a href="#como-funciona" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">
+              <a href="#como-funciona" className="text-sm font-semibold text-slate-600 hover:text-[#1B2B48] transition-colors">
                 Como Funciona
               </a>
-              <a href="#beneficios" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">
-                Vantagens
+              <a href="#lojas-parceiras" className="text-sm font-semibold text-slate-600 hover:text-[#1B2B48] transition-colors">
+                Lojas Parceiras
               </a>
-              <a href="#faq" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">
+              <a href="#faq" className="text-sm font-semibold text-slate-600 hover:text-[#1B2B48] transition-colors">
                 Dúvidas
               </a>
             </nav>
@@ -75,9 +72,9 @@ export const Navbar: React.FC = () => {
                 onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
                 className="flex items-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-slate-100/90 hover:bg-slate-200 border border-slate-200 text-[11px] sm:text-xs font-semibold text-slate-700 transition-all shadow-sm"
               >
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span className="w-2 h-2 rounded-full bg-[#439346] animate-pulse"></span>
                 <span className="hidden sm:inline">Modo:</span>
-                <span className="text-brand-600 font-bold">
+                <span className="text-[#1B2B48] font-bold">
                   {role === 'consumer' && '👤 Consumidor'}
                   {role === 'merchant' && '🏬 Lojista'}
                   {role === 'admin' && '🛡️ Admin'}
@@ -94,10 +91,10 @@ export const Navbar: React.FC = () => {
                   <button
                     onClick={() => handleRoleChange('consumer')}
                     className={`w-full flex items-center space-x-3 px-3.5 py-2.5 text-xs text-left font-medium transition-colors ${
-                      role === 'consumer' ? 'bg-brand-50 text-brand-700 font-bold' : 'text-slate-700 hover:bg-slate-50'
+                      role === 'consumer' ? 'bg-[#EBF7EC] text-[#1B2B48] font-bold' : 'text-slate-700 hover:bg-slate-50'
                     }`}
                   >
-                    <div className="p-1.5 rounded-lg bg-blue-100 text-brand-600">
+                    <div className="p-1.5 rounded-lg bg-emerald-100 text-[#439346]">
                       <UserCheck className="w-4 h-4" />
                     </div>
                     <div>
@@ -109,7 +106,7 @@ export const Navbar: React.FC = () => {
                   <button
                     onClick={() => handleRoleChange('merchant')}
                     className={`w-full flex items-center space-x-3 px-3.5 py-2.5 text-xs text-left font-medium transition-colors ${
-                      role === 'merchant' ? 'bg-brand-50 text-brand-700 font-bold' : 'text-slate-700 hover:bg-slate-50'
+                      role === 'merchant' ? 'bg-[#EBF7EC] text-[#1B2B48] font-bold' : 'text-slate-700 hover:bg-slate-50'
                     }`}
                   >
                     <div className="p-1.5 rounded-lg bg-amber-100 text-amber-600">
@@ -124,7 +121,7 @@ export const Navbar: React.FC = () => {
                   <button
                     onClick={() => handleRoleChange('admin')}
                     className={`w-full flex items-center space-x-3 px-3.5 py-2.5 text-xs text-left font-medium transition-colors ${
-                      role === 'admin' ? 'bg-brand-50 text-brand-700 font-bold' : 'text-slate-700 hover:bg-slate-50'
+                      role === 'admin' ? 'bg-[#EBF7EC] text-[#1B2B48] font-bold' : 'text-slate-700 hover:bg-slate-50'
                     }`}
                   >
                     <div className="p-1.5 rounded-lg bg-purple-100 text-purple-600">
@@ -143,7 +140,7 @@ export const Navbar: React.FC = () => {
             {role === 'consumer' && (
               <button
                 onClick={() => setConsumerTab('simulator')}
-                className="flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-xl bg-action-600 hover:bg-action-700 text-white font-extrabold text-[11px] sm:text-xs tracking-wider uppercase transition-all duration-300 shadow-emerald-glow hover:shadow-lg active:scale-95"
+                className="flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-xl bg-[#439346] hover:bg-[#387F3B] text-white font-extrabold text-[11px] sm:text-xs tracking-wider uppercase transition-all duration-300 shadow-md active:scale-95"
               >
                 <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-white" />
                 <span>Simular</span>

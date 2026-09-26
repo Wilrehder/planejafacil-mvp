@@ -14,25 +14,30 @@ export default {
           300: '#93C5FD',
           400: '#60A5FA',
           500: '#3B82F6',
-          600: '#2563EB', // Primary Blue requested
-          700: '#1D4ED8',
-          800: '#1E40AF',
-          900: '#1E3A8A',
-          950: '#172554',
+          600: '#1B2B48', // Reference Deep Navy Blue
+          700: '#15223A',
+          800: '#121E34',
+          900: '#0B1324',
+          navy: '#1B2B48',
+          navyDark: '#121E34',
+          navyLight: '#283D64',
         },
         action: {
-          50: '#ECFDF5',
-          100: '#D1FAE5',
-          500: '#10B981',
-          600: '#059669', // Action Green requested
-          700: '#047857',
+          50: '#EBF7EC',
+          100: '#D4EED7',
+          500: '#439346',
+          600: '#439346', // Reference Action Green
+          700: '#387F3B',
+          800: '#2E6930',
+          green: '#439346',
+          greenHover: '#387F3B',
         },
         surface: {
-          bg: '#F8FAFC',
+          bg: '#F4F6F9',
           card: '#FFFFFF',
-          dark: '#0F172A',
-          darker: '#020617',
-          sidebar: '#0B132B',
+          dark: '#1B2B48',
+          darker: '#121E34',
+          sidebar: '#121E34',
         }
       },
       fontFamily: {
