@@ -54,9 +54,6 @@ export const Navbar: React.FC = () => {
               <a href="#como-funciona" className="text-sm font-semibold text-slate-600 hover:text-[#1B2B48] transition-colors">
                 Como Funciona
               </a>
-              <a href="#lojas-parceiras" className="text-sm font-semibold text-slate-600 hover:text-[#1B2B48] transition-colors">
-                Lojas Parceiras
-              </a>
               <a href="#faq" className="text-sm font-semibold text-slate-600 hover:text-[#1B2B48] transition-colors">
                 Dúvidas
               </a>
