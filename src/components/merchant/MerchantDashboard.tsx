@@ -47,7 +47,11 @@ export const MerchantDashboard: React.FC = () => {
 
   // Currently selected partner store unit
   const currentStore = stores.find((s) => s.id === selectedStoreId) || stores[0];
-  const isProPlan = currentStore.plan === 'Pro';
+
+  // State override for test mode plan toggle
+  const [simulatedPlanOverride, setSimulatedPlanOverride] = useState<'Basic' | 'Pro' | null>(null);
+  const activePlan = simulatedPlanOverride || currentStore.plan;
+  const isProPlan = activePlan === 'Pro';
 
   // Filter leads assigned to this unit
   const storeLeads = leads.filter(
@@ -198,11 +202,10 @@ export const MerchantDashboard: React.FC = () => {
             <span className="text-[10px] font-extrabold uppercase text-slate-400 px-2 hidden sm:inline">Simular Plano:</span>
             <button
               onClick={() => {
-                currentStore.plan = 'Basic';
-                if (viewMode === 'kanban') setViewMode('table');
-                setSelectedStoreId(currentStore.id);
+                setSimulatedPlanOverride('Basic');
+                setViewMode('table');
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
                 !isProPlan 
                   ? 'bg-slate-700 text-white shadow-sm border border-slate-600' 
                   : 'text-slate-400 hover:text-white'
@@ -212,10 +215,9 @@ export const MerchantDashboard: React.FC = () => {
             </button>
             <button
               onClick={() => {
-                currentStore.plan = 'Pro';
-                setSelectedStoreId(currentStore.id);
+                setSimulatedPlanOverride('Pro');
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
                 isProPlan 
                   ? 'bg-[#439346] text-white shadow-sm' 
                   : 'text-slate-400 hover:text-white'
