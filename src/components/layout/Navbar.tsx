@@ -132,15 +132,7 @@ export const Navbar: React.FC = () => {
               )}
             </div>
 
-            {/* Consumer CTA Button (Clean Green) */}
-            {role === 'consumer' && (
-              <button
-                onClick={() => setConsumerTab('simulator')}
-                className="flex items-center justify-center px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-xl bg-[#439346] hover:bg-[#387F3B] text-white font-extrabold text-[11px] sm:text-xs tracking-wider uppercase transition-all duration-300 shadow-md active:scale-95"
-              >
-                <span>Faça seu Orçamento</span>
-              </button>
-            )}
+
 
           </div>
 
