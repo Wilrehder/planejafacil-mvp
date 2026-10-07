@@ -2,19 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { 
   ArrowRight, 
   Check, 
-  ChevronDown, 
-  ShieldCheck, 
-  ChefHat,
-  Shirt,
-  Laptop,
-  Sofa,
-  Bath
+  ShieldCheck
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const LandingPage: React.FC = () => {
   const { setConsumerTab } = useApp();
-  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
 
   const heroSlides = [
@@ -35,39 +28,12 @@ export const LandingPage: React.FC = () => {
     },
   ];
 
-  const quickCategories = [
-    { title: 'Cozinha', icon: ChefHat, tag: 'Popular' },
-    { title: 'Guarda-Roupa', icon: Shirt, tag: 'Dormitório' },
-    { title: 'Home Office', icon: Laptop, tag: 'Trabalho' },
-    { title: 'Sala de Estar', icon: Sofa, tag: 'Painel TV' },
-    { title: 'Banheiro', icon: Bath, tag: 'Suíte' },
-  ];
-
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlideIndex((prev) => (prev + 1) % heroSlides.length);
     }, 4500);
     return () => clearInterval(timer);
   }, [heroSlides.length]);
-
-  const faqItems = [
-    {
-      q: 'Como é calculada a estimativa de preço?',
-      a: 'Nossa plataforma considera as dimensões do seu espaço, os módulos escolhidos, o padrão de acabamento (MDF, Madeirado, Laca) e o nível de ferragens, aplicando a média de preços praticada por lojas e marcenarias credenciadas da sua região.'
-    },
-    {
-      q: 'A simulação é realmente gratuita?',
-      a: 'Sim, a simulação é 100% gratuita e não exige cadastro prévio para visualizar o orçamento estimado.'
-    },
-    {
-      q: 'Como funciona o envio do orçamento para as lojas?',
-      a: 'Após simular, você pode optar por enviar a especificação do seu projeto para lojas parceiras credenciadas da sua cidade para receber um atendimento personalizado e agendar uma visita.'
-    },
-    {
-      q: 'Sou lojista ou marceneiro, como posso receber estes projetos?',
-      a: 'Lojas físicas e marcenarias estruturadas podem entrar em contato com nossa equipe para integração no painel B2B.'
-    }
-  ];
 
   return (
     <div className="bg-[#F4F6F9] text-slate-900 min-h-screen font-sans pb-16">
@@ -85,32 +51,11 @@ export const LandingPage: React.FC = () => {
           {/* Headline matching exact reference text */}
           <div className="space-y-2.5 sm:space-y-3 pt-2">
             <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-snug sm:leading-[1.15]">
-              Simule seu Planejado<br />em Minutos!
+              Faça seu orçamento em minutos
             </h1>
             <p className="text-xs sm:text-base text-slate-300 max-w-xl mx-auto font-medium leading-relaxed">
               Escolha seu ambiente, defina o tamanho e descubra o valor estimado instantaneamente.
             </p>
-          </div>
-
-          {/* Quick Environment Selector Cards Bar */}
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3.5 pt-1 max-w-3xl mx-auto">
-            {quickCategories.map((cat, idx) => {
-              const IconComp = cat.icon;
-              return (
-                <button
-                  key={idx}
-                  onClick={() => setConsumerTab('simulator')}
-                  className="bg-white/95 hover:bg-white text-[#1B2B48] p-2.5 sm:p-3.5 rounded-2xl shadow-sm hover:shadow-md transition-all flex flex-col items-center justify-center space-y-1.5 group border border-white/20 active:scale-95"
-                >
-                  <div className="p-2 sm:p-2.5 rounded-xl bg-[#EBF7EC] text-[#439346] group-hover:scale-110 transition-transform">
-                    <IconComp className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
-                  </div>
-                  <span className="text-[11px] sm:text-xs font-bold text-[#1B2B48] group-hover:text-[#439346] transition-colors leading-tight">
-                    {cat.title}
-                  </span>
-                </button>
-              );
-            })}
           </div>
 
           {/* Room Image Showcase Card */}
@@ -237,48 +182,8 @@ export const LandingPage: React.FC = () => {
             onClick={() => setConsumerTab('simulator')}
             className="px-8 py-3.5 rounded-xl bg-[#1B2B48] hover:bg-[#121E34] text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-md active:scale-95"
           >
-            Iniciar Simulação
+            Faça seu Orçamento
           </button>
-        </div>
-
-      </section>
-
-      {/* ========================================================================= */}
-      {/* SECTION: FAQ ACCORDION */}
-      {/* ========================================================================= */}
-      <section id="faq" className="py-12 sm:py-16 max-w-4xl mx-auto px-4 sm:px-6">
-        
-        <div className="text-center space-y-2 sm:space-y-3 mb-8 sm:mb-10">
-          <h2 className="text-xl sm:text-3xl font-extrabold text-[#1B2B48] tracking-tight">
-            Perguntas Frequentes
-          </h2>
-        </div>
-
-        <div className="space-y-3">
-          {faqItems.map((item, index) => {
-            const isOpen = openFaqIndex === index;
-            return (
-              <div
-                key={index}
-                className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-sm"
-              >
-                <button
-                  onClick={() => setOpenFaqIndex(isOpen ? null : index)}
-                  className="w-full p-4 sm:p-5 text-left flex items-center justify-between space-x-3 focus:outline-none"
-                >
-                  <span className="font-bold text-[#1B2B48] text-xs sm:text-base">
-                    {item.q}
-                  </span>
-                  <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180 text-[#439346]' : ''}`} />
-                </button>
-                {isOpen && (
-                  <div className="px-4 sm:px-5 pb-4 sm:pb-5 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3 font-medium">
-                    {item.a}
-                  </div>
-                )}
-              </div>
-            );
-          })}
         </div>
 
       </section>
