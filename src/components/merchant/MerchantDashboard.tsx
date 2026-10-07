@@ -186,43 +186,7 @@ export const MerchantDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 p-4 sm:p-8 space-y-6 font-sans">
       
-      {/* Header Limpo (Visível Apenas no CRM) */}
-      {merchantTab !== 'erp' && (
-        <div className="bg-slate-900 text-white rounded-2xl p-6 border border-slate-800 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 rounded-xl bg-[#439346] text-white flex items-center justify-center font-bold shrink-0 shadow-lg">
-              <StoreIcon className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="text-xs text-slate-400 font-semibold">Painel do Lojista</span>
-                <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
-                  isProPlan ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30' : 'bg-slate-700 text-slate-300'
-                }`}>
-                  {isProPlan ? 'Plano Pro' : 'Plano Básico'}
-                </span>
-              </div>
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">{currentStore.name}</h1>
-              <p className="text-xs text-slate-400 mt-0.5">{currentStore.regionServed} • Cidade: {currentStore.city}</p>
-            </div>
-          </div>
 
-          <div className="flex items-center justify-end">
-            <button
-              onClick={handleOpenAddLead}
-              className={`px-4 py-2.5 rounded-xl font-extrabold text-xs flex items-center space-x-2 transition-all shadow-md ${
-                isProPlan 
-                  ? 'bg-[#439346] hover:bg-[#387F3B] text-white' 
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
-              }`}
-            >
-              {isProPlan ? <Plus className="w-4 h-4 stroke-[3]" /> : <Lock className="w-3.5 h-3.5 text-amber-400" />}
-              <span>+ Novo Lead Externo</span>
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* SELETOR PRINCIPAL DE MÓDULO: CRM vs ERP e Controles Globais */}
       <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex flex-col xl:flex-row items-center justify-between gap-4">
@@ -370,6 +334,19 @@ export const MerchantDashboard: React.FC = () => {
           {/* Controls & Mode Selector */}
           <div className="flex flex-wrap items-center gap-2">
             
+            <button
+              onClick={handleOpenAddLead}
+              className={`px-3 py-1.5 rounded-xl font-extrabold text-xs flex items-center space-x-1.5 transition-all shadow-sm ${
+                isProPlan 
+                  ? 'bg-[#439346] hover:bg-[#387F3B] text-white' 
+                  : 'bg-slate-100 text-slate-600 border border-slate-200'
+              }`}
+              title={isProPlan ? "Cadastrar novo lead" : "Recurso do Plano Pro"}
+            >
+              {isProPlan ? <Plus className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5 text-amber-500" />}
+              <span>+ Novo Lead Externo</span>
+            </button>
+
             {/* View Switcher: Table vs Kanban (Plano Pro unlock) */}
             {isProPlan ? (
               <div className="bg-slate-100 p-1 rounded-xl flex items-center space-x-1">
