@@ -1568,23 +1568,15 @@ export const INITIAL_ORDERS: StoreOrder[] = [
     currentStage: 'medicao',
     createdAt: '2026-08-19T14:00:00Z',
     storeId: 'store-mogi',
-    contractFile: 'contrato_assinatura_carlos_prado.pdf',
-    medicaoDate: '2026-08-22',
+    contractFile: 'contrato_venda_carlos_prado.pdf',
     timeline: [
       {
         id: 'log-1',
         user: 'Vendedor Loja',
         userRole: 'Vendedor',
-        action: 'Venda Fechada no CRM. Pedido #PED-4091 gerado com Contrato de Compra anexado.',
+        action: 'Venda Fechada no CRM. Pedido #PED-4091 criado e encaminhado para Medição.',
         timestamp: '2026-08-19T14:00:00Z',
       },
-      {
-        id: 'log-2',
-        user: 'Gerente Mogi',
-        userRole: 'Gerente',
-        action: 'Agendou a Medição Técnica da obra para o dia 22/08/2026.',
-        timestamp: '2026-08-20T09:30:00Z',
-      }
     ],
   },
   {
@@ -1597,13 +1589,12 @@ export const INITIAL_ORDERS: StoreOrder[] = [
     state: 'SP',
     environment: 'Dormitório Solteiro (12m²), Lavanderia (6m²)',
     totalValue: 18200,
-    currentStage: 'projeto_executivo',
+    currentStage: 'projeto_aprovacao',
     createdAt: '2026-08-17T11:00:00Z',
     storeId: 'store-mogi',
     contractFile: 'contrato_helena_marcos.pdf',
-    medicaoFile: 'ficha_medicao_tecnica_obra.pdf',
-    medicaoDate: '2026-08-18',
-    designerName: 'Projetista Lucas Silva',
+    medicaoFile: 'medicao_tecnica_obra.pdf',
+    medicaoDone: true,
     timeline: [
       {
         id: 'log-10',
@@ -1616,7 +1607,7 @@ export const INITIAL_ORDERS: StoreOrder[] = [
         id: 'log-11',
         user: 'Técnico Roberto',
         userRole: 'Medição',
-        action: 'Anexou o arquivo `ficha_medicao_tecnica_obra.pdf`. Etapa avançada automaticamente para Projeto Executivo.',
+        action: 'Medição concluída com arquivo `medicao_tecnica_obra.pdf`. Etapa avançada para Projeto & Aprovação.',
         timestamp: '2026-08-18T16:20:00Z',
       }
     ],

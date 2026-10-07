@@ -61,7 +61,7 @@ export type AdminTab = 'dashboard' | 'leads' | 'stores' | 'regions' | 'reports' 
 export type MerchantTab = 'dashboard' | 'leads' | 'erp' | 'settings';
 export type LeadStatus = 'novo' | 'em_atendimento' | 'orcado' | 'convertido' | 'perdido';
 
-export type OrderStage = 'medicao' | 'projeto_executivo' | 'montagem' | 'vistoria' | 'concluido';
+export type OrderStage = 'medicao' | 'projeto_aprovacao' | 'producao' | 'montagem' | 'entrega_aceite' | 'concluido';
 
 export interface OrderAuditLog {
   id: string;
@@ -85,21 +85,20 @@ export interface StoreOrder {
   createdAt: string;
   storeId: string;
 
-  // Pasta Digital de Documentos
-  contractFile?: string;
-  medicaoFile?: string;
-  render3dFile?: string;
-  planoCorteFile?: string;
-  termoVistoriaFile?: string;
+  // Pasta Digital de Documentos (6 categorias genéricas)
+  contractFile?: string; // 1. Contrato
+  medicaoFile?: string;  // 2. Medição
+  projectFile?: string;  // 3. Projeto (PDF, render, imagem ou arquivo)
+  producaoFile?: string; // 4. Documentos de Produção (opcional)
+  montagemFoto?: string; // 5. Fotos da Montagem
+  aceiteFile?: string;   // 6. Aceite (PDF)
 
-  // Dados das Etapas
-  medicaoDate?: string;
-  designerName?: string;
-  installerName?: string;
-  installationDate?: string;
-  checkedInAt?: string;
-  inspectorName?: string;
-  inspectionApproved?: boolean;
+  // Status/Confirmações das Etapas
+  medicaoDone?: boolean;
+  projectApproved?: boolean;
+  producaoDone?: boolean;
+  montagemDone?: boolean;
+  clientConfirmedAceite?: boolean;
 
   // Log de Auditoria
   timeline: OrderAuditLog[];

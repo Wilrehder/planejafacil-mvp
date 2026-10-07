@@ -1,19 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  X, 
-  Ruler, 
-  FileCheck, 
-  Wrench, 
-  CheckCircle2, 
-  Upload, 
-  FileText, 
-  Calendar, 
-  User, 
-  Clock, 
-  ShieldCheck, 
-  Sparkles,
-  Download,
-  Check
+  X, Ruler, FileCheck, Wrench, CheckCircle2, Upload, FileText, Clock, ShieldCheck, Sparkles, Check, Package
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { OrderStage, StoreOrder } from '../../types';
@@ -24,31 +11,28 @@ interface OrderFolderModalProps {
 }
 
 const STAGES: { key: OrderStage; label: string; icon: React.FC<{ className?: string }> }[] = [
-  { key: 'medicao', label: '1. Medição Técnica', icon: Ruler },
-  { key: 'projeto_executivo', label: '2. Projeto Executivo', icon: FileCheck },
-  { key: 'montagem', label: '3. Montagem na Obra', icon: Wrench },
-  { key: 'vistoria', label: '4. Vistoria & Aceite', icon: ShieldCheck },
-  { key: 'concluido', label: '5. Pedido Concluído', icon: CheckCircle2 },
+  { key: 'medicao', label: '1. Medição', icon: Ruler },
+  { key: 'projeto_aprovacao', label: '2. Projeto & Aprovação', icon: FileCheck },
+  { key: 'producao', label: '3. Produção', icon: Package },
+  { key: 'montagem', label: '4. Montagem', icon: Wrench },
+  { key: 'entrega_aceite', label: '5. Entrega / Aceite', icon: ShieldCheck },
+  { key: 'concluido', label: '6. Concluído', icon: CheckCircle2 },
 ];
 
 export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClose }) => {
   const { updateOrder } = useApp();
 
-  // Form states for stage inputs
-  const [medicaoDate, setMedicaoDate] = useState(order.medicaoDate || '');
   const [medicaoFileName, setMedicaoFileName] = useState(order.medicaoFile || '');
-
-  const [designerName, setDesignerName] = useState(order.designerName || '');
-  const [render3dFileName, setRender3dFileName] = useState(order.render3dFile || '');
-  const [planoCorteFileName, setPlanoCorteFileName] = useState(order.planoCorteFile || '');
-
-  const [installerName, setInstallerName] = useState(order.installerName || '');
-  const [installationDate, setInstallationDate] = useState(order.installationDate || '');
-  const [checkedInAt, setCheckedInAt] = useState(order.checkedInAt || '');
-
-  const [inspectorName, setInspectorName] = useState(order.inspectorName || '');
-  const [inspectionApproved, setInspectionApproved] = useState(order.inspectionApproved || false);
-  const [termoVistoriaFileName, setTermoVistoriaFileName] = useState(order.termoVistoriaFile || '');
+  
+  const [projectFileName, setProjectFileName] = useState(order.projectFile || '');
+  const [clientApprovedProject, setClientApprovedProject] = useState(order.projectApproved || false);
+  
+  const [producaoFileName, setProducaoFileName] = useState(order.producaoFile || '');
+  
+  const [montagemFotoName, setMontagemFotoName] = useState(order.montagemFoto || '');
+  
+  const [aceiteFileName, setAceiteFileName] = useState(order.aceiteFile || '');
+  const [clientConfirmedAceite, setClientConfirmedAceite] = useState(order.clientConfirmedAceite || false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -58,47 +42,58 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
 
   const currentIndex = getStageIndex(order.currentStage);
 
-  // Handlers for updating stages
   const handleSaveMedicao = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!medicaoDate || !medicaoFileName) {
-      alert('Por favor, informe a data da medição e anexe a Ficha Técnica.');
+    if (!medicaoFileName) {
+      alert('Por favor, anexe a Ficha de Medição ou foto contendo as medidas.');
       return;
     }
     setIsSubmitting(true);
     setTimeout(() => {
       updateOrder(
         order.id,
-        {
-          medicaoDate,
-          medicaoFile: medicaoFileName,
-        },
-        `Ficha de Medição Técnica anexada (${medicaoFileName}) por ${medicaoDate}`,
-        'Medição',
-        'Carlos Medições'
+        { medicaoFile: medicaoFileName, medicaoDone: true },
+        `Medição concluída. Arquivo anexado: ${medicaoFileName}`,
+        'Operacional',
+        'Usuário ERP'
       );
       setIsSubmitting(false);
     }, 400);
   };
 
-  const handleSaveProjetoExecutivo = (e: React.FormEvent) => {
+  const handleSaveProjeto = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!designerName || !render3dFileName || !planoCorteFileName) {
-      alert('Por favor, preencha o nome do projetista e anexe o Render 3D e o Plano de Corte.');
+    if (!projectFileName) {
+      alert('Por favor, anexe pelo menos um arquivo de projeto.');
+      return;
+    }
+    if (!clientApprovedProject) {
+      alert('Você deve confirmar que o cliente aprovou o projeto.');
       return;
     }
     setIsSubmitting(true);
     setTimeout(() => {
       updateOrder(
         order.id,
-        {
-          designerName,
-          render3dFile: render3dFileName,
-          planoCorteFile: planoCorteFileName,
-        },
-        `Projeto Executivo e Plano de Corte 3D anexados por ${designerName}`,
-        'Projetista',
-        designerName
+        { projectFile: projectFileName, projectApproved: true },
+        `Projeto anexado e aprovação confirmada. Arquivo: ${projectFileName}`,
+        'Operacional',
+        'Usuário ERP'
+      );
+      setIsSubmitting(false);
+    }, 400);
+  };
+
+  const handleSaveProducao = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setTimeout(() => {
+      updateOrder(
+        order.id,
+        { producaoFile: producaoFileName, producaoDone: true },
+        `Produção concluída.${producaoFileName ? ' Documentos anexados: ' + producaoFileName : ''}`,
+        'Operacional',
+        'Usuário ERP'
       );
       setIsSubmitting(false);
     }, 400);
@@ -106,49 +101,59 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
 
   const handleSaveMontagem = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!installerName || !installationDate || !checkedInAt) {
-      alert('Por favor, informe o montador, a data e confirme o check-in na obra.');
+    if (!montagemFotoName) {
+      alert('Por favor, anexe pelo menos uma foto da montagem finalizada.');
       return;
     }
     setIsSubmitting(true);
     setTimeout(() => {
       updateOrder(
         order.id,
-        {
-          installerName,
-          installationDate,
-          checkedInAt,
-        },
-        `Montagem concluída no local por ${installerName} (Check-in: ${checkedInAt})`,
-        'Montagem',
-        installerName
+        { montagemFoto: montagemFotoName, montagemDone: true },
+        `Montagem concluída. Fotos anexadas: ${montagemFotoName}`,
+        'Operacional',
+        'Usuário ERP'
       );
       setIsSubmitting(false);
     }, 400);
   };
 
-  const handleSaveVistoria = (e: React.FormEvent) => {
+  const handleSaveAceite = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inspectorName || !inspectionApproved || !termoVistoriaFileName) {
-      alert('Por favor, informe o vistoriador, marque a aprovação e anexe o Termo de Vistoria.');
+    if (!aceiteFileName && !clientConfirmedAceite) {
+      alert('Por favor, anexe o Termo em PDF ou realize a confirmação no sistema.');
       return;
     }
     setIsSubmitting(true);
     setTimeout(() => {
       updateOrder(
         order.id,
-        {
-          inspectorName,
-          inspectionApproved: true,
-          termoVistoriaFile: termoVistoriaFileName,
-        },
-        `Vistoria Técnica aprovada sem pendências por ${inspectorName}. Termo de Aceite anexado.`,
-        'Vistoria',
-        inspectorName
+        { aceiteFile: aceiteFileName, clientConfirmedAceite: clientConfirmedAceite },
+        `Recebimento e Aceite confirmados pelo cliente.`,
+        'Operacional',
+        'Usuário ERP'
       );
       setIsSubmitting(false);
     }, 400);
   };
+
+  const renderFileRow = (label: string, filename?: string, fallbackText: string = '—') => (
+    <div className={`p-3 rounded-lg border flex items-center justify-between ${filename ? 'bg-slate-50 border-slate-200' : 'bg-slate-50/50 border-slate-100'}`}>
+      <div className="truncate pr-2">
+        <span className="text-[11px] font-semibold uppercase text-slate-400 block">{label}</span>
+        <span className={`text-xs font-medium truncate block ${filename ? 'text-slate-700' : 'text-slate-400 italic'}`}>
+          {filename || fallbackText}
+        </span>
+      </div>
+      {filename ? (
+        <span className="p-1.5 text-emerald-600 bg-emerald-50 rounded-md shrink-0">
+          <CheckCircle2 className="w-4 h-4" />
+        </span>
+      ) : (
+        <span className="text-xs text-slate-400 font-medium shrink-0">-</span>
+      )}
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
@@ -175,7 +180,7 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
 
           <div className="flex items-center gap-6">
             <div className="text-right">
-              <span className="text-xs text-slate-400 block uppercase font-medium">Valor Total do Pedido</span>
+              <span className="text-xs text-slate-400 block uppercase font-medium">Valor Total</span>
               <span className="text-xl font-bold text-emerald-400">
                 R$ {order.totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </span>
@@ -189,7 +194,7 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
           </div>
         </div>
 
-        {/* TIMELINE DE ESTÁGIOS DO PEDIDO (PASSO A PASSO AUTOMÁTICO) */}
+        {/* TIMELINE DE ESTÁGIOS DO PEDIDO */}
         <div className="bg-slate-50 border-b border-slate-200 px-6 py-4">
           <div className="flex items-center justify-between relative">
             {STAGES.map((s, idx) => {
@@ -230,131 +235,47 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
         {/* CORPO DO MODAL (2 COLUNAS) */}
         <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 bg-slate-50/50">
           
-          {/* COLUNA ESQUERDA: FORMULÁRIO E DOCUMENTOS DA ETAPA (LG: 7 COLUNAS) */}
+          {/* COLUNA ESQUERDA: FORMULÁRIO E DOCUMENTOS DA ETAPA */}
           <div className="lg:col-span-7 space-y-6">
             
-            {/* DOCUMENTOS DA PASTA DIGITAL DO CLIENTE */}
+            {/* PASTA DIGITAL DO PEDIDO */}
             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
               <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
                 <FileText className="w-4 h-4 text-blue-600" />
-                Pasta Digital do Pedido (Documentos Anexados)
+                Pasta Digital do Pedido
               </h3>
               
               <div className="grid grid-cols-2 gap-3">
-                {/* Contrato CRM */}
-                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between">
-                  <div className="truncate pr-2">
-                    <span className="text-[11px] font-semibold uppercase text-slate-400 block">1. Contrato CRM</span>
-                    <span className="text-xs font-medium text-slate-700 truncate block">
-                      {order.contractFile || 'contrato_venda.pdf'}
-                    </span>
-                  </div>
-                  <span className="p-1.5 text-emerald-600 bg-emerald-50 rounded-md shrink-0">
-                    <CheckCircle2 className="w-4 h-4" />
-                  </span>
-                </div>
-
-                {/* Medição Técnica */}
-                <div className={`p-3 rounded-lg border flex items-center justify-between ${order.medicaoFile ? 'bg-slate-50 border-slate-200' : 'bg-amber-50/50 border-amber-200/60'}`}>
-                  <div className="truncate pr-2">
-                    <span className="text-[11px] font-semibold uppercase text-slate-400 block">2. Medição Técnica</span>
-                    <span className={`text-xs font-medium truncate block ${order.medicaoFile ? 'text-slate-700' : 'text-amber-700 italic'}`}>
-                      {order.medicaoFile || 'Pendente de upload'}
-                    </span>
-                  </div>
-                  {order.medicaoFile ? (
-                    <span className="p-1.5 text-emerald-600 bg-emerald-50 rounded-md shrink-0">
-                      <CheckCircle2 className="w-4 h-4" />
-                    </span>
-                  ) : (
-                    <span className="text-xs text-amber-600 font-semibold shrink-0">Pendente</span>
-                  )}
-                </div>
-
-                {/* Render 3D */}
-                <div className={`p-3 rounded-lg border flex items-center justify-between ${order.render3dFile ? 'bg-slate-50 border-slate-200' : 'bg-slate-100/60 border-slate-200'}`}>
-                  <div className="truncate pr-2">
-                    <span className="text-[11px] font-semibold uppercase text-slate-400 block">3. Projeto Render 3D</span>
-                    <span className={`text-xs font-medium truncate block ${order.render3dFile ? 'text-slate-700' : 'text-slate-400 italic'}`}>
-                      {order.render3dFile || 'Não enviado'}
-                    </span>
-                  </div>
-                  {order.render3dFile && (
-                    <span className="p-1.5 text-emerald-600 bg-emerald-50 rounded-md shrink-0">
-                      <CheckCircle2 className="w-4 h-4" />
-                    </span>
-                  )}
-                </div>
-
-                {/* Plano de Corte */}
-                <div className={`p-3 rounded-lg border flex items-center justify-between ${order.planoCorteFile ? 'bg-slate-50 border-slate-200' : 'bg-slate-100/60 border-slate-200'}`}>
-                  <div className="truncate pr-2">
-                    <span className="text-[11px] font-semibold uppercase text-slate-400 block">4. Plano Corte (CorteCloud)</span>
-                    <span className={`text-xs font-medium truncate block ${order.planoCorteFile ? 'text-slate-700' : 'text-slate-400 italic'}`}>
-                      {order.planoCorteFile || 'Não enviado'}
-                    </span>
-                  </div>
-                  {order.planoCorteFile && (
-                    <span className="p-1.5 text-emerald-600 bg-emerald-50 rounded-md shrink-0">
-                      <CheckCircle2 className="w-4 h-4" />
-                    </span>
-                  )}
-                </div>
-
-                {/* Termo de Vistoria */}
-                <div className={`p-3 rounded-lg border col-span-2 flex items-center justify-between ${order.termoVistoriaFile ? 'bg-slate-50 border-slate-200' : 'bg-slate-100/60 border-slate-200'}`}>
-                  <div className="truncate pr-2">
-                    <span className="text-[11px] font-semibold uppercase text-slate-400 block">5. Termo de Vistoria & Aceite do Cliente</span>
-                    <span className={`text-xs font-medium truncate block ${order.termoVistoriaFile ? 'text-slate-700' : 'text-slate-400 italic'}`}>
-                      {order.termoVistoriaFile || 'Não enviado'}
-                    </span>
-                  </div>
-                  {order.termoVistoriaFile && (
-                    <span className="p-1.5 text-emerald-600 bg-emerald-50 rounded-md shrink-0">
-                      <CheckCircle2 className="w-4 h-4" />
-                    </span>
-                  )}
-                </div>
+                {renderFileRow('1. Contrato', order.contractFile, 'contrato_venda.pdf')}
+                {renderFileRow('2. Medição', order.medicaoFile)}
+                {renderFileRow('3. Projeto', order.projectFile)}
+                {renderFileRow('4. Documentos de Produção', order.producaoFile)}
+                {renderFileRow('5. Fotos da Montagem', order.montagemFoto)}
+                {renderFileRow('6. Aceite', order.aceiteFile || (order.clientConfirmedAceite ? '(Confirmação via Sistema)' : undefined))}
               </div>
             </div>
 
-            {/* FORMULÁRIO DA ETAPA ATUAL (Ações & Requisitos de Avanço) */}
+            {/* FORMULÁRIO DA ETAPA ATUAL */}
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
               <h3 className="text-base font-bold text-slate-800 mb-1 flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-blue-600" />
-                Ação Requerida para a Etapa: {STAGES[currentIndex]?.label}
+                Ação Requerida: {STAGES[currentIndex]?.label}
               </h3>
               <p className="text-xs text-slate-500 mb-5">
-                O ERP avança o status do pedido automaticamente após o preenchimento dos requisitos obrigatórios.
+                Preencha as informações essenciais para avançar o status do pedido.
               </p>
 
-              {/* ETAPA 1: MEDIÇÃO TÉCNICA */}
+              {/* ETAPA 1: MEDIÇÃO */}
               {order.currentStage === 'medicao' && (
                 <form onSubmit={handleSaveMedicao} className="space-y-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Data da Medição Realizada na Obra *
-                    </label>
-                    <div className="relative">
-                      <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                      <input
-                        type="date"
-                        value={medicaoDate}
-                        onChange={(e) => setMedicaoDate(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Anexar Ficha Técnica de Medição (PDF / Imagem) *
+                      Anexar Medição (Ficha/PDF/Foto) *
                     </label>
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        placeholder="Ex: ficha_medicao_obra_v1.pdf"
+                        placeholder="Ex: medicao_cliente.pdf"
                         value={medicaoFileName}
                         onChange={(e) => setMedicaoFileName(e.target.value)}
                         className="flex-1 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
@@ -362,10 +283,10 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
                       />
                       <button
                         type="button"
-                        onClick={() => setMedicaoFileName(`medicao_tecnica_${order.id.toLowerCase()}.pdf`)}
+                        onClick={() => setMedicaoFileName(`medicao_${order.id.toLowerCase()}.pdf`)}
                         className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded-lg flex items-center gap-1.5 transition-colors"
                       >
-                        <Upload className="w-3.5 h-3.5" /> Simulation Upload
+                        <Upload className="w-3.5 h-3.5" /> Anexar
                       </button>
                     </div>
                   </div>
@@ -373,75 +294,87 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg shadow-md shadow-blue-600/20 transition-all flex items-center justify-center gap-2 mt-4"
+                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg shadow-md shadow-blue-600/20 transition-all flex items-center justify-center mt-4"
                   >
-                    {isSubmitting ? 'Registrando...' : 'Salvar Medição Técnica & Avançar para Projeto Executivo →'}
+                    {isSubmitting ? 'Registrando...' : 'Medição Concluída →'}
                   </button>
                 </form>
               )}
 
-              {/* ETAPA 2: PROJETO EXECUTIVO */}
-              {order.currentStage === 'projeto_executivo' && (
-                <form onSubmit={handleSaveProjetoExecutivo} className="space-y-4">
+              {/* ETAPA 2: PROJETO & APROVAÇÃO */}
+              {order.currentStage === 'projeto_aprovacao' && (
+                <form onSubmit={handleSaveProjeto} className="space-y-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Projetista 3D Responsável *
-                    </label>
-                    <div className="relative">
-                      <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                      <input
-                        type="text"
-                        placeholder="Ex: Fernanda Designer"
-                        value={designerName}
-                        onChange={(e) => setDesignerName(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Render 3D Aprovado pelo Cliente *
+                      Anexar Projeto (PDF/Render/Imagens) *
                     </label>
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        placeholder="Ex: render_projeto_final.pdf"
-                        value={render3dFileName}
-                        onChange={(e) => setRender3dFileName(e.target.value)}
+                        placeholder="Ex: projeto_final.pdf"
+                        value={projectFileName}
+                        onChange={(e) => setProjectFileName(e.target.value)}
                         className="flex-1 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                         required
                       />
                       <button
                         type="button"
-                        onClick={() => setRender3dFileName(`projeto_3d_${order.id.toLowerCase()}.pdf`)}
+                        onClick={() => setProjectFileName(`projeto_${order.id.toLowerCase()}.pdf`)}
                         className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded-lg flex items-center gap-1.5 transition-colors"
                       >
-                        <Upload className="w-3.5 h-3.5" /> Simular
+                        <Upload className="w-3.5 h-3.5" /> Anexar
                       </button>
                     </div>
                   </div>
 
+                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="client-approval"
+                      checked={clientApprovedProject}
+                      onChange={(e) => setClientApprovedProject(e.target.checked)}
+                      className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                    />
+                    <label htmlFor="client-approval" className="text-xs font-semibold text-slate-800 cursor-pointer">
+                      Cliente aprovou o projeto
+                    </label>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg shadow-md shadow-blue-600/20 transition-all flex items-center justify-center mt-4"
+                  >
+                    {isSubmitting ? 'Registrando...' : 'Confirmar Aprovação do Projeto →'}
+                  </button>
+                </form>
+              )}
+
+              {/* ETAPA 3: PRODUÇÃO */}
+              {order.currentStage === 'producao' && (
+                <form onSubmit={handleSaveProducao} className="space-y-4">
+                  <p className="text-sm text-slate-700 bg-orange-50 border border-orange-200 p-3 rounded-lg font-medium">
+                    O móvel está atualmente <strong>em produção</strong>. Quando a fabricação for finalizada e estiver pronto para montagem, conclua esta etapa.
+                  </p>
+
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Plano de Corte (CorteCloud / Marceneiro) *
+                      Documentos de Produção (Opcional)
                     </label>
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        placeholder="Ex: plano_cortecloud.corte"
-                        value={planoCorteFileName}
-                        onChange={(e) => setPlanoCorteFileName(e.target.value)}
+                        placeholder="Ex: plano_corte.pdf, romaneio.pdf"
+                        value={producaoFileName}
+                        onChange={(e) => setProducaoFileName(e.target.value)}
                         className="flex-1 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                        required
                       />
                       <button
                         type="button"
-                        onClick={() => setPlanoCorteFileName(`plano_cortecloud_${order.id.toLowerCase()}.corte`)}
+                        onClick={() => setProducaoFileName(`doc_producao_${order.id.toLowerCase()}.pdf`)}
                         className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded-lg flex items-center gap-1.5 transition-colors"
                       >
-                        <Upload className="w-3.5 h-3.5" /> Simular
+                        <Upload className="w-3.5 h-3.5" /> Anexar
                       </button>
                     </div>
                   </div>
@@ -449,65 +382,35 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg shadow-md shadow-blue-600/20 transition-all flex items-center justify-center gap-2 mt-4"
+                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg shadow-md shadow-blue-600/20 transition-all flex items-center justify-center mt-4"
                   >
-                    {isSubmitting ? 'Registrando...' : 'Anexar Projetos & Liberar para Montagem na Obra →'}
+                    {isSubmitting ? 'Registrando...' : 'Produção Concluída →'}
                   </button>
                 </form>
               )}
 
-              {/* ETAPA 3: MONTAGEM NA OBRA */}
+              {/* ETAPA 4: MONTAGEM */}
               {order.currentStage === 'montagem' && (
                 <form onSubmit={handleSaveMontagem} className="space-y-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Montador Responsável *
-                    </label>
-                    <div className="relative">
-                      <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                      <input
-                        type="text"
-                        placeholder="Ex: Marcelo Montagens"
-                        value={installerName}
-                        onChange={(e) => setInstallerName(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Data Agendada da Montagem *
-                    </label>
-                    <input
-                      type="date"
-                      value={installationDate}
-                      onChange={(e) => setInstallationDate(e.target.value)}
-                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Check-in / Confirmação na Obra *
+                      Anexar Fotos da Montagem *
                     </label>
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        placeholder="Ex: Check-in realizado às 08:30"
-                        value={checkedInAt}
-                        onChange={(e) => setCheckedInAt(e.target.value)}
+                        placeholder="Ex: foto_montagem_1.jpg"
+                        value={montagemFotoName}
+                        onChange={(e) => setMontagemFotoName(e.target.value)}
                         className="flex-1 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                         required
                       />
                       <button
                         type="button"
-                        onClick={() => setCheckedInAt(`Equipe em obra desde ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`)}
+                        onClick={() => setMontagemFotoName(`montagem_${order.id.toLowerCase()}.jpg`)}
                         className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded-lg transition-colors"
                       >
-                        Registrar Agora
+                        Anexar
                       </button>
                     </div>
                   </div>
@@ -515,96 +418,79 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg shadow-md shadow-blue-600/20 transition-all flex items-center justify-center gap-2 mt-4"
+                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg shadow-md shadow-blue-600/20 transition-all flex items-center justify-center mt-4"
                   >
-                    {isSubmitting ? 'Registrando...' : 'Concluir Montagem & Encaminhar para Vistoria →'}
+                    {isSubmitting ? 'Registrando...' : 'Montagem Concluída →'}
                   </button>
                 </form>
               )}
 
-              {/* ETAPA 4: VISTORIA & CONCLUSÃO */}
-              {order.currentStage === 'vistoria' && (
-                <form onSubmit={handleSaveVistoria} className="space-y-4">
+              {/* ETAPA 5: ENTREGA / ACEITE */}
+              {order.currentStage === 'entrega_aceite' && (
+                <form onSubmit={handleSaveAceite} className="space-y-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Técnico de Vistoria / Supervisor *
+                      Termo de Aceite Assinado (PDF)
                     </label>
-                    <input
-                      type="text"
-                      placeholder="Ex: Engenheiro Ricardo"
-                      value={inspectorName}
-                      onChange={(e) => setInspectorName(e.target.value)}
-                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                      required
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Ex: termo_aceite.pdf"
+                        value={aceiteFileName}
+                        onChange={(e) => setAceiteFileName(e.target.value)}
+                        className="flex-1 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setAceiteFileName(`termo_aceite_${order.id.toLowerCase()}.pdf`)}
+                        className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded-lg transition-colors"
+                      >
+                        Anexar
+                      </button>
+                    </div>
                   </div>
 
                   <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200 flex items-center gap-3">
                     <input
                       type="checkbox"
-                      id="approval-check"
-                      checked={inspectionApproved}
-                      onChange={(e) => setInspectionApproved(e.target.checked)}
+                      id="client-confirmed"
+                      checked={clientConfirmedAceite}
+                      onChange={(e) => setClientConfirmedAceite(e.target.checked)}
                       className="w-4 h-4 text-emerald-600 rounded border-emerald-300 focus:ring-emerald-500"
-                      required
                     />
-                    <label htmlFor="approval-check" className="text-xs font-semibold text-emerald-900 cursor-pointer">
-                      Vistoria realizada e APROVADA pelo cliente sem pendências.
+                    <label htmlFor="client-confirmed" className="text-xs font-semibold text-emerald-900 cursor-pointer">
+                      Cliente confirmou o recebimento e aceite
                     </label>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Termo de Aceite & Entrega Assinado (PDF) *
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Ex: termo_aceite_assinado.pdf"
-                        value={termoVistoriaFileName}
-                        onChange={(e) => setTermoVistoriaFileName(e.target.value)}
-                        className="flex-1 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setTermoVistoriaFileName(`termo_aceite_${order.id.toLowerCase()}.pdf`)}
-                        className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded-lg transition-colors"
-                      >
-                        Simular
-                      </button>
-                    </div>
                   </div>
 
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-lg shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 mt-4"
+                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-lg shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center mt-4"
                   >
-                    {isSubmitting ? 'Finalizando...' : 'Aprovar Vistoria & Finalizar Pedido 🎉'}
+                    {isSubmitting ? 'Finalizando...' : 'Concluir Pedido 🎉'}
                   </button>
                 </form>
               )}
 
-              {/* ETAPA 5: PEDIDO CONCLUÍDO */}
+              {/* ETAPA 6: CONCLUÍDO */}
               {order.currentStage === 'concluido' && (
                 <div className="p-6 bg-emerald-50 rounded-xl border border-emerald-200 text-center space-y-3">
                   <div className="w-12 h-12 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/30">
                     <CheckCircle2 className="w-7 h-7" />
                   </div>
                   <h4 className="text-base font-bold text-emerald-900">
-                    Pedido #{order.id} Totalmente Finalizado!
+                    Pedido #{order.id} Finalizado!
                   </h4>
                   <p className="text-xs text-emerald-700 max-w-sm mx-auto">
-                    Todas as 5 etapas da operação pós-venda foram executadas e auditadas com sucesso na plataforma ERP.
+                    O pedido foi concluído com sucesso e todas as informações e documentos estão salvos na Pasta Digital.
                   </p>
                 </div>
               )}
-
             </div>
           </div>
 
-          {/* COLUNA DIREITA: TIMELINE DE AUDITORIA & REGISTRO DE AÇÕES (LG: 5 COLUNAS) */}
+          {/* COLUNA DIREITA: TIMELINE DE AUDITORIA */}
           <div className="lg:col-span-5 bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -631,7 +517,7 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
                       </span>
                     </div>
 
-                    <span className="inline-block text-[10px] font-semibold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 mb-1">
+                    <span className="inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 mb-1">
                       {log.userRole}
                     </span>
 
@@ -642,7 +528,7 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
                 ))
               ) : (
                 <p className="text-xs text-slate-400 italic text-center py-6">
-                  Nenhuma alteração registrada ainda.
+                  Nenhum evento registrado.
                 </p>
               )}
             </div>
@@ -654,7 +540,7 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
         <div className="bg-slate-100 border-t border-slate-200 px-6 py-3 flex items-center justify-between text-xs text-slate-500">
           <span className="flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            Sistema de Trilha de Auditoria ERP Ativado
+            Sistema Simplificado de Auditoria ERP Ativado
           </span>
           <button
             onClick={onClose}

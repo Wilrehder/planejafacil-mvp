@@ -322,13 +322,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // Avaliação Automática de Avanço de Etapa (Event-driven without Kanban drag-and-drop)
         let nextStage: OrderStage = merged.currentStage;
 
-        if (merged.currentStage === 'medicao' && merged.medicaoDate && merged.medicaoFile) {
-          nextStage = 'projeto_executivo';
-        } else if (merged.currentStage === 'projeto_executivo' && merged.designerName && merged.render3dFile && merged.planoCorteFile) {
+        if (merged.currentStage === 'medicao' && merged.medicaoFile && merged.medicaoDone) {
+          nextStage = 'projeto_aprovacao';
+        } else if (merged.currentStage === 'projeto_aprovacao' && merged.projectFile && merged.projectApproved) {
+          nextStage = 'producao';
+        } else if (merged.currentStage === 'producao' && merged.producaoDone) {
           nextStage = 'montagem';
-        } else if (merged.currentStage === 'montagem' && merged.installerName && merged.installationDate && merged.checkedInAt) {
-          nextStage = 'vistoria';
-        } else if (merged.currentStage === 'vistoria' && merged.inspectorName && merged.inspectionApproved && merged.termoVistoriaFile) {
+        } else if (merged.currentStage === 'montagem' && merged.montagemFoto && merged.montagemDone) {
+          nextStage = 'entrega_aceite';
+        } else if (merged.currentStage === 'entrega_aceite' && (merged.aceiteFile || merged.clientConfirmedAceite)) {
           nextStage = 'concluido';
         }
 
@@ -338,9 +340,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         const stageNamesMap: Record<OrderStage, string> = {
           medicao: 'Medição Técnica',
-          projeto_executivo: 'Projeto Executivo',
+          projeto_aprovacao: 'Projeto & Aprovação',
+          producao: 'Produção',
           montagem: 'Montagem na Obra',
-          vistoria: 'Vistoria & Conclusão',
+          entrega_aceite: 'Entrega / Aceite',
           concluido: 'Pedido Concluído'
         };
 
@@ -373,21 +376,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         let nextStage: OrderStage = merged.currentStage;
 
-        if (merged.currentStage === 'medicao' && merged.medicaoDate && merged.medicaoFile) {
-          nextStage = 'projeto_executivo';
-        } else if (merged.currentStage === 'projeto_executivo' && merged.designerName && merged.render3dFile && merged.planoCorteFile) {
+        if (merged.currentStage === 'medicao' && merged.medicaoFile && merged.medicaoDone) {
+          nextStage = 'projeto_aprovacao';
+        } else if (merged.currentStage === 'projeto_aprovacao' && merged.projectFile && merged.projectApproved) {
+          nextStage = 'producao';
+        } else if (merged.currentStage === 'producao' && merged.producaoDone) {
           nextStage = 'montagem';
-        } else if (merged.currentStage === 'montagem' && merged.installerName && merged.installationDate && merged.checkedInAt) {
-          nextStage = 'vistoria';
-        } else if (merged.currentStage === 'vistoria' && merged.inspectorName && merged.inspectionApproved && merged.termoVistoriaFile) {
+        } else if (merged.currentStage === 'montagem' && merged.montagemFoto && merged.montagemDone) {
+          nextStage = 'entrega_aceite';
+        } else if (merged.currentStage === 'entrega_aceite' && (merged.aceiteFile || merged.clientConfirmedAceite)) {
           nextStage = 'concluido';
         }
 
         const stageNamesMap: Record<OrderStage, string> = {
           medicao: 'Medição Técnica',
-          projeto_executivo: 'Projeto Executivo',
+          projeto_aprovacao: 'Projeto & Aprovação',
+          producao: 'Produção',
           montagem: 'Montagem na Obra',
-          vistoria: 'Vistoria & Conclusão',
+          entrega_aceite: 'Entrega / Aceite',
           concluido: 'Pedido Concluído'
         };
 
