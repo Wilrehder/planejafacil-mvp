@@ -51,6 +51,7 @@ export const SimulatorWizard: React.FC = () => {
     simulator, 
     updateSimulator, 
     addEnvironment, 
+    removeEnvironment,
     calculateEstimate, 
     addLead,
     resetSimulator,
