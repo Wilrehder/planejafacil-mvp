@@ -22,7 +22,7 @@ import { LeadDetailDrawer } from './LeadDetailDrawer';
 import { MerchantERP } from './MerchantERP';
 import { MerchantAnalytics } from './MerchantAnalytics';
 import { OrderFolderModal } from './OrderFolderModal';
-import { Wrench, Activity } from 'lucide-react';
+import { Wrench, Activity, Users, Package, BarChart2 } from 'lucide-react';
 
 export const MerchantDashboard: React.FC = () => {
   const { 
@@ -192,46 +192,48 @@ export const MerchantDashboard: React.FC = () => {
       {/* SELETOR PRINCIPAL DE MÓDULO: CRM vs ERP e Controles Globais */}
       <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex flex-col xl:flex-row items-center justify-between gap-4">
         
-        <div className="flex items-center gap-2 w-full xl:w-auto overflow-x-auto">
+        <div className="flex items-center gap-1.5 w-full xl:w-auto overflow-x-auto">
           <button
             onClick={() => setMerchantTab('dashboard')}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-              merchantTab !== 'erp'
-                ? 'bg-slate-900 text-white shadow-md'
+            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+              merchantTab !== 'erp' && merchantTab !== 'analytics'
+                ? 'bg-[#1B2B48] text-white shadow-md'
                 : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
             }`}
           >
-            <Kanban className="w-4 h-4 text-blue-400" />
-            CRM — Gestão de Leads
+            <Users className={`w-3.5 h-3.5 ${merchantTab !== 'erp' && merchantTab !== 'analytics' ? 'text-blue-400' : ''}`} />
+            CRM
           </button>
+          
           <button
             onClick={() => setMerchantTab('erp')}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
               merchantTab === 'erp'
-                ? 'bg-slate-900 text-white shadow-md'
+                ? 'bg-[#1B2B48] text-white shadow-md'
                 : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
             }`}
           >
-            <Wrench className="w-4 h-4 text-emerald-400" />
-            ERP — Pós-Venda & Pedidos Operacionais
+            <Package className={`w-3.5 h-3.5 ${merchantTab === 'erp' ? 'text-emerald-400' : ''}`} />
+            ERP
             {isProPlan && (
-              <span className="bg-emerald-500/20 text-emerald-300 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-emerald-500/30 uppercase">
+              <span className="bg-emerald-500/20 text-emerald-300 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-emerald-500/30 uppercase ml-1">
                 Pro ⭐
               </span>
             )}
           </button>
+          
           <button
             onClick={() => setMerchantTab('analytics')}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
               merchantTab === 'analytics'
-                ? 'bg-slate-900 text-white shadow-md'
+                ? 'bg-[#1B2B48] text-white shadow-md'
                 : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
             }`}
           >
-            <Activity className="w-4 h-4 text-purple-400" />
-            Analytics Pro
+            <BarChart2 className={`w-3.5 h-3.5 ${merchantTab === 'analytics' ? 'text-purple-400' : ''}`} />
+            Analytics
             {isProPlan && (
-              <span className="bg-purple-500/20 text-purple-300 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-purple-500/30 uppercase">
+              <span className="bg-purple-500/20 text-purple-300 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-purple-500/30 uppercase ml-1">
                 Pro ⭐
               </span>
             )}
