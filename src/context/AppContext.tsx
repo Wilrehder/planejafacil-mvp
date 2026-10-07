@@ -43,6 +43,10 @@ interface AppContextType {
   resetSimulator: () => void;
   calculateEstimate: () => { min: number; max: number };
   
+  // Configuração Global de Precificação pelo Admin
+  baseSquareMeterPrice: number;
+  setBaseSquareMeterPrice: (price: number) => void;
+
   // Modals & Drawers
   isLeadCaptureOpen: boolean;
   setIsLeadCaptureOpen: (open: boolean) => void;
@@ -117,6 +121,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [leads, setLeads] = useState<Lead[]>(INITIAL_LEADS);
   const [stores, setStores] = useState<Store[]>(INITIAL_STORES);
   const [simulator, setSimulator] = useState<SimulatorState>(initialSimulatorState);
+
+  const [baseSquareMeterPrice, setBaseSquareMeterPrice] = useState<number>(1200);
 
   const [isLeadCaptureOpen, setIsLeadCaptureOpen] = useState(false);
   const [selectedLeadForDetail, setSelectedLeadForDetail] = useState<Lead | null>(null);
@@ -214,9 +220,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return fallbackRange;
     }
 
-    // Preço médio do m² de móvel planejado (MDF de boa qualidade)
-    const baseSquareMeterFurniturePrice = 1200; // R$ 1.200 / m² de projeção de móvel
-
     let totalRawCost = 0;
 
     simulator.environments.forEach((env) => {
@@ -232,7 +235,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const effectiveCeilingFurnitureHeight = Math.min(ceiling, 2.6);
       const estimatedFurnitureM2 = totalWallLength * effectiveCeilingFurnitureHeight * 0.75; // 75% da parede coberta com móveis
 
-      const envCost = estimatedFurnitureM2 * baseSquareMeterFurniturePrice;
+      const envCost = estimatedFurnitureM2 * baseSquareMeterPrice;
       totalRawCost += envCost;
     });
 
@@ -326,6 +329,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateEnvironmentWall,
         resetSimulator,
         calculateEstimate,
+        baseSquareMeterPrice,
+        setBaseSquareMeterPrice,
         isLeadCaptureOpen,
         setIsLeadCaptureOpen,
         selectedLeadForDetail,

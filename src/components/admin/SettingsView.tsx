@@ -1,14 +1,27 @@
 import React, { useState } from 'react';
 import { 
   Building2, 
+  DollarSign, 
   MessageSquare, 
   Palette, 
   ShieldCheck, 
-  User 
+  User,
+  Check
 } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
 
 export const SettingsView: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'perfil' | 'usuarios' | 'logo' | 'integracoes'>('perfil');
+  const { baseSquareMeterPrice, setBaseSquareMeterPrice } = useApp();
+  const [activeTab, setActiveTab] = useState<'precificacao' | 'perfil' | 'usuarios' | 'logo' | 'integracoes'>('precificacao');
+  const [tempPrice, setTempPrice] = useState<number>(baseSquareMeterPrice);
+  const [savedSuccess, setSavedSuccess] = useState(false);
+
+  const handleSavePrice = (e: React.FormEvent) => {
+    e.preventDefault();
+    setBaseSquareMeterPrice(Number(tempPrice));
+    setSavedSuccess(true);
+    setTimeout(() => setSavedSuccess(false), 3000);
+  };
 
   return (
     <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden space-y-0">
@@ -16,6 +29,7 @@ export const SettingsView: React.FC = () => {
       {/* Navigation Sub-tabs */}
       <div className="border-b border-slate-200 px-6 pt-4 flex space-x-6 overflow-x-auto">
         {[
+          { id: 'precificacao', label: 'Precificação do m²', icon: DollarSign },
           { id: 'perfil', label: 'Perfil da Empresa', icon: User },
           { id: 'usuarios', label: 'Usuários & Permissões', icon: ShieldCheck },
           { id: 'logo', label: 'Logotipo Oficial', icon: Palette },
@@ -41,6 +55,69 @@ export const SettingsView: React.FC = () => {
       </div>
 
       <div className="p-6 sm:p-8 max-w-3xl">
+        
+        {/* PRECIFICAÇÃO TAB */}
+        {activeTab === 'precificacao' && (
+          <form onSubmit={handleSavePrice} className="space-y-6 text-left">
+            <div>
+              <h3 className="text-lg font-bold text-slate-900">Configuração de Precificação (m² da Madeira)</h3>
+              <p className="text-xs text-slate-500 mt-1 font-medium">
+                Defina o valor base por metro quadrado ($m^2$) de marcenaria em MDF. Esse valor será utilizado em todas as simulações de orçamento do consumidor.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-2">
+                  Valor do Metro Quadrado Base (R$)
+                </label>
+                <div className="relative max-w-xs">
+                  <span className="absolute left-4 top-3 text-sm font-extrabold text-slate-400">R$</span>
+                  <input
+                    type="number"
+                    min="100"
+                    max="10000"
+                    step="50"
+                    value={tempPrice}
+                    onChange={(e) => setTempPrice(Number(e.target.value))}
+                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-300 text-base font-extrabold text-slate-900 outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20"
+                  />
+                </div>
+                <div className="text-[11px] text-slate-400 mt-2 font-medium">
+                  Valor atual em vigor na plataforma: <strong className="text-slate-700">R$ {baseSquareMeterPrice.toLocaleString('pt-BR')}/m²</strong>
+                </div>
+              </div>
+
+              {/* Simulação em Tempo Real no Admin */}
+              <div className="p-4 rounded-xl bg-white border border-slate-200 text-xs space-y-1.5">
+                <div className="font-bold text-slate-900">Exemplo de Cálculo para um Cômodo de 12m² (3 Paredes):</div>
+                <div className="text-slate-600 font-medium">
+                  Projeção estimada de marcenaria: <strong>~20.3 m²</strong>
+                </div>
+                <div className="text-[#439346] font-extrabold">
+                  Faixa de Orçamento Estimada: R$ {Math.round((20.3 * tempPrice * 0.88) / 100) * 100} a R$ {Math.round((20.3 * tempPrice * 1.15) / 100) * 100}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              <button
+                type="submit"
+                className="px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs uppercase tracking-wider shadow-blue-glow transition-all active:scale-95"
+              >
+                Salvar Valor do m²
+              </button>
+
+              {savedSuccess && (
+                <div className="flex items-center space-x-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200">
+                  <Check className="w-4 h-4" />
+                  <span>Valor atualizado com sucesso!</span>
+                </div>
+              )}
+            </div>
+          </form>
+        )}
+
         {activeTab === 'perfil' && (
           <div className="space-y-5 text-left">
             <h3 className="text-lg font-bold text-slate-900">Perfil da Empresa</h3>
