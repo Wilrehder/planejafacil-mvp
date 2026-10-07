@@ -86,6 +86,8 @@ export interface Lead {
     areaM2: number;
   };
   environmentsData?: ConfiguredEnvironment[];
+  source?: 'plataforma' | 'instagram' | 'google' | 'indicacao' | 'balcao';
+  isExternal?: boolean;
   estimatedMin: number;
   estimatedMax: number;
   assignedStoreId: string;
@@ -95,10 +97,10 @@ export interface Lead {
 }
 
 export interface StorePlanTier {
-  id: 'Gold' | 'Platinum' | 'Diamond';
+  id: 'Basic' | 'Pro';
   title: string;
   priceMonthly: number;
-  leadsCap: string;
+  costPerLead: number;
   regionCoverage: string;
   badge?: string;
   features: string[];
@@ -111,7 +113,7 @@ export interface Store {
   responsibleName?: string;
   city: string;
   state: string;
-  plan: 'Gold' | 'Platinum' | 'Diamond';
+  plan: 'Basic' | 'Pro';
   regionServed: string;
   status: 'Ativa' | 'Pendente' | 'Inativa';
   leadsCount: number;
@@ -130,7 +132,7 @@ export interface PartnerStoreApplication {
   email: string;
   city: string;
   state: string;
-  desiredPlan?: 'Gold' | 'Platinum' | 'Diamond';
+  desiredPlan?: 'Basic' | 'Pro';
   notes?: string;
   status: 'nova' | 'em_contato' | 'aprovada' | 'recusada';
   createdAt: string;

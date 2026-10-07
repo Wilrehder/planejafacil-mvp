@@ -31,7 +31,7 @@ interface AppContextType {
   leads: Lead[];
   stores: Store[];
   storeApplications: PartnerStoreApplication[];
-  addLead: (leadData: Omit<Lead, 'id' | 'createdAt' | 'assignedStoreId' | 'assignedStoreName' | 'status'>) => Lead;
+  addLead: (leadData: Partial<Lead> & Omit<Lead, 'id' | 'createdAt' | 'assignedStoreId' | 'assignedStoreName' | 'status'>) => Lead;
   updateLeadStatus: (id: string, status: LeadStatus) => void;
   addStore: (newStore: Omit<Store, 'id' | 'leadsCount'>) => void;
   addStoreApplication: (appData: Omit<PartnerStoreApplication, 'id' | 'createdAt' | 'status'>) => PartnerStoreApplication;
@@ -257,15 +257,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
 
 
-  const addLead = (leadData: Omit<Lead, 'id' | 'createdAt' | 'assignedStoreId' | 'assignedStoreName' | 'status'>): Lead => {
-    const matchedStore = stores.find((s) => s.state === leadData.state) || stores[0];
+  const addLead = (leadData: Partial<Lead> & Omit<Lead, 'id' | 'createdAt' | 'assignedStoreId' | 'assignedStoreName' | 'status'>): Lead => {
+    const matchedStore = stores.find((s) => s.id === leadData.assignedStoreId) || stores.find((s) => s.state === leadData.state) || stores[0];
 
     const newLead: Lead = {
       ...leadData,
       id: `lead-${Date.now().toString().slice(-4)}`,
       assignedStoreId: matchedStore.id,
       assignedStoreName: matchedStore.name,
-      status: 'novo',
+      status: leadData.status || 'novo',
+      source: leadData.source || 'plataforma',
+      isExternal: leadData.isExternal || false,
       createdAt: new Date().toISOString(),
     };
 

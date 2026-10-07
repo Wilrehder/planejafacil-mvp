@@ -18,7 +18,7 @@ export const StoresManager: React.FC = () => {
     responsibleName: '',
     city: '',
     state: 'SP',
-    plan: 'Platinum' as 'Gold' | 'Platinum' | 'Diamond',
+    plan: 'Pro' as 'Basic' | 'Pro',
     regionServed: '',
     status: 'Ativa' as 'Ativa' | 'Pendente' | 'Inativa',
     phone: '',
@@ -77,7 +77,7 @@ export const StoresManager: React.FC = () => {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const monthlyRev = formStore.plan === 'Diamond' ? 1990 : formStore.plan === 'Platinum' ? 990 : 490;
+    const monthlyRev = formStore.plan === 'Pro' ? 219.90 : 119.90;
     
     if (editingStore) {
       // Edit existing store in array
@@ -150,7 +150,7 @@ export const StoresManager: React.FC = () => {
       </div>
 
       {/* PLAN DISCRIMINATION OVERVIEW CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {STORE_PLANS.map((plan) => {
           const isSelectedInList = selectedPlanFilter === plan.id;
           const countOnPlan = stores.filter((s) => s.plan === plan.id).length;
@@ -161,12 +161,12 @@ export const StoresManager: React.FC = () => {
               onClick={() => setSelectedPlanFilter(selectedPlanFilter === plan.id ? 'todos' : plan.id)}
               className={`p-6 rounded-3xl cursor-pointer border transition-all duration-300 relative flex flex-col justify-between ${
                 isSelectedInList
-                  ? 'bg-slate-900 text-white border-slate-800 shadow-2xl ring-2 ring-brand-500'
+                  ? 'bg-slate-900 text-white border-slate-800 shadow-2xl ring-2 ring-[#439346]'
                   : 'bg-white text-slate-900 border-slate-200 hover:border-slate-300 shadow-sm hover:shadow-md'
               }`}
             >
               {plan.badge && (
-                <div className="absolute -top-3 right-6 px-3 py-1 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-extrabold text-[10px] uppercase tracking-wider rounded-full shadow-sm">
+                <div className="absolute -top-3 right-6 px-3 py-1 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-extrabold text-[10px] uppercase tracking-wider rounded-full shadow-sm">
                   {plan.badge}
                 </div>
               )}
@@ -174,11 +174,9 @@ export const StoresManager: React.FC = () => {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${
-                    plan.id === 'Diamond'
-                      ? 'bg-purple-100 text-purple-700'
-                      : plan.id === 'Platinum'
-                      ? 'bg-blue-100 text-brand-700'
-                      : 'bg-amber-100 text-amber-700'
+                    plan.id === 'Pro'
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : 'bg-slate-100 text-slate-700'
                   }`}>
                     {plan.id}
                   </span>
@@ -190,15 +188,15 @@ export const StoresManager: React.FC = () => {
                 <div>
                   <h3 className={`text-lg font-black ${isSelectedInList ? 'text-white' : 'text-slate-900'}`}>{plan.title}</h3>
                   <div className="flex items-baseline space-x-1 mt-1">
-                    <span className="text-2xl font-black text-brand-500">R$ {plan.priceMonthly}</span>
-                    <span className={`text-xs font-semibold ${isSelectedInList ? 'text-slate-400' : 'text-slate-500'}`}>/ mês</span>
+                    <span className="text-2xl font-black text-[#439346]">R$ {plan.priceMonthly}</span>
+                    <span className={`text-xs font-semibold ${isSelectedInList ? 'text-slate-400' : 'text-slate-500'}`}>/ mês + R$ 50/lead</span>
                   </div>
                 </div>
 
                 <div className="space-y-1.5 pt-2 border-t border-slate-100/10">
                   <div className={`text-xs font-bold flex items-center space-x-1.5 ${isSelectedInList ? 'text-emerald-400' : 'text-emerald-700'}`}>
                     <Zap className="w-3.5 h-3.5" />
-                    <span>{plan.leadsCap}</span>
+                    <span>R$ 50,00 por lead recebido</span>
                   </div>
                   <div className={`text-[11px] font-medium ${isSelectedInList ? 'text-slate-300' : 'text-slate-600'}`}>
                     📍 Cobertura: {plan.regionCoverage}
@@ -662,7 +660,7 @@ export const StoresManager: React.FC = () => {
               <div className="space-y-3 pt-2">
                 <label className="block text-xs font-bold text-slate-900 uppercase">Escolha o Plano de Assinatura SaaS *</label>
                 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   {STORE_PLANS.map((plan) => {
                     const isSelected = formStore.plan === plan.id;
                     return (
@@ -671,13 +669,13 @@ export const StoresManager: React.FC = () => {
                         onClick={() => setFormStore({ ...formStore, plan: plan.id })}
                         className={`p-3.5 rounded-2xl cursor-pointer border transition-all text-center space-y-1 ${
                           isSelected
-                            ? 'bg-brand-50 border-brand-600 ring-2 ring-brand-600'
+                            ? 'bg-emerald-50 border-[#439346] ring-2 ring-[#439346]'
                             : 'bg-white border-slate-200 hover:border-slate-300'
                         }`}
                       >
-                        <div className="font-extrabold text-slate-900 text-xs">{plan.id}</div>
-                        <div className="text-sm font-black text-brand-600">R$ {plan.priceMonthly}</div>
-                        <div className="text-[10px] text-slate-500 font-medium">{plan.leadsCap}</div>
+                        <div className="font-extrabold text-slate-900 text-xs">{plan.title}</div>
+                        <div className="text-sm font-black text-[#439346]">R$ {plan.priceMonthly}/mês</div>
+                        <div className="text-[10px] text-slate-500 font-medium">+ R$ 50,00 por lead recebido</div>
                       </div>
                     );
                   })}
