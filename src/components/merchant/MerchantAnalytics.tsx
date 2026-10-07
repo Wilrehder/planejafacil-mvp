@@ -32,8 +32,13 @@ export const MerchantAnalytics: React.FC = () => {
   const totalSalesValue = orders.reduce((acc, o) => acc + o.totalValue, 0);
   const averageTicket = orders.length > 0 ? totalSalesValue / orders.length : 0;
 
-  // Comparativo de Vendas (Mês Atual vs Mês Anterior)
-  const now = new Date();
+  // Comparativo de Vendas (Mês Atual vs Mês Anterior) dinâmico baseado nos dados
+  const latestOrderDate = orders.reduce((latest, o) => {
+    const d = new Date(o.createdAt);
+    return d > latest ? d : latest;
+  }, new Date(0));
+  
+  const now = latestOrderDate.getTime() === 0 ? new Date() : latestOrderDate;
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
   
@@ -58,8 +63,12 @@ export const MerchantAnalytics: React.FC = () => {
   if (salesLastMonth > 0) {
     salesGrowth = ((salesThisMonth - salesLastMonth) / salesLastMonth) * 100;
   } else if (salesThisMonth > 0) {
-    salesGrowth = 100; // infinite growth if last month was 0
+    salesGrowth = 100;
   }
+
+  // ERP Metrics (Pós-Venda Operacional)
+  const activeOrders = orders.filter(o => o.currentStage !== 'concluido');
+  const erpVolume = activeOrders.reduce((acc, o) => acc + o.totalValue, 0);
 
   // Top Channels (Desempenho por Origem)
   const sources = ['plataforma', 'instagram', 'indicacao', 'google', 'balcao'];
@@ -91,7 +100,7 @@ export const MerchantAnalytics: React.FC = () => {
             Analytics Pro
           </h2>
           <p className="text-sm text-slate-400 mt-1">
-            Inteligência de Vendas e Desempenho da Marcenaria
+            Inteligência de Vendas e Desempenho da Loja de Móveis Planejados
           </p>
         </div>
         <div className="text-right">
@@ -131,17 +140,17 @@ export const MerchantAnalytics: React.FC = () => {
           </div>
         </div>
 
-        {/* Card: Taxa de Conversão */}
+        {/* Card: ERP Operação */}
         <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between h-36 relative overflow-hidden group hover:border-emerald-300 transition-colors">
           <div className="absolute -right-4 -top-4 w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center opacity-50 group-hover:scale-110 transition-transform">
             <CheckCircle2 className="w-6 h-6 text-emerald-500 mr-2 mt-2" />
           </div>
           <div>
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Conversão Geral</span>
-            <div className="text-2xl font-black text-slate-800 mt-1">{conversionRate.toFixed(1)}%</div>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Retido em Produção (ERP)</span>
+            <div className="text-2xl font-black text-slate-800 mt-1">{formatCurrency(erpVolume)}</div>
           </div>
           <div className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 self-start px-2 py-1 rounded-md border border-emerald-100">
-            {convertedLeads.length} fechamentos de {totalLeads} leads
+            {activeOrders.length} pedidos em andamento
           </div>
         </div>
 

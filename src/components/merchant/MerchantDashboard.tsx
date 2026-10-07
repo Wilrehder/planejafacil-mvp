@@ -39,7 +39,7 @@ export const MerchantDashboard: React.FC = () => {
   const [selectedStoreId, setSelectedStoreId] = useState<string>(stores[0]?.id || 'store-mogi');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeStatusTab, setActiveStatusTab] = useState<string>('todos');
-  const [viewMode, setViewMode] = useState<'table' | 'kanban' | 'analytics'>('table');
+  const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
   const [sourceFilter, setSourceFilter] = useState<'todos' | 'plataforma' | 'externo'>('todos');
 
   // Modal States
@@ -220,6 +220,22 @@ export const MerchantDashboard: React.FC = () => {
               </span>
             )}
           </button>
+          <button
+            onClick={() => setMerchantTab('analytics')}
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
+              merchantTab === 'analytics'
+                ? 'bg-slate-900 text-white shadow-md'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+            }`}
+          >
+            <Activity className="w-4 h-4 text-purple-400" />
+            Analytics Pro
+            {isProPlan && (
+              <span className="bg-purple-500/20 text-purple-300 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-purple-500/30 uppercase">
+                Pro ⭐
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Action Controls & Plan Toggle (Modo Teste) */}
@@ -276,6 +292,26 @@ export const MerchantDashboard: React.FC = () => {
 
       {merchantTab === 'erp' ? (
         <MerchantERP merchantPlan={activePlan} />
+      ) : merchantTab === 'analytics' ? (
+        isProPlan ? <MerchantAnalytics /> : (
+          <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center max-w-3xl mx-auto my-8 shadow-sm">
+            <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-200">
+              <Lock className="w-8 h-8" />
+            </div>
+            
+            <span className="inline-block bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full mb-3 uppercase tracking-wider">
+              Recurso Exclusivo do Plano Pro
+            </span>
+
+            <h2 className="text-2xl font-extrabold text-slate-900 mb-2">
+              Dashboard de Analytics Avançado
+            </h2>
+
+            <p className="text-sm text-slate-600 leading-relaxed max-w-xl mx-auto mb-6">
+              O módulo de Analytics exige o <strong>Plano Pro</strong> para acessar inteligência de vendas, ticket médio, comparativo mês a mês e indicadores do ERP operacional.
+            </p>
+          </div>
+        )
       ) : (
         <div className="space-y-6">
       {/* Cards Minimalistas de Desempenho e Faturamento de Performance (Pay-Per-Lead) */}
@@ -353,12 +389,10 @@ export const MerchantDashboard: React.FC = () => {
             {isProPlan ? (
               <button
                 onClick={() => setViewMode(viewMode === 'table' ? 'kanban' : 'table')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold border shadow-sm flex items-center space-x-1.5 transition-colors ${
-                  viewMode === 'analytics' ? 'opacity-50 pointer-events-none' : 'bg-white text-[#1B2B48] border-slate-200 hover:bg-slate-50'
-                }`}
+                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white text-[#1B2B48] border border-slate-200 shadow-sm flex items-center space-x-1.5 hover:bg-slate-50 transition-colors"
                 title="Alternar Modo de Visualização"
               >
-                {viewMode === 'table' || viewMode === 'analytics' ? (
+                {viewMode === 'table' ? (
                   <>
                     <Kanban className="w-3.5 h-3.5 text-[#439346]" />
                     <span>Modo Kanban</span>
@@ -378,21 +412,6 @@ export const MerchantDashboard: React.FC = () => {
               >
                 <Lock className="w-3.5 h-3.5" />
                 <span>Desbloquear Kanban</span>
-              </button>
-            )}
-
-            {/* Analytics Button (Pro) */}
-            {isProPlan && (
-              <button
-                onClick={() => setViewMode(viewMode === 'analytics' ? 'table' : 'analytics')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors flex items-center space-x-1.5 ${
-                  viewMode === 'analytics' 
-                    ? 'bg-slate-900 text-white border-slate-800' 
-                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 shadow-sm'
-                }`}
-              >
-                <Activity className={`w-3.5 h-3.5 ${viewMode === 'analytics' ? 'text-emerald-400' : 'text-emerald-500'}`} />
-                <span>{viewMode === 'analytics' ? 'Voltar ao CRM' : 'Analytics Pro'}</span>
               </button>
             )}
 
@@ -421,42 +440,29 @@ export const MerchantDashboard: React.FC = () => {
 
         </div>
 
-        {viewMode !== 'analytics' && (
-          <>
-            {/* Status Filter Tabs */}
-            <div className="flex items-center space-x-2 overflow-x-auto pb-1">
-              {[
-                { id: 'todos', label: 'Todos' },
-                { id: 'novo', label: 'Novos' },
-                { id: 'em_atendimento', label: 'Em Atendimento' },
-                { id: 'orcado', label: 'Orçados' },
-                { id: 'convertido', label: 'Vendas Fechadas' },
-                { id: 'perdido', label: 'Perdidos' },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveStatusTab(tab.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-colors ${
-                    activeStatusTab === tab.id
-                      ? 'bg-[#1B2B48] text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-
-        {/* ========================================================================= */}
-        {/* VISÃO 3: ANALYTICS PRO */}
-        {/* ========================================================================= */}
-        {viewMode === 'analytics' && (
-          <div className="pt-2">
-            <MerchantAnalytics />
-          </div>
-        )}
+        {/* Status Filter Tabs */}
+        <div className="flex items-center space-x-2 overflow-x-auto pb-1">
+          {[
+            { id: 'todos', label: 'Todos' },
+            { id: 'novo', label: 'Novos' },
+            { id: 'em_atendimento', label: 'Em Atendimento' },
+            { id: 'orcado', label: 'Orçados' },
+            { id: 'convertido', label: 'Vendas Fechadas' },
+            { id: 'perdido', label: 'Perdidos' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveStatusTab(tab.id)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-colors ${
+                activeStatusTab === tab.id
+                  ? 'bg-[#1B2B48] text-white'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
         {/* ========================================================================= */}
         {/* VISÃO 1: TABELA MINIMALISTA */}

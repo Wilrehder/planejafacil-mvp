@@ -58,7 +58,7 @@ export interface SimulatorState {
 }
 
 export type AdminTab = 'dashboard' | 'leads' | 'stores' | 'regions' | 'reports' | 'financial' | 'settings';
-export type MerchantTab = 'dashboard' | 'leads' | 'erp' | 'settings';
+export type MerchantTab = 'dashboard' | 'leads' | 'erp' | 'analytics' | 'settings';
 export type LeadStatus = 'novo' | 'em_atendimento' | 'orcado' | 'convertido' | 'perdido';
 
 export type OrderStage = 'medicao' | 'projeto_aprovacao' | 'producao' | 'montagem' | 'entrega_aceite' | 'concluido';
