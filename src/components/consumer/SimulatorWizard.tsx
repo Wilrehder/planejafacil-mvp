@@ -488,7 +488,6 @@ export const SimulatorWizard: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="ex.: Maria Silva"
                   value={simulator.clientInfo.name}
                   onChange={(e) => updateSimulator({ clientInfo: { ...simulator.clientInfo, name: e.target.value } })}
                   className="w-full px-4 py-3.5 rounded-xl border border-slate-300 text-sm font-semibold text-[#1B2B48] outline-none focus:border-[#439346]"
@@ -502,7 +501,6 @@ export const SimulatorWizard: React.FC = () => {
                 <input
                   type="tel"
                   required
-                  placeholder="ex.: (11) 99999-9999"
                   value={simulator.clientInfo.phone}
                   onChange={(e) => updateSimulator({ clientInfo: { ...simulator.clientInfo, phone: e.target.value } })}
                   className="w-full px-4 py-3.5 rounded-xl border border-slate-300 text-sm font-semibold text-[#1B2B48] outline-none focus:border-[#439346]"
@@ -516,7 +514,6 @@ export const SimulatorWizard: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="ex.: 01310-100"
                   value={simulator.clientInfo.cep}
                   onChange={(e) => updateSimulator({ clientInfo: { ...simulator.clientInfo, cep: e.target.value } })}
                   className="w-full px-4 py-3.5 rounded-xl border border-slate-300 text-sm font-semibold text-[#1B2B48] outline-none focus:border-[#439346]"

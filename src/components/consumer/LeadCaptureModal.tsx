@@ -102,7 +102,6 @@ export const LeadCaptureModal: React.FC = () => {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Ex: Ana Carolina Mendes"
                     className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 font-medium text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#439346]"
                   />
                   <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
@@ -118,7 +117,6 @@ export const LeadCaptureModal: React.FC = () => {
                       required
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="(11) 99999-9999"
                       className="w-full pl-10 pr-3 py-3 rounded-xl border border-slate-200 font-medium text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#439346]"
                     />
                     <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
@@ -133,7 +131,6 @@ export const LeadCaptureModal: React.FC = () => {
                       required
                       value={formData.whatsapp}
                       onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
-                      placeholder="(11) 99999-9999"
                       className="w-full pl-10 pr-3 py-3 rounded-xl border border-slate-200 font-medium text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#439346]"
                     />
                     <Phone className="w-4 h-4 text-[#439346] absolute left-3.5 top-3.5" />
@@ -149,7 +146,6 @@ export const LeadCaptureModal: React.FC = () => {
                     required
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="seu.email@exemplo.com"
                     className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 font-medium text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#439346]"
                   />
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
@@ -164,7 +160,6 @@ export const LeadCaptureModal: React.FC = () => {
                     required
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    placeholder="Sua Cidade"
                     className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 font-medium text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#439346]"
                   />
                   <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />

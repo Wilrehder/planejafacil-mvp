@@ -141,29 +141,24 @@ export const Footer: React.FC = () => {
                 </div>
                 <h3 className="text-xl font-extrabold text-[#1B2B48]">Solicitação Enviada com Sucesso!</h3>
                 <p className="text-xs text-slate-600 font-medium max-w-sm mx-auto leading-relaxed">
-                  Obrigado pelo interesse! A equipe de expansão do PlanejaFácil entrará em contato em breve para apresentar os planos parceiros.
+                  Obrigado pelo seu interesse! Nossa equipe entrará em contato em breve.
                 </p>
               </div>
             ) : (
               <>
                 <div className="space-y-1 text-left">
-                  <div className="flex items-center space-x-2 text-brand-600 font-extrabold text-xs uppercase tracking-wider">
-                    <Building2 className="w-4 h-4" />
-                    <span>Expansão de Lojas Credenciadas</span>
-                  </div>
                   <h3 className="text-xl font-black text-[#1B2B48]">Seja uma Loja Parceira</h3>
                   <p className="text-xs text-slate-500 font-medium">
-                    Preencha os dados abaixo para que nossa equipe entre em contato e cadastre sua loja no ecossistema.
+                    Preencha os dados abaixo para que nossa equipe entre em contato com sua loja.
                   </p>
                 </div>
 
                 <form onSubmit={handlePartnerSubmit} className="space-y-4 text-left">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Nome da Loja / Marcenaria *</label>
+                    <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Nome da Loja *</label>
                     <input
                       type="text"
                       required
-                      placeholder="ex.: Marcenaria & Design Silva"
                       value={partnerForm.storeName}
                       onChange={(e) => setPartnerForm({ ...partnerForm, storeName: e.target.value })}
                       className="w-full px-4 py-3 rounded-xl border border-slate-300 text-xs font-semibold text-slate-900 outline-none focus:border-[#439346]"
@@ -171,11 +166,10 @@ export const Footer: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Nome do Gerente / Responsável *</label>
+                    <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Nome do Contato *</label>
                     <input
                       type="text"
                       required
-                      placeholder="ex.: Carlos Eduardo"
                       value={partnerForm.contactName}
                       onChange={(e) => setPartnerForm({ ...partnerForm, contactName: e.target.value })}
                       className="w-full px-4 py-3 rounded-xl border border-slate-300 text-xs font-semibold text-slate-900 outline-none focus:border-[#439346]"
@@ -184,11 +178,10 @@ export const Footer: React.FC = () => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 uppercase mb-1">WhatsApp Comercial *</label>
+                      <label className="block text-xs font-bold text-slate-700 uppercase mb-1">WhatsApp *</label>
                       <input
                         type="tel"
                         required
-                        placeholder="ex.: (11) 99999-9999"
                         value={partnerForm.phone}
                         onChange={(e) => setPartnerForm({ ...partnerForm, phone: e.target.value })}
                         className="w-full px-4 py-3 rounded-xl border border-slate-300 text-xs font-semibold text-slate-900 outline-none focus:border-[#439346]"
@@ -196,11 +189,10 @@ export const Footer: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 uppercase mb-1">E-mail Corporativo *</label>
+                      <label className="block text-xs font-bold text-slate-700 uppercase mb-1">E-mail *</label>
                       <input
                         type="email"
                         required
-                        placeholder="ex.: contato@loja.com.br"
                         value={partnerForm.email}
                         onChange={(e) => setPartnerForm({ ...partnerForm, email: e.target.value })}
                         className="w-full px-4 py-3 rounded-xl border border-slate-300 text-xs font-semibold text-slate-900 outline-none focus:border-[#439346]"
@@ -210,11 +202,10 @@ export const Footer: React.FC = () => {
 
                   <div className="grid grid-cols-3 gap-2">
                     <div className="col-span-2">
-                      <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Cidade Principal *</label>
+                      <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Cidade *</label>
                       <input
                         type="text"
                         required
-                        placeholder="ex.: Campinas"
                         value={partnerForm.city}
                         onChange={(e) => setPartnerForm({ ...partnerForm, city: e.target.value })}
                         className="w-full px-4 py-3 rounded-xl border border-slate-300 text-xs font-semibold text-slate-900 outline-none focus:border-[#439346]"
@@ -222,7 +213,7 @@ export const Footer: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 uppercase mb-1">UF *</label>
+                      <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Estado *</label>
                       <select
                         value={partnerForm.state}
                         onChange={(e) => setPartnerForm({ ...partnerForm, state: e.target.value })}
@@ -238,17 +229,6 @@ export const Footer: React.FC = () => {
                         <option value="DF">DF</option>
                       </select>
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Mensagem ou Observações (Opcional)</label>
-                    <textarea
-                      rows={2}
-                      placeholder="ex.: Temos 2 filiais na Zona Sul e interesse no Plano Platinum"
-                      value={partnerForm.notes}
-                      onChange={(e) => setPartnerForm({ ...partnerForm, notes: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold text-slate-900 outline-none focus:border-[#439346]"
-                    />
                   </div>
 
                   <div className="pt-2">
