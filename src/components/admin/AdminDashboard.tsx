@@ -16,10 +16,10 @@ export const AdminDashboard: React.FC = () => {
   const { adminTab, setAdminTab } = useApp();
 
   const menuItems: { id: AdminTab; label: string; icon: React.ComponentType<any> }[] = [
-    { id: 'finance', label: 'Financeiro & Crescimento', icon: DollarSign },
-    { id: 'routing', label: 'Motor de Leads & Filas', icon: MapPin },
-    { id: 'stores', label: 'Gestão de Parceiros', icon: Store },
-    { id: 'radar', label: 'Radar de Leads', icon: Radar },
+    { id: 'finance', label: 'Financeiro', icon: DollarSign },
+    { id: 'routing', label: 'Fila de Distribuição', icon: MapPin },
+    { id: 'stores', label: 'Lojas Parceiras', icon: Store },
+    { id: 'radar', label: 'Leads Recebidos', icon: Radar },
   ];
 
   return (
@@ -29,14 +29,6 @@ export const AdminDashboard: React.FC = () => {
       <aside className="w-full md:w-64 bg-slate-900 text-slate-300 p-6 flex flex-col justify-between border-r border-slate-800 shrink-0">
         <div className="space-y-8">
           
-          <div className="flex items-center space-x-3 bg-white/5 p-3 rounded-2xl border border-white/10">
-            <img 
-              src="/logo.png" 
-              alt="PlanejaFácil Admin" 
-              className="h-9 w-auto object-contain brightness-0 invert"
-            />
-          </div>
-
           <nav className="space-y-1.5">
             {menuItems.map((item) => {
               const Icon = item.icon;
@@ -45,14 +37,14 @@ export const AdminDashboard: React.FC = () => {
                 <button
                   key={item.id}
                   onClick={() => setAdminTab(item.id)}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-200 ${
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-200 text-left ${
                     isActive
                       ? 'bg-brand-600 text-white shadow-blue-glow'
                       : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
-                  <span>{item.label}</span>
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <span className="truncate">{item.label}</span>
                 </button>
               );
             })}
@@ -75,17 +67,17 @@ export const AdminDashboard: React.FC = () => {
           <div>
             <span className="text-xs font-bold text-brand-600 uppercase tracking-widest">Controle de Operações</span>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight capitalize">
-              {adminTab === 'finance' && 'Financeiro & Crescimento SaaS'}
-              {adminTab === 'routing' && 'Motor Round-Robin & Filas'}
+              {adminTab === 'finance' && 'Financeiro'}
+              {adminTab === 'routing' && 'Fila de Distribuição de Leads'}
               {adminTab === 'stores' && 'Gestão de Lojas Parceiras'}
-              {adminTab === 'radar' && 'Radar Em Tempo Real de Leads'}
+              {adminTab === 'radar' && 'Auditoria de Leads'}
             </h1>
           </div>
 
           <div className="flex items-center space-x-3">
             <span className="px-3.5 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full border border-emerald-200 flex items-center space-x-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Motor de Filas Ativo</span>
+              <span>Distribuição Ativa</span>
             </span>
           </div>
         </div>

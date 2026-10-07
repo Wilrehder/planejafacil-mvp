@@ -13,20 +13,20 @@ import { useApp } from '../../context/AppContext';
 export const AdminRoutingQueue: React.FC = () => {
   const { stores, leads } = useApp();
   
-  // Extrair regiões únicas das lojas ativas
-  const regions = Array.from(new Set(stores.map(s => s.regionServed))).filter(Boolean).sort();
+  // Extrair cidades únicas das lojas ativas
+  const regions = Array.from(new Set(stores.map(s => s.city))).filter(Boolean).sort();
   const [selectedRegion, setSelectedRegion] = useState<string>(regions[0] || '');
   
-  // Filtra lojas da região selecionada
-  const storesInRegion = stores.filter(s => s.regionServed === selectedRegion);
+  // Filtra lojas da cidade selecionada
+  const storesInRegion = stores.filter(s => s.city === selectedRegion);
   
   // Filtra leads da região (simulação baseada nas cidades das lojas ou leads atribuídos)
   const regionLeads = leads.filter(l => 
     storesInRegion.some(store => store.id === l.assignedStoreId)
   );
 
-  // Mock de um ponteiro Round-Robin (quem é o próximo a receber lead)
-  // Em um sistema real, isso viria do backend.
+  // Lógica de Fila: Quem tem menos leads é o próximo
+  // Em um sistema real, isso viria do backend garantindo a ordem.
   // Aqui vamos simular que a loja com MENOS leads na região é a próxima da fila.
   const storesWithCount = storesInRegion.map(store => {
     const leadCount = regionLeads.filter(l => l.assignedStoreId === store.id).length;
@@ -49,10 +49,10 @@ export const AdminRoutingQueue: React.FC = () => {
         <div>
           <h2 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
             <MapPin className="w-5 h-5 text-brand-600" />
-            Roteamento por Região
+            Roteamento por Cidade
           </h2>
           <p className="text-sm text-slate-500 mt-1">
-            Selecione a praça para visualizar a fila do Round-Robin e quem receberá o próximo lead.
+            Selecione a cidade para visualizar a fila de distribuição e quem receberá o próximo lead.
           </p>
         </div>
 
@@ -105,7 +105,7 @@ export const AdminRoutingQueue: React.FC = () => {
 
           {/* Fila Completa */}
           <div className="space-y-4">
-            <h3 className="text-lg font-bold text-slate-900">Ordem da Fila (Round-Robin)</h3>
+            <h3 className="text-lg font-bold text-slate-900">Ordem da Fila de Distribuição</h3>
             
             <div className="grid grid-cols-1 gap-3">
               {storesWithCount.map((store, index) => {
