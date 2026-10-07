@@ -256,7 +256,7 @@ export const SimulatorWizard: React.FC = () => {
   const activeEnvironments = simulator.environments.filter(e => e.id !== 'env-cozinha-1' || simulator.environments.length === 1);
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 sm:py-10 font-sans">
+    <div className="max-w-3xl mx-auto px-4 py-4 sm:py-10 font-sans pb-32 sm:pb-10">
       
       {/* Top Header Bar */}
       <div className="mb-6 flex items-center justify-between bg-white px-4 py-3 rounded-2xl border border-slate-200/90 shadow-sm">
@@ -274,7 +274,7 @@ export const SimulatorWizard: React.FC = () => {
           <span>{simulator.step === 1 ? 'Início' : 'Voltar'}</span>
         </button>
 
-        <div className="text-center">
+        <div className="text-center hidden sm:block">
           <div className="text-xs font-extrabold text-[#1B2B48]">Faça seu Orçamento em Minutos</div>
         </div>
 
@@ -370,10 +370,10 @@ export const SimulatorWizard: React.FC = () => {
                     )}
                   </div>
 
-                  <div className="p-4 bg-white flex items-center justify-between">
+                  <div className="p-3 sm:p-4 bg-white flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <div
-                        className={`w-5 h-5 rounded-md flex items-center justify-center border transition-colors ${
+                        className={`w-5 h-5 rounded-md flex items-center justify-center border transition-colors shrink-0 ${
                           isSelected
                             ? 'bg-[#439346] border-[#439346] text-white'
                             : 'border-slate-300 bg-slate-50 group-hover:border-[#439346]'
@@ -381,7 +381,7 @@ export const SimulatorWizard: React.FC = () => {
                       >
                         {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                       </div>
-                      <span className="font-extrabold text-[#1B2B48] text-sm group-hover:text-[#439346] transition-colors">
+                      <span className="font-extrabold text-[#1B2B48] text-xs sm:text-sm group-hover:text-[#439346] transition-colors leading-tight">
                         {item.title} Planejada
                       </span>
                     </div>
@@ -391,14 +391,16 @@ export const SimulatorWizard: React.FC = () => {
             })}
           </div>
 
-          <div className="pt-4 sticky bottom-4 z-20">
-            <button
-              onClick={() => handleSelectCategoryAndProceed(selectedEnvTypeId)}
-              className="w-full py-4 rounded-xl bg-[#439346] hover:bg-[#387F3B] active:scale-98 text-white font-extrabold text-base uppercase tracking-wider transition-all shadow-xl shadow-[#439346]/30 flex items-center justify-center space-x-2"
-            >
-              <span>Avançar para Medidas</span>
-              <ArrowRight className="w-5 h-5" />
-            </button>
+          <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-40 sm:relative sm:border-0 sm:shadow-none sm:p-0 sm:bg-transparent">
+            <div className="max-w-3xl mx-auto">
+              <button
+                onClick={() => handleSelectCategoryAndProceed(selectedEnvTypeId)}
+                className="w-full py-4 rounded-xl bg-[#439346] hover:bg-[#387F3B] active:scale-95 text-white font-extrabold text-sm sm:text-base uppercase tracking-wider transition-all shadow-lg shadow-[#439346]/25 flex items-center justify-center space-x-2"
+              >
+                <span>Avançar para Medidas</span>
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
         </div>
@@ -494,28 +496,28 @@ export const SimulatorWizard: React.FC = () => {
             </div>
 
             {/* Botões de Ação: Adicionar outro ou Gerar orçamento */}
-            <div className="pt-6 border-t border-slate-100 space-y-3">
-              <p className="text-center text-xs font-extrabold text-[#1B2B48]">
+            <div className="pt-6 sm:pt-6 border-t border-slate-100 space-y-3 pb-24 sm:pb-0">
+              <p className="text-center text-xs font-extrabold text-[#1B2B48] hidden sm:block">
                 Deseja incluir mais um cômodo no mesmo orçamento?
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-40 sm:relative sm:border-0 sm:shadow-none sm:p-0 sm:bg-transparent grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={handleAddAnotherEnvironment}
-                  className="w-full py-4 rounded-xl border-2 border-[#439346] text-[#439346] hover:bg-[#EBF7EC] font-extrabold text-xs sm:text-sm uppercase tracking-wider transition-all flex items-center justify-center space-x-2 shadow-sm"
+                  className="w-full py-3.5 sm:py-4 rounded-xl border-2 border-[#439346] text-[#439346] hover:bg-[#EBF7EC] active:scale-95 font-extrabold text-[11px] sm:text-sm uppercase tracking-wider transition-all flex items-center justify-center space-x-2"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  <span>+ Adicionar Mais Um Cômodo</span>
+                  <Sparkles className="w-4 h-4 shrink-0" />
+                  <span>+ Adicionar Cômodo</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handleProceedToContact}
-                  className="w-full py-4 rounded-xl bg-[#439346] hover:bg-[#387F3B] text-white font-extrabold text-xs sm:text-sm uppercase tracking-wider transition-all flex items-center justify-center space-x-2 shadow-lg shadow-[#439346]/20"
+                  className="w-full py-3.5 sm:py-4 rounded-xl bg-[#439346] hover:bg-[#387F3B] text-white active:scale-95 font-extrabold text-xs sm:text-sm uppercase tracking-wider transition-all flex items-center justify-center space-x-2 shadow-lg shadow-[#439346]/20"
                 >
                   <span>Calcular Estimativa</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-4 h-4 shrink-0" />
                 </button>
               </div>
             </div>
@@ -583,14 +585,16 @@ export const SimulatorWizard: React.FC = () => {
               </div>
             </div>
 
-            <div className="pt-2">
-              <button
-                type="submit"
-                className="w-full py-4 rounded-xl bg-[#439346] hover:bg-[#387F3B] active:scale-98 text-white font-extrabold text-sm sm:text-base uppercase tracking-wider transition-all flex items-center justify-center space-x-2 shadow-lg shadow-[#439346]/25"
-              >
-                <span>Ver Orçamento Estimado</span>
-                <ArrowRight className="w-5 h-5" />
-              </button>
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-40 sm:relative sm:border-0 sm:shadow-none sm:p-0 sm:bg-transparent">
+              <div className="max-w-xl mx-auto">
+                <button
+                  type="submit"
+                  className="w-full py-4 rounded-xl bg-[#439346] hover:bg-[#387F3B] active:scale-95 text-white font-extrabold text-sm sm:text-base uppercase tracking-wider transition-all flex items-center justify-center space-x-2 shadow-lg shadow-[#439346]/25"
+                >
+                  <span>Ver Orçamento Estimado</span>
+                  <ArrowRight className="w-5 h-5 shrink-0" />
+                </button>
+              </div>
             </div>
 
           </div>

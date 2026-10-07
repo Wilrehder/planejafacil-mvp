@@ -19,10 +19,10 @@ const MainContent: React.FC = () => {
 
       <div className="flex-1">
         {role === 'consumer' && (
-          <main>
+          <main className={consumerTab === 'simulator' ? 'pb-24' : ''}>
             {consumerTab === 'landing' ? <LandingPage /> : <SimulatorWizard />}
             <LeadCaptureModal />
-            <MobileBottomNav />
+            {consumerTab !== 'simulator' && <MobileBottomNav />}
           </main>
         )}
 
@@ -36,7 +36,7 @@ const MainContent: React.FC = () => {
         )}
       </div>
 
-      {role === 'consumer' && <Footer />}
+      {role === 'consumer' && consumerTab !== 'simulator' && <Footer />}
     </div>
   );
 };
