@@ -92,52 +92,6 @@ export const MerchantERP: React.FC<MerchantERPProps> = ({ merchantPlan }) => {
   return (
     <div className="space-y-6">
       
-      {/* HEADER DE MÉTRICAS OPERACIONAIS DO ERP */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-              Pedidos em Andamento (Pós-Venda)
-            </span>
-            <span className="text-2xl font-black text-slate-900 mt-1 block">
-              {activeOrdersCount} Pedidos
-            </span>
-          </div>
-          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center border border-blue-100">
-            <FolderCheck className="w-6 h-6" />
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-              Volume em Produção/Montagem
-            </span>
-            <span className="text-2xl font-black text-emerald-600 mt-1 block">
-              R$ {totalContractVolume.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </span>
-          </div>
-          <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center border border-emerald-100">
-            <DollarSign className="w-6 h-6" />
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-              Modo de Operação
-            </span>
-            <span className="text-sm font-bold text-slate-800 mt-1 flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              Progressão Automática por Eventos
-            </span>
-          </div>
-          <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center border border-purple-100">
-            <Clock className="w-6 h-6" />
-          </div>
-        </div>
-      </div>
-
       {/* FILTROS E BUSCA DE PEDIDOS */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         
@@ -154,30 +108,24 @@ export const MerchantERP: React.FC<MerchantERPProps> = ({ merchantPlan }) => {
         </div>
 
         {/* FILTRO POR ETAPA */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
-          <button
-            onClick={() => setStageFilter('todos')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
-              stageFilter === 'todos'
-                ? 'bg-slate-900 text-white font-semibold'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
-            }`}
+        <div className="w-full md:w-auto shrink-0 relative">
+          <select
+            value={stageFilter}
+            onChange={(e) => setStageFilter(e.target.value)}
+            className="w-full md:w-auto px-4 py-2 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer appearance-none pr-8"
           >
-            Todos os Pedidos
-          </button>
-          {Object.entries(STAGE_LABELS).map(([key, item]) => (
-            <button
-              key={key}
-              onClick={() => setStageFilter(key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap border transition-colors ${
-                stageFilter === key
-                  ? `${item.bg} ${item.text} font-bold ring-2 ring-blue-400`
-                  : 'bg-white hover:bg-slate-50 text-slate-600 border-slate-200'
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
+            <option value="todos">Filtrar: Todos os Pedidos</option>
+            {Object.entries(STAGE_LABELS).map(([key, item]) => (
+              <option key={key} value={key}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+              <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+            </svg>
+          </div>
         </div>
 
       </div>

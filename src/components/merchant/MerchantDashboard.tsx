@@ -186,33 +186,82 @@ export const MerchantDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 p-4 sm:p-8 space-y-6 font-sans">
       
-      {/* Header Limpo & Seletor de Unidade */}
-      <div className="bg-slate-900 text-white rounded-2xl p-6 border border-slate-800 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        
-        <div className="flex items-center space-x-4">
-          <div className="w-12 h-12 rounded-xl bg-[#439346] text-white flex items-center justify-center font-bold shrink-0 shadow-lg">
-            <StoreIcon className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <span className="text-xs text-slate-400 font-semibold">Painel do Lojista</span>
-              <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
-                isProPlan ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30' : 'bg-slate-700 text-slate-300'
-              }`}>
-                {isProPlan ? 'Plano Pro (R$ 219,90/mês)' : 'Plano Básico (R$ 119,90/mês)'}
-              </span>
+      {/* Header Limpo (Visível Apenas no CRM) */}
+      {merchantTab !== 'erp' && (
+        <div className="bg-slate-900 text-white rounded-2xl p-6 border border-slate-800 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          
+          <div className="flex items-center space-x-4">
+            <div className="w-12 h-12 rounded-xl bg-[#439346] text-white flex items-center justify-center font-bold shrink-0 shadow-lg">
+              <StoreIcon className="w-6 h-6" />
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">{currentStore.name}</h1>
-            <p className="text-xs text-slate-400 mt-0.5">{currentStore.regionServed} • Cidade: {currentStore.city}</p>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="text-xs text-slate-400 font-semibold">Painel do Lojista</span>
+                <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
+                  isProPlan ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30' : 'bg-slate-700 text-slate-300'
+                }`}>
+                  {isProPlan ? 'Plano Pro' : 'Plano Básico'}
+                </span>
+              </div>
+              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">{currentStore.name}</h1>
+              <p className="text-xs text-slate-400 mt-0.5">{currentStore.regionServed} • Cidade: {currentStore.city}</p>
+            </div>
           </div>
+
+          <div className="flex items-center justify-end">
+            <button
+              onClick={handleOpenAddLead}
+              className={`px-4 py-2.5 rounded-xl font-extrabold text-xs flex items-center space-x-2 transition-all shadow-md ${
+                isProPlan 
+                  ? 'bg-[#439346] hover:bg-[#387F3B] text-white' 
+                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
+              }`}
+            >
+              {isProPlan ? <Plus className="w-4 h-4 stroke-[3]" /> : <Lock className="w-3.5 h-3.5 text-amber-400" />}
+              <span>+ Novo Lead Externo</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* SELETOR PRINCIPAL DE MÓDULO: CRM vs ERP e Controles Globais */}
+      <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex flex-col xl:flex-row items-center justify-between gap-4">
+        
+        <div className="flex items-center gap-2 w-full xl:w-auto overflow-x-auto">
+          <button
+            onClick={() => setMerchantTab('dashboard')}
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
+              merchantTab !== 'erp'
+                ? 'bg-slate-900 text-white shadow-md'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+            }`}
+          >
+            <Kanban className="w-4 h-4 text-blue-400" />
+            CRM — Gestão de Leads
+          </button>
+          <button
+            onClick={() => setMerchantTab('erp')}
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
+              merchantTab === 'erp'
+                ? 'bg-slate-900 text-white shadow-md'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+            }`}
+          >
+            <Wrench className="w-4 h-4 text-emerald-400" />
+            ERP — Pós-Venda & Pedidos Operacionais
+            {isProPlan && (
+              <span className="bg-emerald-500/20 text-emerald-300 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-emerald-500/30 uppercase">
+                Pro ⭐
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Action Controls & Plan Toggle (Modo Teste) */}
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+        <div className="flex flex-wrap items-center gap-3 pr-2 shrink-0">
           
-          {/* BOTÃO MODO TESTE DE PLANO */}
-          <div className="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700">
-            <span className="text-[10px] font-extrabold uppercase text-slate-400 px-2 hidden sm:inline">Simular Plano:</span>
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <span className="text-[10px] font-extrabold uppercase text-slate-500 px-2 hidden sm:inline">Simular Plano:</span>
             <button
               onClick={() => {
                 setSimulatedPlanOverride('Basic');
@@ -220,8 +269,8 @@ export const MerchantDashboard: React.FC = () => {
               }}
               className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
                 !isProPlan 
-                  ? 'bg-slate-700 text-white shadow-sm border border-slate-600' 
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-white text-slate-800 shadow-sm border border-slate-200' 
+                  : 'text-slate-500 hover:text-slate-800'
               }`}
             >
               Básico
@@ -233,33 +282,21 @@ export const MerchantDashboard: React.FC = () => {
               className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
                 isProPlan 
                   ? 'bg-[#439346] text-white shadow-sm' 
-                  : 'text-slate-400 hover:text-white'
+                  : 'text-slate-500 hover:text-slate-800'
               }`}
             >
               Pro ⭐
             </button>
           </div>
 
-          <button
-            onClick={handleOpenAddLead}
-            className={`px-4 py-2.5 rounded-xl font-extrabold text-xs flex items-center space-x-2 transition-all shadow-md ${
-              isProPlan 
-                ? 'bg-[#439346] hover:bg-[#387F3B] text-white' 
-                : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
-            }`}
-          >
-            {isProPlan ? <Plus className="w-4 h-4 stroke-[3]" /> : <Lock className="w-3.5 h-3.5 text-amber-400" />}
-            <span>+ Novo Lead Externo</span>
-          </button>
-
           <div className="relative">
             <select
               value={selectedStoreId}
               onChange={(e) => setSelectedStoreId(e.target.value)}
-              className="appearance-none bg-slate-800 border border-slate-700 text-white text-xs font-bold py-2.5 px-3.5 pr-8 rounded-xl focus:outline-none focus:border-[#439346] cursor-pointer"
+              className="appearance-none bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold py-2.5 px-3.5 pr-8 rounded-xl focus:outline-none focus:border-[#439346] cursor-pointer"
             >
               {stores.map((store) => (
-                <option key={store.id} value={store.id} className="bg-slate-900 text-white py-1">
+                <option key={store.id} value={store.id} className="bg-white text-slate-800 py-1">
                   {store.name} ({store.plan})
                 </option>
               ))}
@@ -269,37 +306,6 @@ export const MerchantDashboard: React.FC = () => {
 
         </div>
 
-      </div>
-
-      {/* SELETOR PRINCIPAL DE MÓDULO: CRM vs ERP */}
-      <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-2">
-        <button
-          onClick={() => setMerchantTab('dashboard')}
-          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-            merchantTab !== 'erp'
-              ? 'bg-slate-900 text-white shadow-md'
-              : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
-          }`}
-        >
-          <Kanban className="w-4 h-4 text-blue-400" />
-          CRM — Gestão de Leads
-        </button>
-        <button
-          onClick={() => setMerchantTab('erp')}
-          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-            merchantTab === 'erp'
-              ? 'bg-slate-900 text-white shadow-md'
-              : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
-          }`}
-        >
-          <Wrench className="w-4 h-4 text-emerald-400" />
-          ERP — Pós-Venda & Pedidos Operacionais
-          {isProPlan && (
-            <span className="bg-emerald-500/20 text-emerald-300 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-emerald-500/30 uppercase">
-              Pro ⭐
-            </span>
-          )}
-        </button>
       </div>
 
       {merchantTab === 'erp' ? (
