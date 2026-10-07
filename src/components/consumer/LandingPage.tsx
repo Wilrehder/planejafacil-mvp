@@ -115,7 +115,7 @@ export const LandingPage: React.FC = () => {
       <section id="como-funciona" className="py-12 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto text-center space-y-2 sm:space-y-3 mb-10 sm:mb-12">
           <h2 className="text-xl sm:text-3xl font-extrabold text-[#1B2B48] tracking-tight">
-            Como funciona o PlanejaFácil
+            Como funciona o PlanejaFácil?
           </h2>
           <p className="text-slate-600 text-xs sm:text-base font-medium">
             Um processo simples e transparente para planejar o orçamento do seu imóvel.
