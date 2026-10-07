@@ -104,18 +104,43 @@ export const SimulatorWizard: React.FC = () => {
     goToStep(2);
   };
 
-  const handleCalculateAndProceedToContact = () => {
+  const handleSaveCurrentEnvironment = () => {
+    // Adiciona o ambiente atual na lista de ambientes do simulador
     const createdEnv = addEnvironment(selectedEnvTypeId, newEnvName, newEnvArea, newEnvWallCount, newEnvCeilingHeight);
-    updateSimulator({ environments: [createdEnv], currentEditingEnvId: createdEnv.id });
+    
+    // Se for o primeiro ambiente, substitui os ambientes iniciais pela lista contendo este novo
+    const isFirstCustomEnv = simulator.environments.length === 1 && simulator.environments[0].id === 'env-cozinha-1';
+    const updatedEnvironments = isFirstCustomEnv 
+      ? [createdEnv] 
+      : [...simulator.environments, createdEnv];
+
+    updateSimulator({ 
+      environments: updatedEnvironments, 
+      currentEditingEnvId: createdEnv.id 
+    });
+  };
+
+  const handleAddAnotherEnvironment = () => {
+    handleSaveCurrentEnvironment();
+    // Volta para o passo 1 para escolher o próximo cômodo
+    goToStep(1);
+  };
+
+  const handleProceedToContact = () => {
+    handleSaveCurrentEnvironment();
     calculateEstimate();
     goToStep(3);
+  };
+
+  const handleRemoveEnvironment = (envId: string) => {
+    removeEnvironment(envId);
   };
 
   const handleSubmitLead = (e: React.FormEvent) => {
     e.preventDefault();
     calculateEstimate();
 
-    const envSummaryStr = `${newEnvName || 'Ambiente'} (${newEnvArea}m², ${newEnvWallCount} paredes, Pé-direito ${newEnvCeilingHeight}m)`;
+    const envNamesList = simulator.environments.map(e => `${e.name} (${e.areaM2}m²)`).join(', ');
 
     addLead({
       name: simulator.clientInfo.name || 'Cliente Orçamento',
@@ -125,7 +150,7 @@ export const SimulatorWizard: React.FC = () => {
       city: simulator.clientInfo.city || 'São Paulo',
       state: 'SP',
       cep: simulator.clientInfo.cep || '01310-100',
-      environment: envSummaryStr,
+      environment: envNamesList || `${newEnvName} (${newEnvArea}m²)`,
       qualityTier: 'Intermediário',
       finishPattern: 'MDF Padrão',
       purchaseTimeline: 'Imediato',
@@ -227,6 +252,8 @@ export const SimulatorWizard: React.FC = () => {
     );
   }
 
+  const activeEnvironments = simulator.environments.filter(e => e.id !== 'env-cozinha-1' || simulator.environments.length === 1);
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 sm:py-10 font-sans">
       
@@ -274,6 +301,25 @@ export const SimulatorWizard: React.FC = () => {
         />
       </div>
 
+      {/* Summary of Added Environments */}
+      {simulator.environments.length > 0 && simulator.environments[0].id !== 'env-cozinha-1' && (
+        <div className="mb-6 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center space-x-2">
+            <Sparkles className="w-4 h-4 text-[#439346]" />
+            <span className="text-xs font-extrabold text-[#1B2B48]">
+              Ambientes adicionados ({simulator.environments.length}):
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {simulator.environments.map((env) => (
+              <span key={env.id} className="inline-flex items-center space-x-1.5 bg-[#EBF7EC] text-[#439346] text-xs font-bold px-3 py-1 rounded-xl">
+                <span>{env.name} ({env.areaM2}m²)</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ========================================================================= */}
       {/* ETAPA 1: SELEÇÃO DO CÔMODO */}
       {/* ========================================================================= */}
@@ -285,7 +331,7 @@ export const SimulatorWizard: React.FC = () => {
               Faça seu Orçamento
             </h1>
             <p className="text-sm font-semibold text-slate-600">
-              Qual cômodo você deseja planejar?
+              Qual cômodo você deseja planejar{simulator.environments.length > 1 || (simulator.environments.length === 1 && simulator.environments[0].id !== 'env-cozinha-1') ? ' a seguir' : ''}?
             </p>
           </div>
 
@@ -349,7 +395,7 @@ export const SimulatorWizard: React.FC = () => {
               onClick={() => handleSelectCategoryAndProceed(selectedEnvTypeId)}
               className="w-full py-4 rounded-xl bg-[#439346] hover:bg-[#387F3B] active:scale-98 text-white font-extrabold text-base uppercase tracking-wider transition-all shadow-xl shadow-[#439346]/30 flex items-center justify-center space-x-2"
             >
-              <span>Avançar</span>
+              <span>Avançar para Medidas</span>
               <ArrowRight className="w-5 h-5" />
             </button>
           </div>
@@ -365,7 +411,7 @@ export const SimulatorWizard: React.FC = () => {
           
           <div className="text-center space-y-2">
             <h2 className="text-2xl sm:text-3xl font-black text-[#1B2B48]">
-              Medidas do Cômodo
+              Medidas do Cômodo: <span className="text-[#439346]">{newEnvName}</span>
             </h2>
             <p className="text-sm font-medium text-slate-600">
               Responda às 3 perguntas simples abaixo para calcularmos seu orçamento por m²
@@ -446,16 +492,31 @@ export const SimulatorWizard: React.FC = () => {
               </div>
             </div>
 
-            {/* Submit button */}
-            <div className="pt-4">
-              <button
-                type="button"
-                onClick={handleCalculateAndProceedToContact}
-                className="w-full py-4 rounded-xl bg-[#439346] hover:bg-[#387F3B] text-white font-extrabold text-sm uppercase tracking-wider transition-all flex items-center justify-center space-x-2 shadow-lg shadow-[#439346]/20"
-              >
-                <span>Calcular Estimativa</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+            {/* Botões de Ação: Adicionar outro ou Gerar orçamento */}
+            <div className="pt-6 border-t border-slate-100 space-y-3">
+              <p className="text-center text-xs font-extrabold text-[#1B2B48]">
+                Deseja incluir mais um cômodo no mesmo orçamento?
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={handleAddAnotherEnvironment}
+                  className="w-full py-4 rounded-xl border-2 border-[#439346] text-[#439346] hover:bg-[#EBF7EC] font-extrabold text-xs sm:text-sm uppercase tracking-wider transition-all flex items-center justify-center space-x-2 shadow-sm"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>+ Adicionar Mais Um Cômodo</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleProceedToContact}
+                  className="w-full py-4 rounded-xl bg-[#439346] hover:bg-[#387F3B] text-white font-extrabold text-xs sm:text-sm uppercase tracking-wider transition-all flex items-center justify-center space-x-2 shadow-lg shadow-[#439346]/20"
+                >
+                  <span>Calcular Estimativa</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
           </div>
@@ -553,15 +614,28 @@ export const SimulatorWizard: React.FC = () => {
 
           <div className="bg-[#1B2B48] text-white rounded-3xl p-8 sm:p-10 space-y-6 shadow-2xl text-center border border-[#283D64]">
             <div className="text-xs font-bold bg-[#EBF7EC] text-[#439346] w-fit mx-auto px-4 py-1.5 rounded-full">
-              Estimativa por m² ({newEnvArea}m² • {newEnvWallCount} Paredes)
+              Estimativa Multi-Ambientes ({simulator.environments.length} {simulator.environments.length === 1 ? 'Cômodo' : 'Cômodos'})
             </div>
 
             <div className="text-3xl sm:text-5xl font-black tracking-tight text-white">
               {formatCurrency(simulator.calculatedRange.min)} <span className="text-slate-400 font-normal text-2xl">a</span> {formatCurrency(simulator.calculatedRange.max)}
             </div>
 
+            {/* List of included environments */}
+            <div className="bg-white/10 rounded-2xl p-4 max-w-lg mx-auto text-left space-y-2">
+              <div className="text-xs font-bold text-slate-300 uppercase tracking-wider">Cômodos Incluídos no Orçamento:</div>
+              <div className="space-y-1.5">
+                {simulator.environments.map((env) => (
+                  <div key={env.id} className="flex justify-between items-center text-xs font-semibold text-white border-b border-white/10 pb-1 last:border-0 last:pb-0">
+                    <span>{env.name}</span>
+                    <span className="text-emerald-400 font-extrabold">{env.areaM2}m² • {env.wallCount} {env.wallCount === 1 ? 'parede' : 'paredes'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="text-xs text-slate-300 max-w-lg mx-auto leading-relaxed font-medium">
-              Valor estimado para <strong className="text-white">{ENVIRONMENT_CATALOG.find(e => e.id === selectedEnvTypeId)?.title || 'Ambiente'} Planejada</strong> considerando o m² de móveis projetados no seu espaço.
+              Valor estimado considerando o m² total de móveis projetados nos seus espaços.
             </div>
 
             <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
