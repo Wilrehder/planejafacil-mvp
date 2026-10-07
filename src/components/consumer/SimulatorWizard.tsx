@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -14,7 +14,12 @@ import {
   Sofa, 
   Tv, 
   WashingMachine, 
-  Check
+  Check,
+  Loader2,
+  Sparkles,
+  Calculator,
+  Building,
+  CheckCircle2
 } from 'lucide-react';
 import { ENVIRONMENT_CATALOG } from '../../data/mockData';
 import { useApp } from '../../context/AppContext';
@@ -34,6 +39,13 @@ const ENV_IMAGE_MAP: Record<string, string> = {
   outro: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80',
 };
 
+const LOADING_MESSAGES = [
+  { text: 'Analisando dimensões e pé-direito...', icon: Calculator, progress: 25 },
+  { text: 'Calculando a área de marcenaria em m²...', icon: Sparkles, progress: 55 },
+  { text: 'Consultando médias de lojas parceiras da sua região...', icon: Building, progress: 85 },
+  { text: 'Gerando seu orçamento estimado...', icon: CheckCircle2, progress: 100 },
+];
+
 export const SimulatorWizard: React.FC = () => {
   const { 
     simulator, 
@@ -52,12 +64,17 @@ export const SimulatorWizard: React.FC = () => {
   const [newEnvCeilingHeight, setNewEnvCeilingHeight] = useState(2.7);
   const [newEnvWallCount, setNewEnvWallCount] = useState<1 | 2 | 3 | 4>(3);
 
+  // Loading Screen State
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingStepIndex, setLoadingStepIndex] = useState(0);
+
   const goToStep = (nextStep: number) => {
     updateSimulator({ step: nextStep });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleResetWizard = () => {
+    setIsLoading(false);
     resetSimulator();
     goToStep(1);
   };
@@ -88,7 +105,6 @@ export const SimulatorWizard: React.FC = () => {
   };
 
   const handleCalculateAndProceedToContact = () => {
-    // Reset environments array to single configured room for clean calculation
     const createdEnv = addEnvironment(selectedEnvTypeId, newEnvName, newEnvArea, newEnvWallCount, newEnvCeilingHeight);
     updateSimulator({ environments: [createdEnv], currentEditingEnvId: createdEnv.id });
     calculateEstimate();
@@ -118,12 +134,98 @@ export const SimulatorWizard: React.FC = () => {
       estimatedMax: simulator.calculatedRange.max,
     });
 
-    goToStep(4);
+    // Inicia a animação de carregamento clean
+    setIsLoading(true);
+    setLoadingStepIndex(0);
   };
+
+  // Efeito para alternar as mensagens de carregamento de forma fluida
+  useEffect(() => {
+    if (!isLoading) return;
+
+    const interval = setInterval(() => {
+      setLoadingStepIndex((prev) => {
+        if (prev < LOADING_MESSAGES.length - 1) {
+          return prev + 1;
+        } else {
+          clearInterval(interval);
+          setTimeout(() => {
+            setIsLoading(false);
+            goToStep(4);
+          }, 800);
+          return prev;
+        }
+      });
+    }, 900);
+
+    return () => clearInterval(interval);
+  }, [isLoading]);
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val);
   };
+
+  // Se estiver no estado de carregamento, renderiza a tela limpa e elegante
+  if (isLoading) {
+    const currentMsg = LOADING_MESSAGES[loadingStepIndex];
+    const IconComp = currentMsg.icon;
+
+    return (
+      <div className="max-w-xl mx-auto px-4 py-16 text-center font-sans space-y-8 animate-in fade-in duration-300">
+        <div className="bg-white rounded-3xl border border-slate-200/90 p-8 sm:p-12 shadow-xl space-y-8">
+          
+          {/* Animated Icon Badge */}
+          <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
+            <div className="absolute inset-0 bg-[#EBF7EC] rounded-3xl animate-ping opacity-25" />
+            <div className="relative w-20 h-20 bg-[#EBF7EC] text-[#439346] rounded-3xl flex items-center justify-center shadow-inner">
+              <IconComp className="w-9 h-9 stroke-[2.2] animate-bounce" />
+            </div>
+          </div>
+
+          {/* Status Message */}
+          <div className="space-y-2">
+            <h3 className="text-lg sm:text-xl font-extrabold text-[#1B2B48] transition-all duration-300">
+              {currentMsg.text}
+            </h3>
+            <p className="text-xs text-slate-400 font-medium">
+              Aguarde alguns segundos enquanto preparamos seu cálculo personalizado...
+            </p>
+          </div>
+
+          {/* Clean Progress Bar */}
+          <div className="space-y-2">
+            <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden p-0.5 border border-slate-200/60">
+              <div 
+                className="bg-[#439346] h-full rounded-full transition-all duration-700 ease-out shadow-sm"
+                style={{ width: `${currentMsg.progress}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-[11px] font-bold text-slate-400">
+              <span>Processando</span>
+              <span className="text-[#439346] font-extrabold">{currentMsg.progress}%</span>
+            </div>
+          </div>
+
+          {/* Step indicators */}
+          <div className="pt-2 flex justify-center items-center space-x-2">
+            {LOADING_MESSAGES.map((_, idx) => (
+              <div 
+                key={idx}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  idx === loadingStepIndex 
+                    ? 'w-6 bg-[#439346]' 
+                    : idx < loadingStepIndex 
+                      ? 'w-2 bg-[#439346]/40' 
+                      : 'w-2 bg-slate-200'
+                }`}
+              />
+            ))}
+          </div>
+
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 sm:py-10 font-sans">
