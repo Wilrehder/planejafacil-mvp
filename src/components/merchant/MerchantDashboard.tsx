@@ -350,26 +350,23 @@ export const MerchantDashboard: React.FC = () => {
 
             {/* View Switcher: Table vs Kanban (Plano Pro unlock) */}
             {isProPlan ? (
-              <div className="bg-slate-100 p-1 rounded-xl flex items-center space-x-1">
-                <button
-                  onClick={() => setViewMode('table')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors ${
-                    viewMode === 'table' ? 'bg-white text-[#1B2B48] shadow-sm' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <TableIcon className="w-3.5 h-3.5" />
-                  <span>Tabela</span>
-                </button>
-                <button
-                  onClick={() => setViewMode('kanban')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors ${
-                    viewMode === 'kanban' ? 'bg-white text-[#1B2B48] shadow-sm' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <Kanban className="w-3.5 h-3.5 text-[#439346]" />
-                  <span>Kanban Pro</span>
-                </button>
-              </div>
+              <button
+                onClick={() => setViewMode(viewMode === 'table' ? 'kanban' : 'table')}
+                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white text-[#1B2B48] border border-slate-200 shadow-sm flex items-center space-x-1.5 hover:bg-slate-50 transition-colors"
+                title="Alternar Modo de Visualização"
+              >
+                {viewMode === 'table' ? (
+                  <>
+                    <Kanban className="w-3.5 h-3.5 text-[#439346]" />
+                    <span>Modo Kanban</span>
+                  </>
+                ) : (
+                  <>
+                    <TableIcon className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Modo Tabela</span>
+                  </>
+                )}
+              </button>
             ) : (
               <button
                 onClick={() => setIsUpgradeModalOpen(true)}
