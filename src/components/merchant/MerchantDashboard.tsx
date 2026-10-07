@@ -19,9 +19,22 @@ import {
 import { useApp } from '../../context/AppContext';
 import { LeadStatus } from '../../types';
 import { LeadDetailDrawer } from './LeadDetailDrawer';
+import { MerchantERP } from './MerchantERP';
+import { OrderFolderModal } from './OrderFolderModal';
+import { Wrench } from 'lucide-react';
 
 export const MerchantDashboard: React.FC = () => {
-  const { leads, setSelectedLeadForDetail, stores, updateLeadStatus, addLead } = useApp();
+  const { 
+    leads, 
+    setSelectedLeadForDetail, 
+    stores, 
+    updateLeadStatus, 
+    addLead,
+    merchantTab,
+    setMerchantTab,
+    selectedOrderForFolder,
+    setSelectedOrderForFolder
+  } = useApp();
   const [selectedStoreId, setSelectedStoreId] = useState<string>(stores[0]?.id || 'store-mogi');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeStatusTab, setActiveStatusTab] = useState<string>('todos');
@@ -254,10 +267,43 @@ export const MerchantDashboard: React.FC = () => {
             <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
           </div>
 
-        </div>
-
       </div>
 
+      {/* SELETOR PRINCIPAL DE MÓDULO: CRM vs ERP */}
+      <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-2">
+        <button
+          onClick={() => setMerchantTab('dashboard')}
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            merchantTab !== 'erp'
+              ? 'bg-slate-900 text-white shadow-md'
+              : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+          }`}
+        >
+          <Kanban className="w-4 h-4 text-blue-400" />
+          CRM — Gestão de Leads
+        </button>
+        <button
+          onClick={() => setMerchantTab('erp')}
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            merchantTab === 'erp'
+              ? 'bg-slate-900 text-white shadow-md'
+              : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+          }`}
+        >
+          <Wrench className="w-4 h-4 text-emerald-400" />
+          ERP — Pós-Venda & Pedidos Operacionais
+          {isProPlan && (
+            <span className="bg-emerald-500/20 text-emerald-300 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-emerald-500/30 uppercase">
+              Pro ⭐
+            </span>
+          )}
+        </button>
+      </div>
+
+      {merchantTab === 'erp' ? (
+        <MerchantERP merchantPlan={activePlan} />
+      ) : (
+        <>
       {/* Cards Minimalistas de Desempenho e Faturamento de Performance (Pay-Per-Lead) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         
@@ -713,8 +759,19 @@ export const MerchantDashboard: React.FC = () => {
         </div>
       )}
 
+        </>
+      )}
+
       {/* Drawer Details */}
       <LeadDetailDrawer />
+
+      {/* Modal Pasta do Pedido ERP */}
+      {selectedOrderForFolder && (
+        <OrderFolderModal
+          order={selectedOrderForFolder}
+          onClose={() => setSelectedOrderForFolder(null)}
+        />
+      )}
 
     </div>
   );

@@ -58,8 +58,52 @@ export interface SimulatorState {
 }
 
 export type AdminTab = 'dashboard' | 'leads' | 'stores' | 'regions' | 'reports' | 'financial' | 'settings';
-export type MerchantTab = 'dashboard' | 'leads' | 'settings';
+export type MerchantTab = 'dashboard' | 'leads' | 'erp' | 'settings';
 export type LeadStatus = 'novo' | 'em_atendimento' | 'orcado' | 'convertido' | 'perdido';
+
+export type OrderStage = 'medicao' | 'projeto_executivo' | 'montagem' | 'vistoria' | 'concluido';
+
+export interface OrderAuditLog {
+  id: string;
+  user: string;
+  userRole: string;
+  action: string;
+  timestamp: string;
+}
+
+export interface StoreOrder {
+  id: string; // ex: 'PED-4092'
+  leadId: string;
+  clientName: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  environment: string;
+  totalValue: number;
+  currentStage: OrderStage;
+  createdAt: string;
+  storeId: string;
+
+  // Pasta Digital de Documentos
+  contractFile?: string;
+  medicaoFile?: string;
+  render3dFile?: string;
+  planoCorteFile?: string;
+  termoVistoriaFile?: string;
+
+  // Dados das Etapas
+  medicaoDate?: string;
+  designerName?: string;
+  installerName?: string;
+  installationDate?: string;
+  checkedInAt?: string;
+  inspectorName?: string;
+  inspectionApproved?: boolean;
+
+  // Log de Auditoria
+  timeline: OrderAuditLog[];
+}
 
 export interface Lead {
   id: string;

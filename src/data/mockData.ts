@@ -1,4 +1,4 @@
-import { AdditionalItemOption, DoorTypeOption, EnvironmentOption, FinishOption, FurnitureModuleOption, HardwareOption, LayoutOption, Lead, RegionStat, Store, StorePlanTier } from '../types';
+import { AdditionalItemOption, DoorTypeOption, EnvironmentOption, FinishOption, FurnitureModuleOption, HardwareOption, LayoutOption, Lead, RegionStat, Store, StorePlanTier, StoreOrder } from '../types';
 
 export const LAYOUT_OPTIONS: LayoutOption[] = [
   {
@@ -1552,4 +1552,73 @@ export const REGIONS_DATA: RegionStat[] = [
   { state: 'DF', stateCode: 'DF', name: 'Distrito Federal', leadsCount: 118, storesCount: 10, totalVolume: 3500000 },
   { state: 'GO', stateCode: 'GO', name: 'Goiás', leadsCount: 84, storesCount: 8, totalVolume: 2300000 },
   { state: 'PE', stateCode: 'PE', name: 'Pernambuco', leadsCount: 72, storesCount: 7, totalVolume: 1900000 },
+];
+
+export const INITIAL_ORDERS: StoreOrder[] = [
+  {
+    id: 'PED-4091',
+    leadId: 'lead-104',
+    clientName: 'Carlos Alberto Prado',
+    phone: '(11) 98222-4455',
+    address: 'Av. Brasil, 450 - Apt 82, Mogi das Cruzes / SP',
+    city: 'Mogi das Cruzes',
+    state: 'SP',
+    environment: 'Home Office (11m²)',
+    totalValue: 16500,
+    currentStage: 'medicao',
+    createdAt: '2026-08-19T14:00:00Z',
+    storeId: 'store-mogi',
+    contractFile: 'contrato_assinatura_carlos_prado.pdf',
+    medicaoDate: '2026-08-22',
+    timeline: [
+      {
+        id: 'log-1',
+        user: 'Vendedor Loja',
+        userRole: 'Vendedor',
+        action: 'Venda Fechada no CRM. Pedido #PED-4091 gerado com Contrato de Compra anexado.',
+        timestamp: '2026-08-19T14:00:00Z',
+      },
+      {
+        id: 'log-2',
+        user: 'Gerente Mogi',
+        userRole: 'Gerente',
+        action: 'Agendou a Medição Técnica da obra para o dia 22/08/2026.',
+        timestamp: '2026-08-20T09:30:00Z',
+      }
+    ],
+  },
+  {
+    id: 'PED-4092',
+    leadId: 'lead-108',
+    clientName: 'Helena & Marcos Lima',
+    phone: '(11) 99111-7766',
+    address: 'Rua das Flores, 120, Mogi das Cruzes / SP',
+    city: 'Mogi das Cruzes',
+    state: 'SP',
+    environment: 'Dormitório Solteiro (12m²), Lavanderia (6m²)',
+    totalValue: 18200,
+    currentStage: 'projeto_executivo',
+    createdAt: '2026-08-17T11:00:00Z',
+    storeId: 'store-mogi',
+    contractFile: 'contrato_helena_marcos.pdf',
+    medicaoFile: 'ficha_medicao_tecnica_obra.pdf',
+    medicaoDate: '2026-08-18',
+    designerName: 'Projetista Lucas Silva',
+    timeline: [
+      {
+        id: 'log-10',
+        user: 'Vendedor Loja',
+        userRole: 'Vendedor',
+        action: 'Venda Fechada no CRM. Pedido #PED-4092 criado.',
+        timestamp: '2026-08-17T11:00:00Z',
+      },
+      {
+        id: 'log-11',
+        user: 'Técnico Roberto',
+        userRole: 'Medição',
+        action: 'Anexou o arquivo `ficha_medicao_tecnica_obra.pdf`. Etapa avançada automaticamente para Projeto Executivo.',
+        timestamp: '2026-08-18T16:20:00Z',
+      }
+    ],
+  }
 ];

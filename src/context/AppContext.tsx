@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { INITIAL_LEADS, INITIAL_STORES, QUALITY_TIERS } from '../data/mockData';
+import { INITIAL_LEADS, INITIAL_ORDERS, INITIAL_STORES, QUALITY_TIERS } from '../data/mockData';
 import { 
   AdminTab, 
   ConfiguredEnvironment, 
@@ -8,11 +8,14 @@ import {
   Lead, 
   LeadStatus, 
   MerchantTab, 
+  OrderAuditLog,
+  OrderStage,
   PartnerStoreApplication,
   PlacedModule, 
   Role, 
   SimulatorState, 
   Store, 
+  StoreOrder,
   WallConfig, 
   WallId 
 } from '../types';
@@ -59,6 +62,12 @@ interface AppContextType {
   setSelectedLeadForDetail: (lead: Lead | null) => void;
   isStoreModalOpen: boolean;
   setIsStoreModalOpen: (open: boolean) => void;
+  
+  // ERP Orders
+  orders: StoreOrder[];
+  selectedOrderForFolder: StoreOrder | null;
+  setSelectedOrderForFolder: (order: StoreOrder | null) => void;
+  updateOrder: (id: string, updates: Partial<StoreOrder>, auditAction?: string, userRole?: string, userName?: string) => void;
   
   // Utilities
   triggerConfetti: () => void;
@@ -290,10 +299,155 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const [orders, setOrders] = useState<StoreOrder[]>(INITIAL_ORDERS);
+  const [selectedOrderForFolder, setSelectedOrderForFolder] = useState<StoreOrder | null>(null);
+
+  const updateOrder = (
+    id: string,
+    updates: Partial<StoreOrder>,
+    auditAction?: string,
+    userRole?: string,
+    userName?: string
+  ) => {
+    let globalActionMessage = auditAction || 'Atualização de dados no pedido.';
+    let globalStageChanged = false;
+    let globalNextStage: OrderStage = 'medicao';
+
+    setOrders((prevOrders) =>
+      prevOrders.map((order) => {
+        if (order.id !== id) return order;
+
+        const merged: StoreOrder = { ...order, ...updates };
+
+        // Avaliação Automática de Avanço de Etapa (Event-driven without Kanban drag-and-drop)
+        let nextStage: OrderStage = merged.currentStage;
+
+        if (merged.currentStage === 'medicao' && merged.medicaoDate && merged.medicaoFile) {
+          nextStage = 'projeto_executivo';
+        } else if (merged.currentStage === 'projeto_executivo' && merged.designerName && merged.render3dFile && merged.planoCorteFile) {
+          nextStage = 'montagem';
+        } else if (merged.currentStage === 'montagem' && merged.installerName && merged.installationDate && merged.checkedInAt) {
+          nextStage = 'vistoria';
+        } else if (merged.currentStage === 'vistoria' && merged.inspectorName && merged.inspectionApproved && merged.termoVistoriaFile) {
+          nextStage = 'concluido';
+        }
+
+        const stageChanged = nextStage !== merged.currentStage;
+        globalStageChanged = stageChanged;
+        globalNextStage = nextStage;
+
+        const stageNamesMap: Record<OrderStage, string> = {
+          medicao: 'Medição Técnica',
+          projeto_executivo: 'Projeto Executivo',
+          montagem: 'Montagem na Obra',
+          vistoria: 'Vistoria & Conclusão',
+          concluido: 'Pedido Concluído'
+        };
+
+        const actionMsg = auditAction
+          ? (stageChanged ? `${auditAction}. Etapa avançada automaticamente para "${stageNamesMap[nextStage]}".` : auditAction)
+          : (stageChanged ? `Etapa do pedido avançada para "${stageNamesMap[nextStage]}".` : 'Atualização de dados no pedido.');
+        
+        globalActionMessage = actionMsg;
+
+        const newLog: OrderAuditLog = {
+          id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          user: userName || (userRole === 'Medição' ? 'Carlos Medições' : userRole === 'Projetista' ? 'Fernanda Designer' : 'Lojista Parceiro'),
+          userRole: userRole || 'Operador ERP',
+          action: actionMsg,
+          timestamp: new Date().toISOString(),
+        };
+
+        return {
+          ...merged,
+          currentStage: nextStage,
+          timeline: [newLog, ...(merged.timeline || [])],
+        };
+      })
+    );
+
+    if (selectedOrderForFolder && selectedOrderForFolder.id === id) {
+      setSelectedOrderForFolder((prev) => {
+        if (!prev) return null;
+        const merged: StoreOrder = { ...prev, ...updates };
+
+        let nextStage: OrderStage = merged.currentStage;
+
+        if (merged.currentStage === 'medicao' && merged.medicaoDate && merged.medicaoFile) {
+          nextStage = 'projeto_executivo';
+        } else if (merged.currentStage === 'projeto_executivo' && merged.designerName && merged.render3dFile && merged.planoCorteFile) {
+          nextStage = 'montagem';
+        } else if (merged.currentStage === 'montagem' && merged.installerName && merged.installationDate && merged.checkedInAt) {
+          nextStage = 'vistoria';
+        } else if (merged.currentStage === 'vistoria' && merged.inspectorName && merged.inspectionApproved && merged.termoVistoriaFile) {
+          nextStage = 'concluido';
+        }
+
+        const stageNamesMap: Record<OrderStage, string> = {
+          medicao: 'Medição Técnica',
+          projeto_executivo: 'Projeto Executivo',
+          montagem: 'Montagem na Obra',
+          vistoria: 'Vistoria & Conclusão',
+          concluido: 'Pedido Concluído'
+        };
+
+        const newLog: OrderAuditLog = {
+          id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          user: userName || (userRole === 'Medição' ? 'Carlos Medições' : userRole === 'Projetista' ? 'Fernanda Designer' : 'Lojista Parceiro'),
+          userRole: userRole || 'Operador ERP',
+          action: globalActionMessage,
+          timestamp: new Date().toISOString(),
+        };
+
+        return {
+          ...merged,
+          currentStage: nextStage,
+          timeline: [newLog, ...(prev.timeline || [])],
+        };
+      });
+    }
+  };
+
   const updateLeadStatus = (id: string, status: LeadStatus) => {
     setLeads((prev) =>
-      prev.map((lead) => (lead.id === id ? { ...lead, status } : lead))
+      prev.map((lead) => {
+        if (lead.id === id) {
+          if (status === 'convertido') {
+            const existingOrder = orders.find((o) => o.leadId === id);
+            if (!existingOrder) {
+              const newOrder: StoreOrder = {
+                id: `PED-${Math.floor(4000 + Math.random() * 900)}`,
+                leadId: lead.id,
+                clientName: lead.name,
+                phone: lead.phone,
+                address: `Rua Principal, 100 - ${lead.city} / ${lead.state}`,
+                city: lead.city,
+                state: lead.state,
+                environment: lead.environment || 'Projeto Sob Medida',
+                totalValue: lead.estimatedMax ? Math.round((lead.estimatedMin + lead.estimatedMax) / 2) : 25000,
+                currentStage: 'medicao',
+                createdAt: new Date().toISOString(),
+                storeId: lead.assignedStoreId,
+                contractFile: lead.attachmentName || 'contrato_venda_fechada.pdf',
+                timeline: [
+                  {
+                    id: `log-${Date.now()}`,
+                    user: 'Integração CRM-ERP',
+                    userRole: 'Sistema CRM',
+                    action: `Venda Fechada no CRM! Pedido gerado e encaminhado para Medição Técnica no ERP.`,
+                    timestamp: new Date().toISOString(),
+                  },
+                ],
+              };
+              setOrders((oPrev) => [newOrder, ...oPrev]);
+            }
+          }
+          return { ...lead, status };
+        }
+        return lead;
+      })
     );
+
     if (selectedLeadForDetail && selectedLeadForDetail.id === id) {
       setSelectedLeadForDetail((prev) => (prev ? { ...prev, status } : null));
     }
@@ -403,6 +557,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSelectedLeadForDetail,
         isStoreModalOpen,
         setIsStoreModalOpen,
+        orders,
+        selectedOrderForFolder,
+        setSelectedOrderForFolder,
+        updateOrder,
         triggerConfetti,
       }}
     >
