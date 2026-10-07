@@ -37,7 +37,7 @@ export const AdminDashboard: React.FC = () => {
 
   const totalLeadsCount = leads.length;
   const activeStoresCount = stores.filter((s) => s.status === 'Ativa').length;
-  const totalMRR = stores.reduce((acc, s) => acc + (s.monthlyRevenue || (s.plan === 'Diamond' ? 1990 : s.plan === 'Platinum' ? 990 : 490)), 0);
+  const totalMRR = stores.reduce((acc, s) => acc + (s.monthlyRevenue || (s.plan === 'Pro' ? 219.90 : 119.90)), 0);
   const avgTicket = leads.length > 0 
     ? Math.round(leads.reduce((acc, l) => acc + ((l.estimatedMin + l.estimatedMax) / 2), 0) / leads.length)
     : 28400;

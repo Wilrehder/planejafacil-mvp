@@ -337,16 +337,14 @@ export const StoresManager: React.FC = () => {
                         <td className="py-4 px-6 whitespace-nowrap">
                           <div className="flex flex-col items-start space-y-1">
                             <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase border ${
-                              store.plan === 'Diamond'
-                                ? 'bg-purple-100 text-purple-700 border-purple-200'
-                                : store.plan === 'Platinum'
-                                ? 'bg-blue-100 text-brand-700 border-brand-200'
-                                : 'bg-amber-100 text-amber-700 border-amber-200'
+                              store.plan === 'Pro'
+                                ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                                : 'bg-slate-100 text-slate-700 border-slate-200'
                             }`}>
                               {store.plan}
                             </span>
                             <span className="text-[11px] font-extrabold text-emerald-700">
-                              R$ {store.monthlyRevenue || (store.plan === 'Diamond' ? 1990 : store.plan === 'Platinum' ? 990 : 490)} / mês
+                              R$ {store.monthlyRevenue || (store.plan === 'Pro' ? 219.90 : 119.90)} / mês
                             </span>
                           </div>
                         </td>
@@ -514,8 +512,8 @@ export const StoresManager: React.FC = () => {
                 </div>
 
                 <div className="bg-white p-3 rounded-2xl border border-slate-200 space-y-1">
-                  <div className="text-xs font-bold text-slate-900">Capacidade de Leads:</div>
-                  <div className="text-xs text-brand-600 font-extrabold">{plan.leadsCap}</div>
+                  <div className="text-xs font-bold text-slate-900">Modelo de Cobrança por Performance:</div>
+                  <div className="text-xs text-brand-600 font-extrabold">+ R$ {plan.costPerLead.toFixed(2)} por lead recebido</div>
                 </div>
 
                 <div className="space-y-2 pt-2">

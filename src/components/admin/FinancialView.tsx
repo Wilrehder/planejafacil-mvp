@@ -7,7 +7,7 @@ export const FinancialView: React.FC = () => {
   const { stores } = useApp();
 
   const totalMrr = stores.reduce(
-    (acc, s) => acc + (s.monthlyRevenue || (s.plan === 'Diamond' ? 1990 : s.plan === 'Platinum' ? 990 : 490)),
+    (acc, s) => acc + (s.monthlyRevenue || (s.plan === 'Pro' ? 219.90 : 119.90)),
     0
   );
 

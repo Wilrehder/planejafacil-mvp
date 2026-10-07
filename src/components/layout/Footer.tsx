@@ -17,7 +17,7 @@ export const Footer: React.FC = () => {
     email: '',
     city: '',
     state: 'SP',
-    desiredPlan: 'Platinum' as 'Gold' | 'Platinum' | 'Diamond',
+    desiredPlan: 'Pro' as 'Basic' | 'Pro',
     notes: '',
   });
 
@@ -36,7 +36,7 @@ export const Footer: React.FC = () => {
         email: '',
         city: '',
         state: 'SP',
-        desiredPlan: 'Platinum',
+        desiredPlan: 'Pro',
         notes: '',
       });
     }, 2800);
