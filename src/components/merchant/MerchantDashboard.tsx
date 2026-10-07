@@ -267,6 +267,8 @@ export const MerchantDashboard: React.FC = () => {
             <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
           </div>
 
+        </div>
+
       </div>
 
       {/* SELETOR PRINCIPAL DE MÓDULO: CRM vs ERP */}
@@ -303,7 +305,7 @@ export const MerchantDashboard: React.FC = () => {
       {merchantTab === 'erp' ? (
         <MerchantERP merchantPlan={activePlan} />
       ) : (
-        <>
+        <div className="space-y-6">
       {/* Cards Minimalistas de Desempenho e Faturamento de Performance (Pay-Per-Lead) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         
@@ -611,6 +613,8 @@ export const MerchantDashboard: React.FC = () => {
         )}
 
       </div>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* MODAL 1: CADASTRAR LEAD EXTERNO (EXCLUSIVO PLANO PRO) */}
@@ -757,9 +761,6 @@ export const MerchantDashboard: React.FC = () => {
 
           </div>
         </div>
-      )}
-
-        </>
       )}
 
       {/* Drawer Details */}
