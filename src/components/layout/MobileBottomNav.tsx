@@ -38,7 +38,7 @@ export const MobileBottomNav: React.FC = () => {
           }`}
         >
           <Calculator className="w-5 h-5 stroke-[2.2]" />
-          <span className="text-[10px] tracking-tight">Simular</span>
+          <span className="text-[10px] tracking-tight">Orçamento</span>
         </button>
 
         {/* Lojas / Como funciona */}

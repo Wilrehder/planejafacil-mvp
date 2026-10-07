@@ -95,7 +95,7 @@ export const LandingPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Primary Action Button (Reference exact green CTA: Faça seu Orçamento - NO ZAP ICON) */}
+          {/* Primary Action Button (Reference exact green CTA: Faça seu Orçamento) */}
           <div className="pt-2 max-w-md mx-auto">
             <button
               onClick={() => setConsumerTab('simulator')}
@@ -104,17 +104,6 @@ export const LandingPage: React.FC = () => {
               <span>Faça seu Orçamento</span>
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
-
-            <div className="pt-3.5 flex items-center justify-center space-x-4 sm:space-x-6 text-[11px] sm:text-xs font-semibold text-slate-300">
-              <div className="flex items-center space-x-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#439346]" />
-                <span>100% Gratuito</span>
-              </div>
-              <div className="flex items-center space-x-1.5">
-                <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#439346]" />
-                <span>Sem Necessidade de Cadastro</span>
-              </div>
-            </div>
           </div>
 
         </div>
