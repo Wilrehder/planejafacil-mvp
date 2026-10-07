@@ -47,7 +47,7 @@ export const StoresManager: React.FC = () => {
       responsibleName: '',
       city: '',
       state: 'SP',
-      plan: 'Platinum',
+      plan: 'Pro',
       regionServed: '',
       status: 'Ativa',
       phone: '',
