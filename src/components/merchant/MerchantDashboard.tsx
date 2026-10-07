@@ -190,9 +190,41 @@ export const MerchantDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Action Controls & Store Switcher */}
+        {/* Action Controls & Plan Toggle (Modo Teste) */}
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
           
+          {/* BOTÃO MODO TESTE DE PLANO */}
+          <div className="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700">
+            <span className="text-[10px] font-extrabold uppercase text-slate-400 px-2 hidden sm:inline">Simular Plano:</span>
+            <button
+              onClick={() => {
+                currentStore.plan = 'Basic';
+                if (viewMode === 'kanban') setViewMode('table');
+                setSelectedStoreId(currentStore.id);
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
+                !isProPlan 
+                  ? 'bg-slate-700 text-white shadow-sm border border-slate-600' 
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Básico
+            </button>
+            <button
+              onClick={() => {
+                currentStore.plan = 'Pro';
+                setSelectedStoreId(currentStore.id);
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
+                isProPlan 
+                  ? 'bg-[#439346] text-white shadow-sm' 
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Pro ⭐
+            </button>
+          </div>
+
           <button
             onClick={handleOpenAddLead}
             className={`px-4 py-2.5 rounded-xl font-extrabold text-xs flex items-center space-x-2 transition-all shadow-md ${
