@@ -108,7 +108,7 @@ export const SimulatorWizard: React.FC = () => {
       email: simulator.clientInfo.email || 'cliente@email.com',
       city: simulator.clientInfo.city || 'São Paulo',
       state: 'SP',
-      cep: '00000-000',
+      cep: simulator.clientInfo.cep || '01310-100',
       environment: envSummaryStr,
       qualityTier: 'Intermediário',
       finishPattern: 'MDF Padrão',
@@ -372,7 +372,7 @@ export const SimulatorWizard: React.FC = () => {
               Seus Dados para Exibir o Orçamento
             </h2>
             <p className="text-sm font-medium text-slate-600">
-              Informe seu nome e WhatsApp para visualizar sua estimativa detalhada.
+              Informe seu nome, WhatsApp e CEP para visualizar sua estimativa detalhada.
             </p>
           </div>
 
@@ -403,6 +403,20 @@ export const SimulatorWizard: React.FC = () => {
                   placeholder="ex.: (11) 99999-9999"
                   value={simulator.clientInfo.phone}
                   onChange={(e) => updateSimulator({ clientInfo: { ...simulator.clientInfo, phone: e.target.value } })}
+                  className="w-full px-4 py-3.5 rounded-xl border border-slate-300 text-sm font-semibold text-[#1B2B48] outline-none focus:border-[#439346]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#1B2B48] uppercase tracking-wider mb-1.5">
+                  Seu CEP (para identificar lojas da sua região)
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="ex.: 01310-100"
+                  value={simulator.clientInfo.cep}
+                  onChange={(e) => updateSimulator({ clientInfo: { ...simulator.clientInfo, cep: e.target.value } })}
                   className="w-full px-4 py-3.5 rounded-xl border border-slate-300 text-sm font-semibold text-[#1B2B48] outline-none focus:border-[#439346]"
                 />
               </div>
