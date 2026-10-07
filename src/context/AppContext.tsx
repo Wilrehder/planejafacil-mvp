@@ -241,6 +241,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const range = { min, max };
     setSimulator((prev) => ({ ...prev, calculatedRange: range }));
+    return range;
   };
 
   const resetSimulator = () => {
