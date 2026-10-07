@@ -242,6 +242,7 @@ export const MerchantDashboard: React.FC = () => {
             <button
               onClick={() => {
                 setSimulatedPlanOverride('Pro');
+                setViewMode('kanban');
               }}
               className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
                 isProPlan 
