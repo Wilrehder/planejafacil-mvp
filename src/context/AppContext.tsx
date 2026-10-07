@@ -207,10 +207,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
   };
 
-  const resetSimulator = () => {
-    setSimulator(initialSimulatorState);
-  };
-
   const calculateEstimate = () => {
     if (!simulator.environments || simulator.environments.length === 0) {
       const fallbackRange = { min: 6500, max: 9200 };
@@ -218,42 +214,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return fallbackRange;
     }
 
-    const tierObj = QUALITY_TIERS.find((t) => t.id === simulator.qualityTierId) || QUALITY_TIERS[1];
-    const tierMultiplier = tierObj.multiplier;
-    const baseLinearMeterPrice = 2400; // R$ 2.400 / metro linear base
+    // Preço médio do m² de móvel planejado (MDF de boa qualidade)
+    const baseSquareMeterFurniturePrice = 1200; // R$ 1.200 / m² de projeção de móvel
 
     let totalRawCost = 0;
 
     simulator.environments.forEach((env) => {
-      let envTotalLinearM = 0;
-      let totalItemsCount = 0;
+      const area = env.areaM2 || 12;
+      const wallCount = env.wallCount || 3;
+      const ceiling = env.ceilingHeight || 2.7;
 
-      env.walls.forEach((wall) => {
-        const wallM = wall.length > 0 ? wall.length : 2.5;
-        envTotalLinearM += wallM;
+      // Estimativa do m² linear de parede aproveitada com móveis
+      const approxSideLength = Math.sqrt(area);
+      const totalWallLength = approxSideLength * wallCount;
+      
+      // Projeção estimada da área de móveis nas paredes (comprimento x altura aproveitada do pé-direito ~2.2m)
+      const effectiveCeilingFurnitureHeight = Math.min(ceiling, 2.6);
+      const estimatedFurnitureM2 = totalWallLength * effectiveCeilingFurnitureHeight * 0.75; // 75% da parede coberta com móveis
 
-        const furnCount = wall.selectedFurnitureTypes ? wall.selectedFurnitureTypes.length : 1;
-        const specificCount = wall.selectedSpecificItems ? wall.selectedSpecificItems.length : 0;
-        totalItemsCount += furnCount + specificCount;
-      });
-
-      // Se o comprimento total for 0, estima pelo m²
-      if (envTotalLinearM <= 0) {
-        envTotalLinearM = Math.sqrt(env.areaM2) * 2;
-      }
-
-      const itemComplexityMultiplier = 1 + (totalItemsCount * 0.04);
-      const envCost = envTotalLinearM * baseLinearMeterPrice * tierMultiplier * itemComplexityMultiplier;
+      const envCost = estimatedFurnitureM2 * baseSquareMeterFurniturePrice;
       totalRawCost += envCost;
     });
 
-    const min = Math.round((totalRawCost * 0.9) / 100) * 100;
-    const max = Math.round((totalRawCost * 1.18) / 100) * 100;
+    const min = Math.round((totalRawCost * 0.88) / 100) * 100;
+    const max = Math.round((totalRawCost * 1.15) / 100) * 100;
 
     const range = { min, max };
     setSimulator((prev) => ({ ...prev, calculatedRange: range }));
-    return range;
   };
+
+  const resetSimulator = () => {
+    setSimulator(initialSimulatorState);
+  };
+
+
 
   const addLead = (leadData: Omit<Lead, 'id' | 'createdAt' | 'assignedStoreId' | 'assignedStoreName' | 'status'>): Lead => {
     const matchedStore = stores.find((s) => s.state === leadData.state) || stores[0];
