@@ -5,11 +5,11 @@ import { STORE_PLANS } from '../../data/mockData';
 import { Store } from '../../types';
 
 export const StoresManager: React.FC = () => {
-  const { stores, addStore, isStoreModalOpen, setIsStoreModalOpen, leads } = useApp();
+  const { stores, addStore, isStoreModalOpen, setIsStoreModalOpen, leads, storeApplications, updateStoreApplicationStatus } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPlanFilter, setSelectedPlanFilter] = useState<string>('todos');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('todos');
-  const [activeTab, setActiveTab] = useState<'stores_list' | 'plans_info'>('stores_list');
+  const [activeTab, setActiveTab] = useState<'stores_list' | 'applications' | 'plans_info'>('stores_list');
   const [editingStore, setEditingStore] = useState<Store | null>(null);
 
   const [formStore, setFormStore] = useState({
@@ -113,10 +113,10 @@ export const StoresManager: React.FC = () => {
           <p className="text-xs text-slate-500">Credencie marcenarias e lojas de móveis planejados, atribua planos SaaS e monitore o fluxo de leads por região.</p>
         </div>
 
-        <div className="flex items-center space-x-2 bg-slate-100 p-1.5 rounded-2xl shrink-0">
+        <div className="flex items-center space-x-2 bg-slate-100 p-1.5 rounded-2xl shrink-0 overflow-x-auto">
           <button
             onClick={() => setActiveTab('stores_list')}
-            className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-2 ${
+            className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-2 whitespace-nowrap ${
               activeTab === 'stores_list' ? 'bg-white text-brand-600 shadow-md' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -125,8 +125,21 @@ export const StoresManager: React.FC = () => {
           </button>
 
           <button
+            onClick={() => setActiveTab('applications')}
+            className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-2 whitespace-nowrap ${
+              activeTab === 'applications' ? 'bg-white text-brand-600 shadow-md' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Mail className="w-4 h-4 text-emerald-600" />
+            <span>Solicitações de Parceria ({storeApplications.length})</span>
+            {storeApplications.filter(a => a.status === 'nova').length > 0 && (
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            )}
+          </button>
+
+          <button
             onClick={() => setActiveTab('plans_info')}
-            className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-2 ${
+            className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-2 whitespace-nowrap ${
               activeTab === 'plans_info' ? 'bg-white text-brand-600 shadow-md' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -376,6 +389,106 @@ export const StoresManager: React.FC = () => {
                           </button>
                         </td>
 
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB CONTENT: STORE APPLICATIONS (LEADS B2B) */}
+      {activeTab === 'applications' && (
+        <div className="space-y-6">
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-2">
+            <h3 className="text-lg font-bold text-slate-900">Solicitações de Parceria Recebidas</h3>
+            <p className="text-xs text-slate-500">Lojas físicas e marcenarias interessadas em fazer parte da rede credenciada do PlanejaFácil.</p>
+          </div>
+
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
+                    <th className="py-4 px-6">Loja / Marcenaria & Contato</th>
+                    <th className="py-4 px-6">Cidade / UF</th>
+                    <th className="py-4 px-6">Plano de Interesse</th>
+                    <th className="py-4 px-6">Observações</th>
+                    <th className="py-4 px-6">Status do Contato</th>
+                    <th className="py-4 px-6 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                  {storeApplications.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-slate-400 font-medium">
+                        Nenhuma solicitação de parceria recebida até o momento.
+                      </td>
+                    </tr>
+                  ) : (
+                    storeApplications.map((app) => (
+                      <tr key={app.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="py-4 px-6 font-bold text-slate-900">
+                          <div className="text-sm font-extrabold text-slate-900">{app.storeName}</div>
+                          <div className="text-xs text-slate-600 font-semibold">Resp: {app.contactName}</div>
+                          <div className="text-[11px] text-slate-400 font-normal flex items-center space-x-2 mt-0.5">
+                            <span>{app.phone}</span>
+                            <span>•</span>
+                            <span>{app.email}</span>
+                          </div>
+                        </td>
+
+                        <td className="py-4 px-6 font-semibold">
+                          <div className="text-slate-900 font-bold">{app.city} - <strong>{app.state}</strong></div>
+                          <div className="text-[10px] text-slate-400 font-normal">
+                            {new Date(app.createdAt).toLocaleDateString('pt-BR')} às {new Date(app.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </td>
+
+                        <td className="py-4 px-6 whitespace-nowrap">
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase bg-brand-50 text-brand-700 border border-brand-200">
+                            {app.desiredPlan || 'Platinum'}
+                          </span>
+                        </td>
+
+                        <td className="py-4 px-6 text-xs text-slate-600 max-w-xs leading-relaxed">
+                          {app.notes || 'Sem observações adicionais.'}
+                        </td>
+
+                        <td className="py-4 px-6 whitespace-nowrap">
+                          <select
+                            value={app.status}
+                            onChange={(e) => updateStoreApplicationStatus(app.id, e.target.value as any)}
+                            className={`px-3 py-1 text-[10px] font-extrabold uppercase rounded-full border bg-white outline-none cursor-pointer ${
+                              app.status === 'nova'
+                                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                : app.status === 'em_contato'
+                                ? 'bg-blue-50 text-brand-700 border-brand-200'
+                                : app.status === 'aprovada'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : 'bg-slate-100 text-slate-600 border-slate-200'
+                            }`}
+                          >
+                            <option value="nova">● Nova Solicitação</option>
+                            <option value="em_contato">● Em Contato</option>
+                            <option value="aprovada">● Aprovada / Credenciada</option>
+                            <option value="recusada">● Recusada / Arquivada</option>
+                          </select>
+                        </td>
+
+                        <td className="py-4 px-6 text-right whitespace-nowrap">
+                          <a
+                            href={`https://wa.me/55${app.phone.replace(/\D/g, '')}?text=Olá%20${encodeURIComponent(app.contactName)},%20sou%20o%20administrador%20do%20PlanejaFácil.%20Recebi%20sua%20solicitação%20de%20parceria!`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all inline-flex items-center space-x-1.5"
+                          >
+                            <Phone className="w-3.5 h-3.5" />
+                            <span>Chamar no WhatsApp</span>
+                          </a>
+                        </td>
                       </tr>
                     ))
                   )}

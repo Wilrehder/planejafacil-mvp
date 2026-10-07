@@ -51,10 +51,7 @@ export const Navbar: React.FC = () => {
                 Simulador
               </button>
               <a href="#como-funciona" className="text-sm font-semibold text-slate-600 hover:text-[#1B2B48] transition-colors">
-                Como Funciona
-              </a>
-              <a href="#faq" className="text-sm font-semibold text-slate-600 hover:text-[#1B2B48] transition-colors">
-                Dúvidas
+                Como Funciona?
               </a>
             </nav>
           )}

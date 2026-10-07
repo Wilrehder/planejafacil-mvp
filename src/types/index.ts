@@ -122,6 +122,20 @@ export interface Store {
   contractDate?: string;
 }
 
+export interface PartnerStoreApplication {
+  id: string;
+  storeName: string;
+  contactName: string;
+  phone: string;
+  email: string;
+  city: string;
+  state: string;
+  desiredPlan?: 'Gold' | 'Platinum' | 'Diamond';
+  notes?: string;
+  status: 'nova' | 'em_contato' | 'aprovada' | 'recusada';
+  createdAt: string;
+}
+
 export interface RegionStat {
   state: string;
   stateCode: string;

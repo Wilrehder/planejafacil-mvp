@@ -8,6 +8,7 @@ import {
   Lead, 
   LeadStatus, 
   MerchantTab, 
+  PartnerStoreApplication,
   PlacedModule, 
   Role, 
   SimulatorState, 
@@ -29,9 +30,12 @@ interface AppContextType {
   // Leads & Stores data
   leads: Lead[];
   stores: Store[];
+  storeApplications: PartnerStoreApplication[];
   addLead: (leadData: Omit<Lead, 'id' | 'createdAt' | 'assignedStoreId' | 'assignedStoreName' | 'status'>) => Lead;
   updateLeadStatus: (id: string, status: LeadStatus) => void;
   addStore: (newStore: Omit<Store, 'id' | 'leadsCount'>) => void;
+  addStoreApplication: (appData: Omit<PartnerStoreApplication, 'id' | 'createdAt' | 'status'>) => PartnerStoreApplication;
+  updateStoreApplicationStatus: (id: string, status: PartnerStoreApplication['status']) => void;
 
   // Multi-Environment Simulator
   simulator: SimulatorState;
@@ -283,6 +287,52 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const [storeApplications, setStoreApplications] = useState<PartnerStoreApplication[]>([
+    {
+      id: 'app-1',
+      storeName: 'Marcenaria & Design Italínea',
+      contactName: 'Ricardo Oliveira',
+      phone: '(11) 98888-7777',
+      email: 'ricardo@marcenariaitalinea.com.br',
+      city: 'São Paulo',
+      state: 'SP',
+      desiredPlan: 'Diamond',
+      notes: 'Gostaria de integrar 2 filiais na Zona Sul de SP.',
+      status: 'nova',
+      createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
+    },
+    {
+      id: 'app-2',
+      storeName: 'Studio Moveis Campinas',
+      contactName: 'Vanessa Souza',
+      phone: '(19) 97777-6666',
+      email: 'vanessa@studiomoveis.com.br',
+      city: 'Campinas',
+      state: 'SP',
+      desiredPlan: 'Platinum',
+      notes: 'Tenho interesse em receber solicitações da região de Campinas e Valinhos.',
+      status: 'em_contato',
+      createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
+    }
+  ]);
+
+  const addStoreApplication = (appData: Omit<PartnerStoreApplication, 'id' | 'createdAt' | 'status'>): PartnerStoreApplication => {
+    const newApp: PartnerStoreApplication = {
+      ...appData,
+      id: `app-${Date.now().toString().slice(-4)}`,
+      status: 'nova',
+      createdAt: new Date().toISOString(),
+    };
+    setStoreApplications((prev) => [newApp, ...prev]);
+    return newApp;
+  };
+
+  const updateStoreApplicationStatus = (id: string, status: PartnerStoreApplication['status']) => {
+    setStoreApplications((prev) =>
+      prev.map((app) => (app.id === id ? { ...app, status } : app))
+    );
+  };
+
   const addStore = (newStoreData: Omit<Store, 'id' | 'leadsCount'>) => {
     const newStore: Store = {
       ...newStoreData,
@@ -318,9 +368,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setConsumerTab,
         leads,
         stores,
+        storeApplications,
         addLead,
         updateLeadStatus,
         addStore,
+        addStoreApplication,
+        updateStoreApplicationStatus,
         simulator,
         updateSimulator,
         addEnvironment,

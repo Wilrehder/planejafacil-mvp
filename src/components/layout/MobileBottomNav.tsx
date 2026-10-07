@@ -41,28 +41,16 @@ export const MobileBottomNav: React.FC = () => {
           <span className="text-[10px] tracking-tight">Orçamento</span>
         </button>
 
-        {/* Lojas / Como funciona */}
+        {/* Processo / Como Funciona */}
         <a
           href="#como-funciona"
           onClick={() => {
             if (consumerTab !== 'landing') setConsumerTab('landing');
           }}
-          className="flex flex-col items-center space-y-1 py-1 px-3 rounded-xl text-slate-500 font-medium hover:text-[#1B2B48] transition-colors"
+          className="flex flex-col items-center space-y-1 py-1 px-4 rounded-xl text-slate-500 font-medium hover:text-[#1B2B48] transition-colors"
         >
           <Store className="w-5 h-5 stroke-[1.8]" />
-          <span className="text-[10px] tracking-tight">Processo</span>
-        </a>
-
-        {/* Dúvidas / FAQ */}
-        <a
-          href="#faq"
-          onClick={() => {
-            if (consumerTab !== 'landing') setConsumerTab('landing');
-          }}
-          className="flex flex-col items-center space-y-1 py-1 px-3 rounded-xl text-slate-500 font-medium hover:text-[#1B2B48] transition-colors"
-        >
-          <HelpCircle className="w-5 h-5 stroke-[1.8]" />
-          <span className="text-[10px] tracking-tight">Dúvidas</span>
+          <span className="text-[10px] tracking-tight">Como Funciona</span>
         </a>
 
       </div>
