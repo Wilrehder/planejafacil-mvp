@@ -88,6 +88,10 @@ export interface Lead {
   environmentsData?: ConfiguredEnvironment[];
   source?: 'plataforma' | 'instagram' | 'google' | 'indicacao' | 'balcao';
   isExternal?: boolean;
+  notesList?: { id: string; author: string; text: string; createdAt: string }[];
+  attachmentName?: string;
+  attachmentUrl?: string;
+  finalDecision?: 'convertido' | 'perdido';
   estimatedMin: number;
   estimatedMax: number;
   assignedStoreId: string;

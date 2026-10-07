@@ -32,6 +32,7 @@ interface AppContextType {
   stores: Store[];
   storeApplications: PartnerStoreApplication[];
   addLead: (leadData: Partial<Lead> & Omit<Lead, 'id' | 'createdAt' | 'assignedStoreId' | 'assignedStoreName' | 'status'>) => Lead;
+  updateLead: (id: string, updates: Partial<Lead>) => void;
   updateLeadStatus: (id: string, status: LeadStatus) => void;
   addStore: (newStore: Omit<Store, 'id' | 'leadsCount'>) => void;
   addStoreApplication: (appData: Omit<PartnerStoreApplication, 'id' | 'createdAt' | 'status'>) => PartnerStoreApplication;
@@ -280,6 +281,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newLead;
   };
 
+  const updateLead = (id: string, updates: Partial<Lead>) => {
+    setLeads((prev) =>
+      prev.map((lead) => (lead.id === id ? { ...lead, ...updates } : lead))
+    );
+    if (selectedLeadForDetail && selectedLeadForDetail.id === id) {
+      setSelectedLeadForDetail((prev) => (prev ? { ...prev, ...updates } : null));
+    }
+  };
+
   const updateLeadStatus = (id: string, status: LeadStatus) => {
     setLeads((prev) =>
       prev.map((lead) => (lead.id === id ? { ...lead, status } : lead))
@@ -372,6 +382,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         stores,
         storeApplications,
         addLead,
+        updateLead,
         updateLeadStatus,
         addStore,
         addStoreApplication,

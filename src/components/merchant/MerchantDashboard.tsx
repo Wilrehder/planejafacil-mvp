@@ -507,6 +507,7 @@ export const MerchantDashboard: React.FC = () => {
                     {stageLeads.map((lead) => (
                       <div 
                         key={lead.id} 
+                        onClick={() => setSelectedLeadForDetail(lead)}
                         className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-2.5 hover:shadow-md transition-all cursor-pointer"
                       >
                         <div className="flex justify-between items-start">
@@ -525,10 +526,17 @@ export const MerchantDashboard: React.FC = () => {
                         </div>
 
                         {/* Fast Select Status in Kanban Card */}
-                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-1">
+                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-1" onClick={(e) => e.stopPropagation()}>
                           <select
                             value={lead.status}
-                            onChange={(e) => updateLeadStatus(lead.id, e.target.value as LeadStatus)}
+                            onChange={(e) => {
+                              const targetStatus = e.target.value as LeadStatus;
+                              if ((targetStatus === 'orcado' || targetStatus === 'convertido' || targetStatus === 'perdido') && !lead.attachmentName) {
+                                setSelectedLeadForDetail(lead);
+                                return;
+                              }
+                              updateLeadStatus(lead.id, targetStatus);
+                            }}
                             className="text-[10px] font-bold border border-slate-200 rounded px-1.5 py-1 bg-slate-50 text-slate-700 focus:outline-none"
                           >
                             <option value="novo">Mover: Novo</option>
