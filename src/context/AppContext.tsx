@@ -128,7 +128,7 @@ const initialSimulatorState: SimulatorState = {
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [role, setRole] = useState<Role>('consumer');
-  const [adminTab, setAdminTab] = useState<AdminTab>('dashboard');
+  const [adminTab, setAdminTab] = useState<AdminTab>('finance');
   const [merchantTab, setMerchantTab] = useState<MerchantTab>('dashboard');
   const [consumerTab, setConsumerTab] = useState<'landing' | 'simulator'>('landing');
 

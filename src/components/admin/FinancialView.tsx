@@ -59,13 +59,13 @@ export const FinancialView: React.FC = () => {
 
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold uppercase tracking-wider">Ticket Médio / Loja</span>
+            <span className="text-xs font-bold uppercase tracking-wider">Receita Pay-Per-Lead</span>
             <div className="p-2 bg-emerald-50 text-emerald-700 rounded-lg">
               <PieChart className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-extrabold text-slate-900">{formatCurrency(avgTicket)}</div>
-          <div className="text-xs text-slate-500 font-medium">Média mensal por mensalidade</div>
+          <div className="text-2xl font-extrabold text-slate-900">{formatCurrency(stores.reduce((acc, s) => acc + (s.leadsCount || 0), 0) * 50)}</div>
+          <div className="text-xs text-slate-500 font-medium">Faturamento sobre leads gerados</div>
         </div>
 
       </div>
