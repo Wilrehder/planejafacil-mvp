@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Building2, Plus, Search, ShieldCheck, X, Check, Award, Zap, Phone, Mail, MapPin, Edit, Sparkles, Filter, ExternalLink } from 'lucide-react';
+import { Building2, Plus, Search, ShieldCheck, X, Check, Award, Zap, Phone, Mail, MapPin, Edit, Sparkles, Filter, ExternalLink, Power, PowerOff } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { STORE_PLANS } from '../../data/mockData';
 import { Store } from '../../types';
+import { saveStoreAndSubscription, setStoreSuspension } from '../../lib/financialService';
 
 export const StoresManager: React.FC = () => {
   const { stores, addStore, isStoreModalOpen, setIsStoreModalOpen, leads, storeApplications, updateStoreApplicationStatus } = useApp();
@@ -24,6 +25,9 @@ export const StoresManager: React.FC = () => {
     phone: '',
     whatsapp: '',
     email: '',
+    contractedPrice: 219.90,
+    billingDueDay: 10,
+    routingEnabled: true,
   });
 
   const filteredStores = stores.filter((s) => {
@@ -53,6 +57,9 @@ export const StoresManager: React.FC = () => {
       phone: '',
       whatsapp: '',
       email: '',
+      contractedPrice: 219.90,
+      billingDueDay: 10,
+      routingEnabled: true,
     });
     setIsStoreModalOpen(true);
   };
@@ -71,14 +78,59 @@ export const StoresManager: React.FC = () => {
       phone: store.phone,
       whatsapp: store.whatsapp || '',
       email: store.email,
+      contractedPrice: store.monthlyRevenue || (store.plan === 'Pro' ? 219.90 : 119.90),
+      billingDueDay: 10,
+      routingEnabled: store.status === 'Ativa',
     });
     setIsStoreModalOpen(true);
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleToggleSuspension = async (store: Store) => {
+    const isCurrentlySuspended = store.status === 'Inativa';
+    const newStatus = isCurrentlySuspended ? 'Ativa' : 'Inativa';
+
+    try {
+      await setStoreSuspension(
+        store.id,
+        !isCurrentlySuspended,
+        isCurrentlySuspended ? 'Reativação comercial pelo administrador' : 'Suspensão administrativa'
+      );
+    } catch (err) {
+      console.warn('Erro ao sincronizar suspensão com banco:', err);
+    }
+
+    const idx = stores.findIndex((s) => s.id === store.id);
+    if (idx !== -1) {
+      stores[idx] = {
+        ...stores[idx],
+        status: newStatus,
+      };
+    }
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const monthlyRev = formStore.plan === 'Pro' ? 219.90 : 119.90;
-    
+    const monthlyRev = Number(formStore.contractedPrice) || (formStore.plan === 'Pro' ? 219.90 : 119.90);
+
+    try {
+      await saveStoreAndSubscription({
+        storeId: editingStore ? editingStore.id : undefined,
+        name: formStore.name,
+        cnpj: formStore.cnpj,
+        cityName: formStore.city,
+        stateUf: formStore.state,
+        planTier: formStore.plan.toLowerCase() as 'basic' | 'pro',
+        contractedPrice: monthlyRev,
+        billingDueDay: Number(formStore.billingDueDay) || 10,
+        phone: formStore.phone,
+        email: formStore.email,
+        responsibleName: formStore.responsibleName,
+        isRoutingEnabled: formStore.routingEnabled && formStore.status === 'Ativa',
+      });
+    } catch (err) {
+      console.warn('Erro ao salvar no PostgreSQL:', err);
+    }
+
     if (editingStore) {
       // Edit existing store in array
       const storeIdx = stores.findIndex((s) => s.id === editingStore.id);
@@ -375,10 +427,23 @@ export const StoresManager: React.FC = () => {
                         </td>
 
                         {/* Actions */}
-                        <td className="py-4 px-6 text-right whitespace-nowrap">
+                        <td className="py-4 px-6 text-right whitespace-nowrap space-x-2">
+                          <button
+                            onClick={() => handleToggleSuspension(store)}
+                            className={`px-2.5 py-1.5 rounded-xl font-bold text-xs border transition-all inline-flex items-center space-x-1 cursor-pointer ${
+                              store.status === 'Inativa'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                            }`}
+                            title={store.status === 'Inativa' ? 'Reativar Loja' : 'Suspender Loja'}
+                          >
+                            {store.status === 'Inativa' ? <Power className="w-3.5 h-3.5" /> : <PowerOff className="w-3.5 h-3.5" />}
+                            <span>{store.status === 'Inativa' ? 'Reativar' : 'Suspender'}</span>
+                          </button>
+
                           <button
                             onClick={() => handleOpenEditModal(store)}
-                            className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-brand-50 text-slate-700 hover:text-brand-600 font-bold text-xs border border-slate-200 transition-all flex items-center space-x-1.5 ml-auto"
+                            className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-brand-50 text-slate-700 hover:text-brand-600 font-bold text-xs border border-slate-200 transition-all inline-flex items-center space-x-1.5 cursor-pointer"
                           >
                             <Edit className="w-3.5 h-3.5" />
                             <span>Editar Plano</span>
@@ -696,18 +761,67 @@ export const StoresManager: React.FC = () => {
                 </div>
               </div>
 
-              {/* Row 6: Status */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Status da Parceria *</label>
-                <select
-                  value={formStore.status}
-                  onChange={(e) => setFormStore({ ...formStore, status: e.target.value as any })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-brand-600 bg-white"
-                >
-                  <option value="Ativa">Ativa (Recebendo Leads)</option>
-                  <option value="Pendente">Pendente de Aprovação</option>
-                  <option value="Inativa">Inativa (Bloqueada)</option>
-                </select>
+              {/* Row 6: Preço Contratado, Dia de Vencimento e Roteamento */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Preço Contratado (R$/mês) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                    value={formStore.contractedPrice}
+                    onChange={(e) => setFormStore({ ...formStore, contractedPrice: parseFloat(e.target.value) || 0 })}
+                    placeholder="119.90 ou 219.90"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600"
+                  />
+                  <span className="text-[10px] text-slate-400">Permite valor personalizado de mensalidade</span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Dia do Vencimento *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="28"
+                    required
+                    value={formStore.billingDueDay}
+                    onChange={(e) => setFormStore({ ...formStore, billingDueDay: parseInt(e.target.value) || 10 })}
+                    placeholder="10"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-brand-600"
+                  />
+                  <span className="text-[10px] text-slate-400">Dia de vencimento da fatura (ex: dia 10)</span>
+                </div>
+              </div>
+
+              {/* Row 7: Status e Roteamento */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Status da Parceria *</label>
+                  <select
+                    value={formStore.status}
+                    onChange={(e) => setFormStore({ ...formStore, status: e.target.value as any })}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-brand-600 bg-white"
+                  >
+                    <option value="Ativa">Ativa (Recebendo Leads)</option>
+                    <option value="Pendente">Pendente de Aprovação</option>
+                    <option value="Inativa">Inativa (Suspensa)</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center pt-5">
+                  <label className="flex items-center space-x-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formStore.routingEnabled}
+                      onChange={(e) => setFormStore({ ...formStore, routingEnabled: e.target.checked })}
+                      className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
+                    />
+                    <span className="text-xs font-bold text-slate-800">
+                      Participar do Roteamento Automático de Leads
+                    </span>
+                  </label>
+                </div>
               </div>
 
               <div className="pt-3 flex items-center space-x-3">

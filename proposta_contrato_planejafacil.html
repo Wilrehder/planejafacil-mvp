@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proposta Comercial & Acordo de Serviços — PlanejaFácil</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0f172a;
+      --brand: #16a34a;
+      --brand-hover: #15803d;
+      --brand-light: #f0fdf4;
+      --purple: #7c3aed;
+      --purple-light: #faf5ff;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --text-muted: #64748b;
+      --text-dark: #0f172a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-dark);
+      line-height: 1.65;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    /* Header Banner */
+    .header-banner {
+      background: #0f081c;
+      color: #ffffff;
+      padding: 26px 36px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 4px solid var(--brand);
+    }
+
+    .logo-container img {
+      height: 48px;
+      width: auto;
+      display: block;
+    }
+
+    .header-info {
+      text-align: right;
+    }
+
+    .header-badge {
+      display: inline-block;
+      background: rgba(124, 58, 237, 0.3);
+      color: #c4b5fd;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      border: 1px solid rgba(196, 181, 253, 0.35);
+    }
+
+    .header-meta {
+      font-size: 13px;
+      color: #e9d5ff;
+    }
+
+    /* Document Body */
+    .content-body {
+      padding: 42px;
+    }
+
+    .doc-title {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 6px;
+      letter-spacing: -0.5px;
+    }
+
+    .doc-subtitle {
+      font-size: 15px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-top: 36px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 8px;
+    }
+
+    .section-title span {
+      background: var(--brand);
+      color: white;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    p {
+      color: #334155;
+      font-size: 14.5px;
+      margin-bottom: 16px;
+    }
+
+    /* Module Cards */
+    .module-card {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 22px;
+      margin-bottom: 14px;
+    }
+
+    .module-card h4 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 6px;
+    }
+
+    .module-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 0;
+    }
+
+    /* Payment Table */
+    .payment-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .payment-table th {
+      background: #f1f5f9;
+      color: var(--primary);
+      text-align: left;
+      padding: 12px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .payment-table td {
+      padding: 14px 16px;
+      border-top: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    .payment-table tr.total-row {
+      background: var(--brand-light);
+      font-weight: 700;
+      border-top: 2px solid var(--brand);
+    }
+
+    .payment-table tr.total-row td {
+      color: var(--brand-hover);
+      font-size: 16px;
+    }
+
+    .price-tag {
+      font-weight: 700;
+      color: var(--brand);
+    }
+
+    /* Cloud Card */
+    .cloud-card {
+      background: var(--purple-light);
+      border: 1px solid #e9d5ff;
+      border-radius: 12px;
+      padding: 22px 24px;
+      margin: 24px 0;
+    }
+
+    .cloud-card h4 {
+      color: var(--purple);
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    /* Clauses */
+    .clause-box {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      margin-bottom: 14px;
+    }
+
+    .clause-title {
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 14.5px;
+      margin-bottom: 4px;
+    }
+
+    .clause-desc {
+      font-size: 14px;
+      color: #475569;
+      margin-bottom: 0;
+    }
+
+    /* Signatures with generous signing space */
+    .signature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      margin-top: 100px;
+      padding-top: 40px;
+    }
+
+    .sig-line {
+      border-top: 2px solid var(--primary);
+      padding-top: 12px;
+    }
+
+    .sig-name {
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--primary);
+    }
+
+    .sig-role {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .print-btn-container {
+      text-align: center;
+      margin-top: 30px;
+      margin-bottom: 20px;
+    }
+
+    .btn-print {
+      background: var(--brand);
+      color: white;
+      border: none;
+      padding: 12px 28px;
+      font-size: 15px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
+      transition: background 0.2s;
+    }
+
+    .btn-print:hover {
+      background: var(--brand-hover);
+    }
+
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+      .container {
+        box-shadow: none;
+        border: none;
+        border-radius: 0;
+        max-width: 100%;
+      }
+      .print-btn-container {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="header-banner">
+      <div class="logo-container">
+        <img src="data:image/png;base64,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" alt="New Code Studio Logo">
+      </div>
+      <div class="header-info">
+        <div class="header-badge">Proposta Comercial & Acordo de Serviços</div>
+        <div class="header-meta"><b>Cliente:</b> Adriano Jr. (PlanejaFácil)<br/><b>Data:</b> Outubro de 2026</div>
+      </div>
+    </header>
+
+    <!-- Body -->
+    <main class="content-body">
+      <h1 class="doc-title">Plataforma PlanejaFácil — Móveis Sob Medida</h1>
+      <p class="doc-subtitle">Proposta Comercial de Desenvolvimento Tecnológico e Acordo de Prestação de Serviços</p>
+
+      <!-- Section 1 -->
+      <h2 class="section-title"><span>1</span> Visão Geral do Projeto</h2>
+      <p>
+        O <b>PlanejaFácil</b> é uma plataforma desenvolvida para facilitar a estimativa de preços de móveis sob medida para o consumidor e conectar esses clientes diretamente às lojas parceiras. A solução automatiza o primeiro contato, permitindo que o cliente simule seu projeto de forma simples e que a loja receba leads qualificados para a equipe de vendas.
+      </p>
+
+      <!-- Section 2 -->
+      <h2 class="section-title"><span>2</span> Módulos da Plataforma</h2>
+
+      <div class="module-card">
+        <h4>🛋️ Portal Consumidor (Simulador)</h4>
+        <p>O cliente final simula o orçamento dos móveis por ambiente (Cozinha, Quarto, Sala, etc.), define as metragens e escolhe os acabamentos desejados. Ao final, obtém uma estimativa de preço rápida e pode baixar a proposta em PDF.</p>
+      </div>
+
+      <div class="module-card">
+        <h4>🏪 Portal do Lojista (CRM & ERP de Vendas)</h4>
+        <p>Painel completo com <b>CRM</b> para os lojistas gerenciarem leads internos (da plataforma) e externos em funil Kanban, além de sistema <b>ERP</b> para controle e acompanhamento dos pedidos das lojas parceiras.</p>
+      </div>
+
+      <div class="module-card">
+        <h4>📈 Painel Admin Master</h4>
+        <p>Central de controle para o proprietário da plataforma cadastrar unidades parceiras, gerenciar a fila de distribuição de leads por região e acompanhar as métricas financeiras do negócio em tempo real.</p>
+      </div>
+
+      <!-- Section 3 -->
+      <h2 class="section-title"><span>3</span> Escopo Técnico & Condições Financeiras</h2>
+      <p>
+        A solução será entregue como <b>Plataforma Web Responsiva & PWA</b> (compatível com computadores, tablets e smartphones).<br/>
+        O investimento total de desenvolvimento é de <b>R$ 8.500,00</b>, faturado em 3 parcelas conforme as entregas do projeto:
+      </p>
+
+      <table class="payment-table">
+        <thead>
+          <tr>
+            <th>Etapa do Projeto</th>
+            <th>Marco de Liberação do Pagamento</th>
+            <th>Valor (R$)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>1ª Parcela — Sinal & Início</b></td>
+            <td>Pago na assinatura deste contrato para início do desenvolvimento</td>
+            <td><span class="price-tag">R$ 2.000,00</span></td>
+          </tr>
+          <tr>
+            <td><b>2ª Parcela — Versão para Testes</b></td>
+            <td>Pago na entrega da versão funcional (homologação) para testes do cliente</td>
+            <td><span class="price-tag">R$ 2.000,00</span></td>
+          </tr>
+          <tr>
+            <td><b>3ª Parcela — Entrega Final & Go-Live</b></td>
+            <td>Pago na entrega e publicação do produto final concluído</td>
+            <td><span class="price-tag">R$ 4.500,00</span></td>
+          </tr>
+          <tr class="total-row">
+            <td colspan="2"><b>INVESTIMENTO TOTAL EM DESENVOLVIMENTO</b></td>
+            <td><b>R$ 8.500,00</b></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Section 4 -->
+      <h2 class="section-title"><span>4</span> Mensalidade de Nuvem, Manutenção & Suporte</h2>
+      <div class="cloud-card">
+        <h4>Mensalidade Base: R$ 650,00 / mês</h4>
+        <p><b>Serviços Inclusos:</b> Hospedagem em nuvem, manutenção do banco de dados, backups diários de segurança e suporte técnico.</p>
+        <p><b>Permanência Mínima:</b> 6 (seis) meses a contar da entrega final do sistema.</p>
+        <p style="margin-bottom: 0;"><b>Capacidade & Escala:</b> A mensalidade cobre a operação de até 100 lojas parceiras e 200 leads por mês. Conforme acordado com o proprietário, esse valor poderá ser revisto em caso de superlotação do banco de dados antes dessa margem.</p>
+      </div>
+
+      <!-- Section 5 -->
+      <h2 class="section-title"><span>5</span> Termos do Acordo de Prestação de Serviços</h2>
+
+      <div class="clause-box">
+        <div class="clause-title">Cláusula 1ª — Do Objeto</div>
+        <p class="clause-desc">Este contrato estabelece a prestação de serviços de desenvolvimento tecnológico para a criação e implantação da plataforma <b>PlanejaFácil (Web/PWA)</b>, contendo o Simulador Consumidor, Portal do Lojista e Painel Admin Master.</p>
+      </div>
+
+      <div class="clause-box">
+        <div class="clause-title">Cláusula 2ª — Do Prazo e Entregas</div>
+        <p class="clause-desc">O período de <b>30 a 45 dias é estipulado como o prazo máximo de entrega</b> a contar da assinatura e pagamento do sinal. Fica expressamente estabelecido que a CONTRATADA poderá concluir e entregar a plataforma <b>antecipadamente</b> a este prazo. O sistema passará por etapa de testes e homologação antes do lançamento final.</p>
+      </div>
+
+      <div class="clause-box">
+        <div class="clause-title">Cláusula 3ª — Das Condições de Pagamento</div>
+        <p class="clause-desc">O pagamento do valor total de R$ 8.500,00 será efetuado conforme as 3 parcelas indicadas no cronograma (R$ 2.000,00 no sinal, R$ 2.000,00 na versão de testes e R$ 4.500,00 na entrega final).</p>
+      </div>
+
+      <div class="clause-box">
+        <div class="clause-title">Cláusula 4ª — Da Propriedade do Código-Fonte</div>
+        <p class="clause-desc">Após a quitação integral do valor de desenvolvimento (R$ 8.500,00), a propriedade intelectual, base de dados e o <b>código-fonte da plataforma pertencem 100% ao CONTRATANTE (Adriano Jr. / PlanejaFácil)</b>.</p>
+      </div>
+
+      <div class="clause-box">
+        <div class="clause-title">Cláusula 5ª — Da Garantia e Suporte</div>
+        <p class="clause-desc">A CONTRATADA garante o suporte técnico e a correção de falhas técnicas durante a vigência do contrato. Novas funcionalidades não previstas no escopo inicial estarão sujeitas a orçamento complementar.</p>
+      </div>
+
+      <!-- Signatures -->
+      <div class="signature-grid">
+        <div class="sig-box">
+          <div class="sig-line">
+            <div class="sig-name">Wilson</div>
+            <div class="sig-role">New Code Studio — CONTRATADA</div>
+            <div class="sig-role" style="color: #64748b; font-size: 12px; margin-top: 4px;">Assinatura via DocuSign</div>
+          </div>
+        </div>
+        <div class="sig-box">
+          <div class="sig-line">
+            <div class="sig-name">Adriano Jr.</div>
+            <div class="sig-role">PlanejaFácil — CONTRATANTE</div>
+            <div class="sig-role" style="color: #64748b; font-size: 12px; margin-top: 4px;">Assinatura via DocuSign</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="print-btn-container">
+    <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Salvar como PDF</button>
+  </div>
+
+</body>
+</html>

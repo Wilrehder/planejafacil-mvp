@@ -6,91 +6,181 @@ import {
   Phone, 
   User, 
   X,
-  FileText,
-  Paperclip,
-  Send,
-  MessageSquare,
-  AlertCircle,
-  XCircle,
-  Upload
+  FileText, 
+  Paperclip, 
+  Send, 
+  MessageSquare, 
+  AlertCircle, 
+  XCircle, 
+  Upload,
+  ExternalLink,
+  Loader2
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { LeadStatus } from '../../types';
+import { 
+  uploadAndAttachProposal, 
+  addLeadNoteOnServer, 
+  updateLeadStageOnServer, 
+  convertLeadToOrderOnServer,
+  STORE_ID_TO_TENANT_UUID 
+} from '../../lib/crmService';
 
 export const LeadDetailDrawer: React.FC = () => {
   const { selectedLeadForDetail, setSelectedLeadForDetail, updateLead, updateLeadStatus } = useApp();
   const [newCommentText, setNewCommentText] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   if (!selectedLeadForDetail) return null;
 
   const lead = selectedLeadForDetail;
   const isPlatformLead = !lead.isExternal && lead.source !== 'instagram' && lead.source !== 'google' && lead.source !== 'indicacao' && lead.source !== 'balcao';
+  const assignmentId = lead.assignmentId || lead.id;
 
-  const handleAddComment = (e: React.FormEvent) => {
+  const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCommentText.trim()) return;
 
-    const newNote = {
-      id: `note-${Date.now()}`,
-      author: 'Vendedor Loja',
-      text: newCommentText.trim(),
-      createdAt: new Date().toISOString(),
-    };
-
-    const currentNotes = lead.notesList || [];
-    updateLead(lead.id, {
-      notesList: [newNote, ...currentNotes],
-    });
-
+    const text = newCommentText.trim();
     setNewCommentText('');
+
+    try {
+      const res = await addLeadNoteOnServer(assignmentId, text);
+      const newNote = res.success && res.note ? res.note : {
+        id: `note-${Date.now()}`,
+        author: 'Consultor Comercial',
+        text,
+        createdAt: new Date().toISOString(),
+      };
+
+      const currentNotes = lead.notesList || [];
+      const updatedNotes = [newNote, ...currentNotes];
+
+      updateLead(lead.id, {
+        notesList: updatedNotes,
+      });
+
+      setSelectedLeadForDetail({
+        ...lead,
+        notesList: updatedNotes,
+      });
+    } catch {
+      // fallback
+    }
   };
 
-  const handleSimulatedFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleRealFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const fileName = file.name;
-    const fakeUrl = URL.createObjectURL(file);
+    if (file.size > 15 * 1024 * 1024) {
+      setValidationError('O arquivo não pode exceder 15MB.');
+      return;
+    }
 
-    updateLead(lead.id, {
-      attachmentName: fileName,
-      attachmentUrl: fakeUrl,
-      status: 'orcado', // Avança automaticamente para o estágio Orçado
-    });
+    try {
+      setIsUploading(true);
+      setValidationError(null);
 
-    setValidationError(null);
+      const tenantUuid =
+        STORE_ID_TO_TENANT_UUID[lead.assignedStoreId] ||
+        lead.assignedStoreId ||
+        'b1010000-0000-0000-0000-000000000001';
+
+      const uploadRes = await uploadAndAttachProposal(assignmentId, file, tenantUuid);
+      if (!uploadRes.success) {
+        setValidationError(uploadRes.error || 'Erro ao enviar anexo.');
+        setIsUploading(false);
+        return;
+      }
+
+      await updateLeadStageOnServer(assignmentId, 'orcado');
+
+      const updatedLeadData = {
+        attachmentName: uploadRes.attachmentName || file.name,
+        attachmentUrl: uploadRes.attachmentUrl || URL.createObjectURL(file),
+        status: 'orcado' as LeadStatus,
+      };
+
+      updateLead(lead.id, updatedLeadData);
+      setSelectedLeadForDetail({
+        ...lead,
+        ...updatedLeadData,
+      });
+    } catch (err: any) {
+      setValidationError(err?.message || 'Falha ao processar upload.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
-  const handleStageChangeAttempt = (targetStatus: LeadStatus) => {
-    setValidationError(null);
+  const [recommendationNotice, setRecommendationNotice] = useState<string | null>(null);
 
-    // Regra: Exige anexo para mover para 'orcado'
+  const handleStageChangeAttempt = async (targetStatus: LeadStatus) => {
+    setValidationError(null);
+    setRecommendationNotice(null);
+
+    // Regra Comercial Fase 5: Permite avançar para 'orcado' sem PDF, com recomendação visual
     if (targetStatus === 'orcado' && !lead.attachmentName) {
-      setValidationError('Anexe a proposta em PDF abaixo para mover este cliente para a etapa "Orçado".');
-      return;
+      setRecommendationNotice('Recomendação comercial: anexar a proposta técnica em PDF abaixo garante conformidade e documentação completa da venda.');
     }
 
-    // Regra: Exige anexo para mover para resultado final
-    if ((targetStatus === 'convertido' || targetStatus === 'perdido') && !lead.attachmentName) {
-      setValidationError('Anexe a proposta em PDF antes de fechar ou marcar a venda como perdida.');
-      return;
-    }
+    try {
+      const res = await updateLeadStageOnServer(assignmentId, targetStatus);
+      if (!res.success) {
+        setValidationError(res.error || 'Erro ao alterar etapa.');
+        return;
+      }
 
-    updateLeadStatus(lead.id, targetStatus);
+      if (targetStatus === 'convertido') {
+        const estValue = Math.round(((lead.estimatedMin || 15000) + (lead.estimatedMax || 25000)) / 2);
+        await convertLeadToOrderOnServer(assignmentId, estValue);
+      }
+
+      updateLeadStatus(lead.id, targetStatus);
+      setSelectedLeadForDetail({
+        ...lead,
+        status: targetStatus,
+      });
+    } catch (err: any) {
+      setValidationError(err?.message || 'Falha ao atualizar etapa.');
+    }
   };
 
-  const handleFinalDecision = (decision: 'convertido' | 'perdido') => {
-    if (!lead.attachmentName) {
-      setValidationError('Anexe o arquivo de orçamento antes de definir o resultado da venda.');
-      return;
+  const handleFinalDecision = async (decision: 'convertido' | 'perdido') => {
+    setValidationError(null);
+    setRecommendationNotice(null);
+
+    if (decision === 'convertido' && !lead.attachmentName) {
+      setRecommendationNotice('Atenção: A conversão em pedido ERP foi efetuada. Recomendamos incluir o contrato ou proposta na pasta do cliente.');
     }
 
-    updateLead(lead.id, {
-      finalDecision: decision,
-      status: decision,
-    });
-    setValidationError(null);
+    try {
+      const res = await updateLeadStageOnServer(assignmentId, decision);
+      if (!res.success) {
+        setValidationError(res.error || 'Falha ao registrar decisão.');
+        return;
+      }
+
+      if (decision === 'convertido') {
+        const estValue = Math.round(((lead.estimatedMin || 15000) + (lead.estimatedMax || 25000)) / 2);
+        await convertLeadToOrderOnServer(assignmentId, estValue);
+      }
+
+      const updates = {
+        finalDecision: decision,
+        status: decision,
+      };
+      updateLead(lead.id, updates);
+      setSelectedLeadForDetail({
+        ...lead,
+        ...updates,
+      });
+      setValidationError(null);
+    } catch (err: any) {
+      setValidationError(err?.message || 'Erro ao processar resultado.');
+    }
   };
 
   const formatCurrency = (val: number) => {
@@ -120,14 +210,22 @@ export const LeadDetailDrawer: React.FC = () => {
           </button>
         </div>
 
-        {/* Content Body Grid 2-Colunas (Visão Limpa sem poluição) */}
+        {/* Content Body Grid 2-Colunas */}
         <div className="p-6 space-y-6 overflow-y-auto flex-1 text-slate-800">
           
-          {/* Mensagem de Alerta se faltar anexo */}
+          {/* Mensagem de Alerta se faltar anexo ou erro de validação */}
           {validationError && (
             <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs font-bold flex items-center space-x-2 animate-in fade-in">
               <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
               <span>{validationError}</span>
+            </div>
+          )}
+
+          {/* Aviso Recomendatório (Flexibilização da Regra Comercial) */}
+          {recommendationNotice && (
+            <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-300 text-blue-900 text-xs font-bold flex items-center space-x-2 animate-in fade-in">
+              <AlertCircle className="w-4 h-4 text-blue-600 shrink-0" />
+              <span>{recommendationNotice}</span>
             </div>
           )}
 
@@ -210,7 +308,7 @@ export const LeadDetailDrawer: React.FC = () => {
             {/* COLUNA DIREITA */}
             <div className="space-y-5">
               
-              {/* Anexo de Orçamento Obligatório */}
+              {/* Anexo de Orçamento Obrigatório com Storage Real */}
               <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-3 text-xs">
                 <div className="text-xs font-black text-[#1B2B48] uppercase tracking-wider flex items-center space-x-1.5">
                   <Paperclip className="w-4 h-4 text-[#439346]" />
@@ -223,14 +321,36 @@ export const LeadDetailDrawer: React.FC = () => {
                       <FileText className="w-4 h-4" />
                       <span className="truncate max-w-[180px]">{lead.attachmentName}</span>
                     </div>
-                    <span className="text-[10px] font-black bg-[#439346] text-white px-2 py-0.5 rounded-md">Anexado</span>
+                    <div className="flex items-center space-x-1.5">
+                      {lead.attachmentUrl && (
+                        <a 
+                          href={lead.attachmentUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="p-1 rounded bg-white text-emerald-700 hover:text-emerald-900 border border-emerald-200"
+                          title="Visualizar documento"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                      <span className="text-[10px] font-black bg-[#439346] text-white px-2 py-0.5 rounded-md">Anexado</span>
+                    </div>
                   </div>
                 ) : (
                   <label className="border-2 border-dashed border-slate-300 hover:border-[#439346] rounded-xl p-3.5 flex flex-col items-center justify-center cursor-pointer transition-colors space-y-1 bg-slate-50 text-center">
-                    <Upload className="w-5 h-5 text-slate-400" />
-                    <span className="text-xs font-bold text-[#1B2B48]">Anexar Proposta Técnica em PDF</span>
-                    <span className="text-[10px] text-slate-400">Exigido para mover para a etapa Orçado</span>
-                    <input type="file" accept=".pdf,.png,.jpg,.jpeg" onChange={handleSimulatedFileUpload} className="hidden" />
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 text-[#439346] animate-spin" />
+                        <span className="text-xs font-bold text-slate-700">Enviando para o Storage seguro...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-5 h-5 text-slate-400" />
+                        <span className="text-xs font-bold text-[#1B2B48]">Anexar Proposta Técnica em PDF</span>
+                        <span className="text-[10px] text-slate-400">Exigido para mover para a etapa Orçado (Bucket Privado)</span>
+                        <input type="file" accept=".pdf,.png,.jpg,.jpeg" onChange={handleRealFileUpload} disabled={isUploading} className="hidden" />
+                      </>
+                    )}
                   </label>
                 )}
               </div>
@@ -287,7 +407,7 @@ export const LeadDetailDrawer: React.FC = () => {
                     type="text"
                     value={newCommentText}
                     onChange={(e) => setNewCommentText(e.target.value)}
-                    placeholder="Adicionar nota..."
+                    placeholder="Adicionar nota comercial..."
                     className="flex-1 px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold outline-none focus:border-[#439346]"
                   />
                   <button type="submit" className="px-3 py-2 rounded-xl bg-[#1B2B48] hover:bg-slate-800 text-white font-bold text-xs flex items-center space-x-1">

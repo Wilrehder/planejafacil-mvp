@@ -4,89 +4,92 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable, KeepTogether, Image
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable, KeepTogether, Image, PageBreak
 )
 
-def create_pdf(filename):
-    # A4 Page setup (210mm x 297mm)
+def build_proposal_pdf(filename):
+    # A4 Page setup (210mm x 297mm) - Generous, elegant spacing
     doc = SimpleDocTemplate(
         filename,
         pagesize=A4,
-        leftMargin=12 * mm,
-        rightMargin=12 * mm,
-        topMargin=8 * mm,
-        bottomMargin=8 * mm
+        leftMargin=14 * mm,
+        rightMargin=14 * mm,
+        topMargin=12 * mm,
+        bottomMargin=12 * mm
     )
 
     story = []
 
     # Palette
-    HEADER_BG = colors.HexColor('#0f081c') # Sleek dark purple matching the New Code studio logo brand
-    CARD_BG = colors.HexColor('#f8fafc')
-    TEXT_DARK = colors.HexColor('#0f172a')
-    TEXT_MUTED = colors.HexColor('#475569')
-    PURPLE_ACCENT = colors.HexColor('#7c3aed')
-    BORDER_COLOR = colors.HexColor('#e2e8f0')
+    HEADER_BG = colors.HexColor('#0f081c')      # Studio Dark
+    BRAND_GREEN = colors.HexColor('#16a34a')    # PlanejaFácil Green
+    CARD_BG = colors.HexColor('#f8fafc')        # Clean slate card
+    TEXT_DARK = colors.HexColor('#0f172a')      # Text dark
+    TEXT_MUTED = colors.HexColor('#475569')     # Text muted
+    PURPLE_ACCENT = colors.HexColor('#7c3aed')  # Accent purple
+    BORDER_COLOR = colors.HexColor('#cbd5e1')   # Border
+    HIGHLIGHT_BG = colors.HexColor('#f0fdf4')   # Light green highlight
 
     styles = getSampleStyleSheet()
 
+    # Typography Styles
     title_style = ParagraphStyle(
         'DocTitle',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
-        fontSize=15,
-        leading=18,
+        fontSize=18,
+        leading=22,
         textColor=TEXT_DARK,
-        spaceAfter=2
+        spaceAfter=3
     )
 
     subtitle_style = ParagraphStyle(
         'DocSubTitle',
         parent=styles['Normal'],
         fontName='Helvetica',
-        fontSize=8.5,
-        leading=11.5,
+        fontSize=10,
+        leading=14,
         textColor=TEXT_MUTED,
-        spaceAfter=6
+        spaceAfter=12
     )
 
     section_heading_style = ParagraphStyle(
         'SectionHeading',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
+        fontSize=11.5,
+        leading=15,
+        textColor=TEXT_DARK,
+        spaceBefore=12,
+        spaceAfter=8
+    )
+
+    body_style = ParagraphStyle(
+        'Body',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=9.2,
+        leading=14,
+        textColor=TEXT_MUTED,
+        spaceAfter=8
+    )
+
+    card_title_style = ParagraphStyle(
+        'CardTitle',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
         fontSize=10,
         leading=13,
         textColor=TEXT_DARK,
-        spaceBefore=5,
         spaceAfter=3
     )
 
-    intro_body_style = ParagraphStyle(
-        'IntroBody',
+    card_desc_style = ParagraphStyle(
+        'CardDesc',
         parent=styles['Normal'],
         fontName='Helvetica',
-        fontSize=8.2,
-        leading=11.2,
-        textColor=TEXT_MUTED,
-        spaceAfter=6
-    )
-
-    pillar_title_style = ParagraphStyle(
-        'PillarTitle',
-        parent=styles['Normal'],
-        fontName='Helvetica-Bold',
-        fontSize=8.5,
-        leading=11,
-        textColor=TEXT_DARK,
-        spaceAfter=2
-    )
-
-    pillar_desc_style = ParagraphStyle(
-        'PillarDesc',
-        parent=styles['Normal'],
-        fontName='Helvetica',
-        fontSize=7.5,
-        leading=10.2,
+        fontSize=8.8,
+        leading=12.5,
         textColor=TEXT_MUTED
     )
 
@@ -94,19 +97,9 @@ def create_pdf(filename):
         'TableHeader',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
-        fontSize=8,
-        leading=10,
-        textColor=TEXT_DARK
-    )
-
-    col1_title_style = ParagraphStyle(
-        'Col1Title',
-        parent=styles['Normal'],
-        fontName='Helvetica-Bold',
         fontSize=9,
-        leading=11.5,
-        textColor=TEXT_DARK,
-        spaceAfter=2
+        leading=12,
+        textColor=TEXT_DARK
     )
 
     price_style = ParagraphStyle(
@@ -114,18 +107,8 @@ def create_pdf(filename):
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
         fontSize=10.5,
-        leading=12.5,
-        textColor=TEXT_DARK,
-        spaceAfter=1
-    )
-
-    price_monthly_style = ParagraphStyle(
-        'PriceMonthlyVal',
-        parent=styles['Normal'],
-        fontName='Helvetica-Bold',
-        fontSize=10.5,
-        leading=12.5,
-        textColor=PURPLE_ACCENT,
+        leading=13.5,
+        textColor=BRAND_GREEN,
         spaceAfter=1
     )
 
@@ -133,18 +116,18 @@ def create_pdf(filename):
         'ContractBody',
         parent=styles['Normal'],
         fontName='Helvetica',
-        fontSize=7.6,
-        leading=10.5,
+        fontSize=8.8,
+        leading=13,
         textColor=TEXT_MUTED,
-        spaceAfter=3.5
+        spaceAfter=6
     )
 
     sig_name_style = ParagraphStyle(
         'SigName',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
-        fontSize=9,
-        leading=11.5,
+        fontSize=10,
+        leading=13,
         textColor=TEXT_DARK
     )
 
@@ -152,158 +135,236 @@ def create_pdf(filename):
         'SigRole',
         parent=styles['Normal'],
         fontName='Helvetica',
-        fontSize=7.5,
-        leading=9.5,
+        fontSize=8.5,
+        leading=11.5,
         textColor=TEXT_MUTED
     )
 
-    # 1. Header Banner with Official New Code Studio Logo
-    logo_path = '/Users/macos/Desktop/Projeto App Para Loja de Moveis MVP/public/new_code_studio_logo.png'
-    logo_img = Image(logo_path, width=46 * mm, height=11.83 * mm)
+    # Header Banner Helper
+    def get_header_table():
+        logo_path = '/Users/macos/Desktop/Projeto App Para Loja de Moveis MVP/public/new_code_studio_logo.png'
+        logo_img = Image(logo_path, width=52 * mm, height=13.38 * mm)
 
-    header_right_html = """
-    <para align="right">
-    <font color="#c4b5fd" size="8.5"><b>PROPOSTA COMERCIAL EXECUTIVA</b></font><br/>
-    <font color="#e9d5ff" size="7.5"><b>Cliente:</b> Adriano Jr. &nbsp;|&nbsp; <b>Data:</b> Agosto de 2026</font>
-    </para>
-    """
+        header_right_html = """
+        <para align="right">
+        <font color="#c4b5fd" size="9.5"><b>PROPOSTA COMERCIAL &amp; ACORDO DE SERVIÇOS</b></font><br/>
+        <font color="#e9d5ff" size="8"><b>Cliente:</b> Adriano Jr. (PlanejaFácil) &nbsp;|&nbsp; <b>Data:</b> Outubro de 2026</font>
+        </para>
+        """
 
-    header_table = Table([[
-        logo_img,
-        Paragraph(header_right_html, styles['Normal'])
-    ]], colWidths=[93 * mm, 93 * mm])
+        htable = Table([[logo_img, Paragraph(header_right_html, styles['Normal'])]], colWidths=[90 * mm, 92 * mm])
+        htable.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), HEADER_BG),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 12),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+        ]))
+        return htable
 
-    header_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), HEADER_BG),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    # ==================== PAGE 1 ====================
+    story.append(get_header_table())
+    story.append(Spacer(1, 10))
+
+    story.append(Paragraph("Plataforma PlanejaFácil — Móveis Sob Medida", title_style))
+    story.append(Paragraph("Proposta Comercial de Desenvolvimento e Acordo de Prestação de Serviços Tecnológicos", subtitle_style))
+    story.append(HRFlowable(width="100%", thickness=0.75, color=BORDER_COLOR, spaceBefore=0, spaceAfter=10))
+
+    # 1. VISÃO GERAL
+    story.append(Paragraph("1. VISÃO GERAL DO PROJETO", section_heading_style))
+    story.append(Paragraph(
+        "O <b>PlanejaFácil</b> é uma plataforma desenvolvida para facilitar a estimativa de preços de móveis sob medida para o consumidor e conectar esses clientes diretamente às lojas parceiras. A solução automatiza o primeiro contato, permitindo que o cliente simule seu projeto de forma simples e que a loja receba leads qualificados para a equipe de vendas.",
+        body_style
+    ))
+    story.append(Spacer(1, 4))
+
+    # 2. MÓDULOS DA PLATAFORMA
+    story.append(Paragraph("2. MÓDULOS DA PLATAFORMA", section_heading_style))
+
+    # Módulo 1 Card
+    m1_title = Paragraph("<b>Portal Consumidor (Simulador)</b>", card_title_style)
+    m1_desc = Paragraph(
+        "O cliente final simula o orçamento dos móveis por ambiente (Cozinha, Quarto, Sala, etc.), define as metragens e escolhe os acabamentos desejados. Ao final, obtém uma estimativa de preço rápida e pode baixar a proposta em PDF.",
+        card_desc_style
+    )
+    c1_table = Table([[m1_title], [m1_desc]], colWidths=[182 * mm])
+    c1_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), CARD_BG),
+        ('BOX', (0, 0), (-1, -1), 0.5, BORDER_COLOR),
         ('TOPPADDING', (0, 0), (-1, -1), 8),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ('LEFTPADDING', (0, 0), (-1, -1), 14),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 14),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
     ]))
-
-    story.append(header_table)
+    story.append(c1_table)
     story.append(Spacer(1, 8))
 
-    # 2. Document Main Title
-    story.append(Paragraph("Plataforma PlanejaFácil — Ecossistema SaaS para Móveis Planejados", title_style))
-    story.append(Paragraph("Apresentação de solução tecnológica, infraestrutura e proposta de desenvolvimento.", subtitle_style))
-    story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER_COLOR, spaceBefore=0, spaceAfter=6))
+    # Módulo 2 Card
+    m2_title = Paragraph("<b>Portal do Lojista (CRM &amp; ERP de Vendas)</b>", card_title_style)
+    m2_desc = Paragraph(
+        "Painel completo com <b>CRM</b> para os lojistas gerenciarem leads internos (da plataforma) e externos em funil Kanban, além de sistema <b>ERP</b> para controle e acompanhamento dos pedidos das lojas parceiras.",
+        card_desc_style
+    )
+    c2_table = Table([[m2_title], [m2_desc]], colWidths=[182 * mm])
+    c2_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), CARD_BG),
+        ('BOX', (0, 0), (-1, -1), 0.5, BORDER_COLOR),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+    ]))
+    story.append(c2_table)
+    story.append(Spacer(1, 8))
 
-    # 3. Visão Geral e Apresentação do Produto
-    story.append(Paragraph("SOBRE A PLATAFORMA", section_heading_style))
+    # Módulo 3 Card
+    m3_title = Paragraph("<b>Painel Admin Master</b>", card_title_style)
+    m3_desc = Paragraph(
+        "Central de controle para o proprietário da plataforma cadastrar unidades parceiras, gerenciar a fila de distribuição de leads por região e acompanhar as métricas financeiras do negócio em tempo real.",
+        card_desc_style
+    )
+    c3_table = Table([[m3_title], [m3_desc]], colWidths=[182 * mm])
+    c3_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), CARD_BG),
+        ('BOX', (0, 0), (-1, -1), 0.5, BORDER_COLOR),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+    ]))
+    story.append(c3_table)
+    story.append(Spacer(1, 10))
+
+    # 3. ESCOPO & CONDIÇÕES FINANCEIRAS
+    story.append(Paragraph("3. ESCOPO TÉCNICO E CONDIÇÕES FINANCEIRAS", section_heading_style))
     story.append(Paragraph(
-        "O <b>PlanejaFácil</b> é uma solução tecnológica completa (end-to-end) projetada para conectar consumidores finais que desejam orçar móveis planejados às lojas físicas parceiras credenciadas. A plataforma elimina a necessidade de medições complexas pelo cliente no primeiro contato e entrega estimativas precisas em menos de 2 minutos, funcionando como uma potente <b>máquina de captação e qualificação de leads B2B</b>.",
-        intro_body_style
+        "A solução será entregue como <b>Plataforma Web Responsiva &amp; PWA</b>, permitindo acesso em computadores, tablets e smartphones.<br/>"
+        "O investimento total de desenvolvimento é de <b>R$ 8.500,00</b>, faturado em 3 parcelas conforme as entregas:",
+        body_style
     ))
+    story.append(Spacer(1, 4))
 
-    # 4. Pilares da Solução (Cards de Escopo)
-    p1 = Paragraph("<b>1. Simulador Interativo (Consumidor B2C)</b>", pillar_title_style)
-    d1 = Paragraph("Interface ultra-simples e ágil. O consumidor seleciona os cômodos (Cozinha, Quarto, Sala, etc.), define a quantidade de paredes (A/B/C/D), indica os móveis desejados e escolhe os padrões de acabamento e qualidade. Ao final, gera uma estimativa de preço confiável e permite baixar a <b>Proposta Técnica em PDF</b>.", pillar_desc_style)
+    # Payment Table
+    pay_header_1 = Paragraph("<b>ETAPA DO PROJETO</b>", table_header_style)
+    pay_header_2 = Paragraph("<b>MARCO DE LIBERAÇÃO DO PAGAMENTO</b>", table_header_style)
+    pay_header_3 = Paragraph("<b>VALOR (R$)</b>", table_header_style)
 
-    p2 = Paragraph("<b>2. Painel do Lojista Parceiro (CRM B2B)</b>", pillar_title_style)
-    d2 = Paragraph("Portal exclusivo para gerentes e consultores das lojas credenciadas (ex.: Smarth House). Recebe leads qualificados em tempo real filtrados por região/cidade, permite <b>alteração manual de status</b> (Novo, Em Atendimento, Orçado, Venda Realizada), detalhamento do projeto e exportação de relatórios.", pillar_desc_style)
+    r1_col1 = Paragraph("<b>1ª Parcela — Sinal &amp; Início</b>", ParagraphStyle('R1', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8.8, textColor=TEXT_DARK))
+    r1_col2 = Paragraph("Pago na assinatura deste contrato para início do desenvolvimento", body_style)
+    r1_col3 = Paragraph("<b>R$ 2.000,00</b>", price_style)
 
-    p3 = Paragraph("<b>3. Painel Master do Dono do SaaS (Admin)</b>", pillar_title_style)
-    d3 = Paragraph("Central administrativa estratégica para gestão global do negócio. Permite o cadastro e controle de unidades parceiras, mapa interativo de distribuição de projetos pelo Brasil e <b>indicadores financeiros dinâmicos (MRR, ARR e ticket médio)</b>.", pillar_desc_style)
+    r2_col1 = Paragraph("<b>2ª Parcela — Versão para Testes</b>", ParagraphStyle('R2', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8.8, textColor=TEXT_DARK))
+    r2_col2 = Paragraph("Pago na entrega da versão funcional (homologação) para testes do cliente", body_style)
+    r2_col3 = Paragraph("<b>R$ 2.000,00</b>", price_style)
 
-    pillars_table_data = [
-        [p1, p2, p3],
-        [d1, d2, d3]
+    r3_col1 = Paragraph("<b>3ª Parcela — Entrega Final</b>", ParagraphStyle('R3', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8.8, textColor=TEXT_DARK))
+    r3_col2 = Paragraph("Pago na entrega e publicação do produto final concluído", body_style)
+    r3_col3 = Paragraph("<b>R$ 4.500,00</b>", price_style)
+
+    tot_col1 = Paragraph("<b>INVESTIMENTO TOTAL DESENVOLVIMENTO</b>", ParagraphStyle('Tot', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=9, textColor=TEXT_DARK))
+    tot_col2 = Paragraph("<b>Faturado em 3 parcelas atreladas às entregas do projeto</b>", ParagraphStyle('Tot2', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8, textColor=TEXT_MUTED))
+    tot_col3 = Paragraph("<b>R$ 8.500,00</b>", ParagraphStyle('Tot3', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=10.5, textColor=BRAND_GREEN))
+
+    pay_table_data = [
+        [pay_header_1, pay_header_2, pay_header_3],
+        [r1_col1, r1_col2, r1_col3],
+        [r2_col1, r2_col2, r2_col3],
+        [r3_col1, r3_col2, r3_col3],
+        [tot_col1, tot_col2, tot_col3]
     ]
 
-    pillars_table = Table(pillars_table_data, colWidths=[62 * mm, 62 * mm, 62 * mm])
-    pillars_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), CARD_BG),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    pay_table = Table(pay_table_data, colWidths=[62 * mm, 80 * mm, 40 * mm])
+    pay_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f1f5f9')),
+        ('LINEABOVE', (0, 0), (-1, 0), 1, TEXT_DARK),
+        ('LINEBELOW', (0, 0), (-1, 0), 1, TEXT_DARK),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('TOPPADDING', (0, 0), (-1, -1), 5),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
         ('LEFTPADDING', (0, 0), (-1, -1), 6),
         ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-        ('LINEBELOW', (0, 0), (-1, 0), 0.5, BORDER_COLOR),
-        ('BOX', (0, 0), (-1, -1), 0.5, BORDER_COLOR),
+        ('LINEBELOW', (0, 1), (-1, -2), 0.5, BORDER_COLOR),
+        ('BACKGROUND', (0, -1), (-1, -1), HIGHLIGHT_BG),
+        ('LINEABOVE', (0, -1), (-1, -1), 1.2, BRAND_GREEN),
+        ('LINEBELOW', (0, -1), (-1, -1), 1.2, BRAND_GREEN),
     ]))
 
-    story.append(pillars_table)
-    story.append(Spacer(1, 6))
+    story.append(pay_table)
 
-    # Section 1: Opções de Orçamento
-    story.append(Paragraph("1. OPÇÕES DE ORÇAMENTO &amp; INVESTIMENTO", section_heading_style))
-    story.append(Paragraph("Apresentamos duas alternativas comerciais para o desenvolvimento e implantação do projeto:", intro_body_style))
+    # PAGE BREAK -> Clean Page 2 Transition
+    story.append(PageBreak())
 
-    opt1_col1 = Paragraph("<b>Opção 1 — Sistema Web &amp; PWA</b><br/><font color='#4b5563'>Plataforma web responsiva para computadores e smartphones, simulador interativo multi-ambientes, área do cliente/lojista e painel administrativo master.</font>", col1_title_style)
-    opt1_col2 = Paragraph("<font size='10.5'><b>R$ 8.500,00</b></font><br/><font color='#6b7280' size='7'>Pagamento por etapas</font>", price_style)
-    opt1_col3 = Paragraph("<font color='#7c3aed' size='10.5'><b>R$ 650,00</b></font><font color='#6b7280' size='7'> /mês</font><br/><font color='#6b7280' size='7'>Permanência min. 6 meses</font>", price_monthly_style)
+    # ==================== PAGE 2 ====================
+    story.append(get_header_table())
+    story.append(Spacer(1, 10))
 
-    opt2_col1 = Paragraph("<b>Opção 2 — Aplicativo Mobile Nativo (Android &amp; iOS)</b><br/><font color='#4b5563'>Aplicativos publicados na Google Play Store e Apple App Store, notificações push integradas, gestão de contas de desenvolvedor e painel web administrativo master.</font>", col1_title_style)
-    opt2_col2 = Paragraph("<font size='10.5'><b>R$ 16.500,00</b></font><br/><font color='#6b7280' size='7'>Pagamento por etapas</font>", price_style)
-    opt2_col3 = Paragraph("<font color='#7c3aed' size='10.5'><b>R$ 1.300,00</b></font><font color='#6b7280' size='7'> /mês</font><br/><font color='#6b7280' size='7'>Inclusas licenças dev &amp; suporte</font>", price_monthly_style)
+    # 4. MENSALIDADE E SUPORTE
+    story.append(Paragraph("4. MENSALIDADE DE NUVEM, MANUTENÇÃO E SUPORTE TÉCNICO", section_heading_style))
 
-    options_data = [
-        [
-            Paragraph("MODALIDADE / ESCOPO", table_header_style),
-            Paragraph("DESENVOLVIMENTO &amp;<br/>IMPLANTAÇÃO", table_header_style),
-            Paragraph("MENSALIDADE<br/>(SUPORTE &amp; NUVEM)", table_header_style)
-        ],
-        [opt1_col1, opt1_col2, opt1_col3],
-        [opt2_col1, opt2_col2, opt2_col3]
-    ]
+    cloud_desc = Paragraph(
+        "<b>Valor Mensal: R$ 650,00 / mês</b> (Permanência mínima de 6 meses a contar da entrega final).<br/>"
+        "• <b>Serviços Inclusos:</b> Hospedagem em nuvem, manutenção do banco de dados, backups diários de segurança e suporte técnico.<br/>"
+        "• <b>Capacidade &amp; Escala:</b> A mensalidade cobre a operação de até 100 lojas parceiras e 200 leads por mês. Conforme acordado com o proprietário, esse valor poderá ser revisto em caso de superlotação do banco de dados antes dessa margem.",
+        body_style
+    )
 
-    options_table = Table(options_data, colWidths=[96 * mm, 45 * mm, 45 * mm])
-    options_table.setStyle(TableStyle([
-        ('LINEABOVE', (0, 0), (-1, 0), 1, TEXT_DARK),
-        ('LINEBELOW', (0, 0), (-1, 0), 1, TEXT_DARK),
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f9fafb')),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('TOPPADDING', (0, 0), (-1, -1), 5),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-        ('LEFTPADDING', (0, 0), (-1, -1), 5),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-        ('LINEBELOW', (0, 1), (-1, 1), 0.5, BORDER_COLOR),
-        ('LINEBELOW', (0, 2), (-1, 2), 1, TEXT_DARK),
+    cloud_box = Table([[cloud_desc]], colWidths=[182 * mm])
+    cloud_box.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#faf5ff')),
+        ('BOX', (0, 0), (-1, -1), 0.5, PURPLE_ACCENT),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
     ]))
 
-    story.append(options_table)
+    story.append(cloud_box)
     story.append(Spacer(1, 6))
-    story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER_COLOR, spaceBefore=0, spaceAfter=6))
 
-    # Section 2: Condições Comerciais
-    story.append(Paragraph("2. CONDIÇÕES COMERCIAIS", section_heading_style))
+    # 5. TERMOS DO ACORDO DE PRESTAÇÃO DE SERVIÇOS (Cláusula 6ª removed per audio request)
+    story.append(Paragraph("5. TERMOS DO ACORDO DE PRESTAÇÃO DE SERVIÇOS", section_heading_style))
 
-    conditions = [
-        ("Forma de Pagamento (Desenvolvimento):", "O valor de implantação da opção escolhida será faturado em 3 parcelas: <b>40% de entrada na assinatura da proposta</b>, <b>30% na entrega da versão para testes/homologação</b> e <b>30% na entrega e publicação final</b>."),
-        ("Escopo da Mensalidade &amp; Permanência Mínima:", "A mensalidade remunera a infraestrutura em nuvem, banco de dados, segurança, disponibilidade dos servidores e suporte técnico contínuo. Possui prazo de permanência mínima de 6 meses a contar da entrega oficial do sistema."),
-        ("Reajuste por Volume &amp; Escala:", "A mensalidade base cobre a operação de <b>até 100 Lojas Parceiras ativas e até 20.000 leads/mês</b>. Caso a plataforma ultrapasse esse limite, haverá um reajuste de <b>até 50%</b> sobre o valor da mensalidade de suporte para cobrir os custos de upgrade de infraestrutura em nuvem, banco de dados e servidores expandidos."),
-        ("Limite de Escopo &amp; Alterações Pós-Entrega:", "O valor acordado contempla integralmente o escopo descrito nesta proposta. <b>Após a entrega e publicação oficial do sistema</b>, solicitações de novas funcionalidades ou alterações extras estarão sujeitas a um novo orçamento."),
-        ("Propriedade do Projeto:", "Após a quitação integral do valor de desenvolvimento, a propriedade intelectual, base de dados e código-fonte pertencerão integralmente ao contratante (Adriano Jr.)."),
-        ("Prazos e Validade:", "Prazo estimado de entrega de 45 a 60 dias úteis para Web PWA ou 60 a 75 dias úteis para App Mobile Nativo. Proposta válida por 15 dias.")
+    clauses = [
+        ("Cláusula 1ª — Do Objeto:", " O presente instrumento tem por objeto a prestação de serviços de desenvolvimento tecnológico para a criação e implantação da plataforma <b>PlanejaFácil (Web/PWA)</b>, contendo o Simulador Consumidor, Portal do Lojista e Painel Admin Master."),
+        
+        ("Cláusula 2ª — Do Prazo e Entregas:", " O período de <b>30 a 45 dias é estipulado como o prazo máximo de entrega</b> a contar da assinatura e pagamento do sinal. Fica expressamente estabelecido que a CONTRATADA poderá concluir e entregar a plataforma <b>antecipadamente</b> a este prazo. O sistema passará por etapa de testes e homologação antes do lançamento final."),
+        
+        ("Cláusula 3ª — Das Condições de Pagamento:", " O CONTRATANTE efetuará o pagamento do valor total de <b>R$ 8.500,00</b> conforme as 3 parcelas descritas na Seção 3 (R$ 2.000,00 no sinal, R$ 2.000,00 na versão de testes e R$ 4.500,00 na entrega final)."),
+        
+        ("Cláusula 4ª — Da Propriedade do Código-Fonte:", " Após a quitação integral do valor de desenvolvimento (R$ 8.500,00), a propriedade intelectual, base de dados e o <b>código-fonte da plataforma pertencerão 100% ao CONTRATANTE (Adriano Jr. / PlanejaFácil)</b>."),
+        
+        ("Cláusula 5ª — Da Garantia e Suporte:", " A CONTRATADA garante o suporte técnico e a correção de eventuais falhas durante a vigência do contrato. Solicitações de novas funcionalidades não previstas no escopo inicial estarão sujeitas a orçamento complementar de comum acordo.")
     ]
 
-    for title, body in conditions:
-        story.append(Paragraph(f"<b>{title}</b> {body}", contract_body_style))
+    for title, desc in clauses:
+        story.append(Paragraph(f"<b>{title}</b> {desc}", contract_body_style))
 
-    story.append(Spacer(1, 8))
+    # Generous spacing before signature block for DocuSign signatures
+    story.append(Spacer(1, 48))
 
-    # Signatures Section
-    sig_line = HRFlowable(width="100%", thickness=0.75, color=TEXT_DARK, spaceBefore=0, spaceAfter=3)
-    
+    # 6. SIGNATURES VIA DOCUSIGN
+    sig_line = HRFlowable(width="100%", thickness=0.75, color=TEXT_DARK, spaceBefore=0, spaceAfter=4)
+
     sig_col1 = [
         sig_line,
         Paragraph("<b>Wilson</b>", sig_name_style),
-        Paragraph("New Code Studio &nbsp;|&nbsp; <font color='#6b7280'>DESENVOLVIMENTO &amp; PROPOSTA</font>", sig_role_style)
+        Paragraph("New Code Studio &nbsp;|&nbsp; CONTRATADA", sig_role_style),
+        Paragraph("<font color='#6b7280' size='7.5'>Assinatura via DocuSign</font>", sig_role_style)
     ]
 
     sig_col2 = [
         sig_line,
         Paragraph("<b>Adriano Jr.</b>", sig_name_style),
-        Paragraph("PlanejaFácil &nbsp;|&nbsp; <font color='#6b7280'>ACEITE COMERCIAL</font>", sig_role_style)
+        Paragraph("PlanejaFácil &nbsp;|&nbsp; CONTRATANTE", sig_role_style),
+        Paragraph("<font color='#6b7280' size='7.5'>Assinatura via DocuSign</font>", sig_role_style)
     ]
 
-    sig_table = Table([[sig_col1, sig_col2]], colWidths=[88 * mm, 88 * mm])
+    sig_table = Table([[sig_col1, sig_col2]], colWidths=[86 * mm, 86 * mm])
     sig_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 16),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 14),
     ]))
 
     story.append(KeepTogether([sig_table]))
@@ -312,5 +373,7 @@ def create_pdf(filename):
 
 if __name__ == '__main__':
     target_path = '/Users/macos/Desktop/Projeto App Para Loja de Moveis MVP/proposta_planejafacil_v3.pdf'
-    create_pdf(target_path)
-    print("PDF generated successfully at:", target_path)
+    build_proposal_pdf(target_path)
+    alt_path = '/Users/macos/Desktop/Projeto App Para Loja de Moveis MVP/proposta_contrato_planejafacil.pdf'
+    build_proposal_pdf(alt_path)
+    print("PDF successfully updated: Clause 6 removed!")

@@ -71,9 +71,33 @@ export interface OrderAuditLog {
   timestamp: string;
 }
 
+export interface OrderDocumentItem {
+  id: string;
+  stage: string;
+  docType: string;
+  fileName: string;
+  filePath: string;
+  fileSizeBytes: number;
+  mimeType: string;
+  authorName?: string;
+  createdAt: string;
+}
+
+export interface ERPMetrics {
+  activeOrders: number;
+  completedOrders: number;
+  delayedOrders: number;
+  totalContractedValue: number;
+  byStage: Record<string, number>;
+}
+
 export interface StoreOrder {
   id: string; // ex: 'PED-4092'
+  uuid?: string;
+  orderNumber?: string;
   leadId: string;
+  tenantId?: string;
+  assignmentId?: string;
   clientName: string;
   phone: string;
   address: string;
@@ -81,8 +105,16 @@ export interface StoreOrder {
   state: string;
   environment: string;
   totalValue: number;
+  contractedValue?: number;
+  estimatedBudget?: number;
+  targetDeliveryDate?: string;
+  completedAt?: string;
   currentStage: OrderStage;
+  stageNotes?: string;
+  hasPendingIssues?: boolean;
+  pendingNotes?: string;
   createdAt: string;
+  updatedAt?: string;
   storeId: string;
 
   // Pasta Digital de Documentos (6 categorias genéricas)
@@ -99,6 +131,9 @@ export interface StoreOrder {
   producaoDone?: boolean;
   montagemDone?: boolean;
   clientConfirmedAceite?: boolean;
+
+  // Documentos Reais Persistidos no Storage
+  documents?: OrderDocumentItem[];
 
   // Log de Auditoria
   timeline: OrderAuditLog[];
@@ -131,10 +166,14 @@ export interface Lead {
   environmentsData?: ConfiguredEnvironment[];
   source?: 'plataforma' | 'instagram' | 'google' | 'indicacao' | 'balcao';
   isExternal?: boolean;
+  assignmentId?: string;
   notesList?: { id: string; author: string; text: string; createdAt: string }[];
   attachmentName?: string;
   attachmentUrl?: string;
   finalDecision?: 'convertido' | 'perdido';
+  lossReason?: string;
+  orderId?: string;
+  orderNumber?: string;
   estimatedMin: number;
   estimatedMax: number;
   assignedStoreId: string;
@@ -273,4 +312,149 @@ export interface WallAssignments {
   wallAModules: string[];
   wallBModules: string[];
   wallCModules: string[];
+}
+
+// =============================================================================
+// FASE 5: TIPOS DO MÓDULO FINANCEIRO, ASSINATURAS E MONETIZAÇÃO SAAS
+// =============================================================================
+
+export interface SaaSPricingSchedule {
+  id: string;
+  planTier: 'basic' | 'pro';
+  monthlyPrice: number;
+  leadPrice: number;
+  version: number;
+  features: string[];
+  isActive: boolean;
+}
+
+export interface StoreSubscription {
+  id: string;
+  tenantId: string;
+  planTier: 'basic' | 'pro';
+  contractedMonthlyPrice: number;
+  contractedLeadPrice: number;
+  status: 'trialing' | 'active' | 'past_due' | 'canceled' | 'expired' | 'suspended';
+  startedAt: string;
+  nextBillingDate: string;
+  canceledAt?: string;
+  cancelReason?: string;
+}
+
+export interface InvoiceItem {
+  id: string;
+  type: 'subscription' | 'pay_per_lead' | 'adjustment' | 'credit';
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+export interface ManualPaymentReceipt {
+  id: string;
+  invoiceId: string;
+  invoiceNumber?: string;
+  storeId?: string;
+  storeName?: string;
+  amountPaid: number;
+  amount?: number;
+  competenceMonth?: string;
+  paymentDate: string;
+  paymentMethod: 'pix' | 'transferencia' | 'dinheiro' | 'boleto_externo' | 'outro';
+  externalReference?: string;
+  notes?: string;
+  recordedByEmail?: string;
+  createdAt?: string;
+}
+
+export interface Invoice {
+  id: string;
+  invoiceNumber: string;
+  tenantId?: string;
+  storeName?: string;
+  competenceMonth: string; // Ex: '2026-10'
+  subscriptionAmount: number;
+  leadsAmount: number;
+  leadsCount: number;
+  adjustmentsAmount?: number;
+  totalDue: number;
+  amountPaid?: number;
+  balanceDue?: number;
+  dueDate: string;
+  status: 'pending' | 'partially_paid' | 'paid' | 'past_due' | 'overdue' | 'canceled' | 'refunded';
+  paidAt?: string;
+  paymentMethod?: string;
+  items?: InvoiceItem[];
+  payments?: ManualPaymentReceipt[];
+  paymentsCount?: number;
+  createdAt?: string;
+}
+
+export interface StoreFinancialOverview {
+  tenantId: string;
+  subscription: {
+    id: string;
+    plan_tier: 'basic' | 'pro';
+    monthly_price: number;
+    status: string;
+    due_day?: number;
+    next_billing_date: string;
+  };
+  billableLeads: {
+    count: number;
+    amount: number;
+  };
+  totals: {
+    total_paid: number;
+    total_pending: number;
+  };
+  invoices: Invoice[];
+}
+
+export interface AdminFinancialMetrics {
+  mrr: number;
+  arr: number;
+  variableRevenue: number;
+  totalInvoiced: number;
+  totalCollected: number;
+  totalReceivables: number;
+  overdueAmount: number;
+  overdueCount: number;
+  activeStoresCount: number;
+  suspendedStoresCount?: number;
+  nearDueCount?: number;
+  dueNext7Days?: number;
+  dueNext30Days?: number;
+  plansBreakdown: {
+    basic: number;
+    pro: number;
+  };
+  storesBreakdown: Array<{
+    storeId: string;
+    storeName: string;
+    cityName: string;
+    planTier: string;
+    contractedPrice?: number;
+    mrr: number;
+    dueDay?: number;
+    billingDueDay?: number;
+    nextBillingDate?: string;
+    subscriptionStatus?: string;
+    isRoutingEnabled?: boolean;
+    leadsCount: number;
+    leadsBilled: number;
+    totalBilled: number;
+    totalPaid: number;
+    balanceDue?: number;
+    status: string;
+  }>;
+  competenceHistory: Array<{
+    competence: string;
+    invoiced: number;
+    collected: number;
+    invoicesCount: number;
+  }>;
+  recentPayments?: ManualPaymentReceipt[];
+  invoices?: Invoice[];
+  invoicesList?: Invoice[];
 }

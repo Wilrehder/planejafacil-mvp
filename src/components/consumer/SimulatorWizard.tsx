@@ -25,6 +25,9 @@ import { ENVIRONMENT_CATALOG } from '../../data/mockData';
 import { useApp } from '../../context/AppContext';
 import { EnvironmentTypeId } from '../../types';
 import { ProposalPdfModal } from './ProposalPdfModal';
+import { lookupCep } from '../../lib/cepService';
+import { submitSimulationAndLead, SimulationSubmissionResult } from '../../lib/simulationService';
+import { AlertCircle, MapPin } from 'lucide-react';
 
 const ENV_IMAGE_MAP: Record<string, string> = {
   cozinha: '/hero_kitchen.png',
@@ -65,9 +68,18 @@ export const SimulatorWizard: React.FC = () => {
   const [newEnvCeilingHeight, setNewEnvCeilingHeight] = useState(2.7);
   const [newEnvWallCount, setNewEnvWallCount] = useState<1 | 2 | 3 | 4>(3);
 
-  // Loading Screen State
+  // Loading & Submission State
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStepIndex, setLoadingStepIndex] = useState(0);
+  const [cepLoading, setCepLoading] = useState(false);
+  const [cepStatus, setCepStatus] = useState<{
+    valid: boolean;
+    city?: string;
+    state?: string;
+    error?: string;
+  } | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submissionResult, setSubmissionResult] = useState<SimulationSubmissionResult | null>(null);
 
   const goToStep = (nextStep: number) => {
     updateSimulator({ step: nextStep });
@@ -137,32 +149,113 @@ export const SimulatorWizard: React.FC = () => {
     removeEnvironment(envId);
   };
 
-  const handleSubmitLead = (e: React.FormEvent) => {
+  const handleCepChange = async (rawVal: string) => {
+    updateSimulator({ clientInfo: { ...simulator.clientInfo, cep: rawVal } });
+    const digitsOnly = rawVal.replace(/\D/g, '');
+    if (digitsOnly.length === 8) {
+      setCepLoading(true);
+      setCepStatus(null);
+      const res = await lookupCep(digitsOnly);
+      setCepLoading(false);
+      if (res.success && res.city && res.state) {
+        setCepStatus({ valid: true, city: res.city, state: res.state });
+        updateSimulator({
+          clientInfo: {
+            ...simulator.clientInfo,
+            cep: rawVal,
+            city: res.city,
+            state: res.state,
+          },
+        });
+      } else {
+        setCepStatus({ valid: false, error: res.error || 'CEP não localizado.' });
+      }
+    } else {
+      setCepStatus(null);
+    }
+  };
+
+  const handleSubmitLead = async (e: React.FormEvent) => {
     e.preventDefault();
-    calculateEstimate();
+    setSubmitError(null);
 
-    const envNamesList = simulator.environments.map(e => `${e.name} (${e.areaM2}m²)`).join(', ');
+    const cleanCep = simulator.clientInfo.cep.replace(/\D/g, '');
+    if (cleanCep.length !== 8) {
+      setSubmitError('Por favor, informe um CEP válido com 8 dígitos.');
+      return;
+    }
 
-    addLead({
-      name: simulator.clientInfo.name || 'Cliente Orçamento',
-      phone: simulator.clientInfo.phone || '(11) 99999-9999',
-      whatsapp: simulator.clientInfo.phone || '(11) 99999-9999',
-      email: simulator.clientInfo.email || 'cliente@email.com',
-      city: simulator.clientInfo.city || 'São Paulo',
-      state: 'SP',
-      cep: simulator.clientInfo.cep || '01310-100',
-      environment: envNamesList || `${newEnvName} (${newEnvArea}m²)`,
-      qualityTier: 'Intermediário',
-      finishPattern: 'MDF Padrão',
-      purchaseTimeline: 'Imediato',
-      environmentsData: simulator.environments,
-      estimatedMin: simulator.calculatedRange.min,
-      estimatedMax: simulator.calculatedRange.max,
-    });
+    if (!activeEnvironments || activeEnvironments.length === 0) {
+      setSubmitError('Adicione pelo menos um cômodo ao seu projeto.');
+      return;
+    }
 
-    // Inicia a animação de carregamento clean
+    // Inicia a animação de carregamento visual
     setIsLoading(true);
     setLoadingStepIndex(0);
+
+    const envsPayload = activeEnvironments.map((env) => ({
+      typeId: env.typeId,
+      name: env.name,
+      areaM2: env.areaM2,
+      ceilingHeight: env.ceilingHeight || 2.7,
+      wallCount: env.wallCount,
+    }));
+
+    try {
+      const result = await submitSimulationAndLead({
+        clientInfo: {
+          name: simulator.clientInfo.name,
+          phone: simulator.clientInfo.phone,
+          cep: simulator.clientInfo.cep,
+          email: simulator.clientInfo.email,
+        },
+        environments: envsPayload,
+      });
+
+      if (!result.success) {
+        setIsLoading(false);
+        setSubmitError(result.error || 'Falha ao processar orçamento no servidor. Tente novamente.');
+        return;
+      }
+
+      setSubmissionResult(result);
+      updateSimulator({
+        calculatedRange: {
+          min: result.budgetMin,
+          max: result.budgetMax,
+        },
+        clientInfo: {
+          ...simulator.clientInfo,
+          city: result.city,
+          state: result.state,
+        },
+      });
+
+      // Sincroniza localmente com o AppContext para navegação em tempo real
+      addLead({
+        name: simulator.clientInfo.name || 'Cliente Orçamento',
+        phone: simulator.clientInfo.phone || '(11) 99999-9999',
+        whatsapp: simulator.clientInfo.phone || '(11) 99999-9999',
+        email: simulator.clientInfo.email || 'cliente@email.com',
+        city: result.city,
+        state: result.state,
+        cep: simulator.clientInfo.cep,
+        environment: activeEnvironments.map((env) => `${env.name} (${env.areaM2}m²)`).join(', '),
+        qualityTier: 'Intermediário',
+        finishPattern: 'MDF Padrão',
+        purchaseTimeline: 'Imediato',
+        environmentsData: simulator.environments,
+        estimatedMin: result.budgetMin,
+        estimatedMax: result.budgetMax,
+        assignedStoreId: result.assignedStoreId || '',
+        assignedStoreName: result.assignedStoreName || 'Fila sem Cobertura',
+        status: 'novo',
+      });
+    } catch (err: any) {
+      setIsLoading(false);
+      setSubmitError(err?.message || 'Erro inesperado ao conectar com o servidor.');
+    }
   };
 
   // Efeito para alternar as mensagens de carregamento de forma fluida
@@ -178,11 +271,11 @@ export const SimulatorWizard: React.FC = () => {
           setTimeout(() => {
             setIsLoading(false);
             goToStep(4);
-          }, 800);
+          }, 600);
           return prev;
         }
       });
-    }, 900);
+    }, 700);
 
     return () => clearInterval(interval);
   }, [isLoading]);
@@ -544,6 +637,13 @@ export const SimulatorWizard: React.FC = () => {
 
           <div className="bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-8 space-y-6 max-w-xl mx-auto shadow-md">
             
+            {submitError && (
+              <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs font-bold text-red-700 flex items-center space-x-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{submitError}</span>
+              </div>
+            )}
+
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-[#1B2B48] uppercase tracking-wider mb-1.5">
@@ -554,6 +654,7 @@ export const SimulatorWizard: React.FC = () => {
                   required
                   value={simulator.clientInfo.name}
                   onChange={(e) => updateSimulator({ clientInfo: { ...simulator.clientInfo, name: e.target.value } })}
+                  placeholder="Ex: Ana Maria Silva"
                   className="w-full px-4 py-3.5 rounded-xl border border-slate-300 text-sm font-semibold text-[#1B2B48] outline-none focus:border-[#439346]"
                 />
               </div>
@@ -567,6 +668,7 @@ export const SimulatorWizard: React.FC = () => {
                   required
                   value={simulator.clientInfo.phone}
                   onChange={(e) => updateSimulator({ clientInfo: { ...simulator.clientInfo, phone: e.target.value } })}
+                  placeholder="Ex: (11) 98765-4321"
                   className="w-full px-4 py-3.5 rounded-xl border border-slate-300 text-sm font-semibold text-[#1B2B48] outline-none focus:border-[#439346]"
                 />
               </div>
@@ -578,20 +680,50 @@ export const SimulatorWizard: React.FC = () => {
                 <input
                   type="text"
                   required
+                  maxLength={9}
                   value={simulator.clientInfo.cep}
-                  onChange={(e) => updateSimulator({ clientInfo: { ...simulator.clientInfo, cep: e.target.value } })}
+                  onChange={(e) => handleCepChange(e.target.value)}
+                  onBlur={(e) => handleCepChange(e.target.value)}
+                  placeholder="Ex: 08674-000"
                   className="w-full px-4 py-3.5 rounded-xl border border-slate-300 text-sm font-semibold text-[#1B2B48] outline-none focus:border-[#439346]"
                 />
+
+                {/* Feedback dinâmico de localização por CEP */}
+                <div className="mt-2 min-h-[22px]">
+                  {cepLoading && (
+                    <div className="flex items-center space-x-1.5 text-xs text-slate-500 font-medium">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[#439346]" />
+                      <span>Consultando localidade nos serviços oficiais...</span>
+                    </div>
+                  )}
+                  {cepStatus?.valid && (
+                    <div className="inline-flex items-center space-x-1.5 text-xs text-[#439346] font-bold bg-[#EBF7EC] px-3 py-1 rounded-xl border border-[#439346]/20">
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span>Região identificada: {cepStatus.city}, {cepStatus.state}</span>
+                    </div>
+                  )}
+                  {cepStatus?.error && (
+                    <div className="inline-flex items-center space-x-1.5 text-xs text-red-600 font-bold bg-red-50 px-3 py-1 rounded-xl border border-red-200">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      <span>{cepStatus.error}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
+
+            <p className="text-[11px] text-slate-400 font-medium text-center leading-relaxed">
+              Ao avançar, seus dados são protegidos e compartilhados com até 1 loja parceira credenciada para elaboração do seu projeto detalhado.
+            </p>
 
             <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-40 sm:relative sm:border-0 sm:shadow-none sm:p-0 sm:bg-transparent">
               <div className="max-w-xl mx-auto">
                 <button
                   type="submit"
-                  className="w-full py-4 rounded-xl bg-[#439346] hover:bg-[#387F3B] active:scale-95 text-white font-extrabold text-sm sm:text-base uppercase tracking-wider transition-all flex items-center justify-center space-x-2 shadow-lg shadow-[#439346]/25"
+                  disabled={isLoading}
+                  className="w-full py-4 rounded-xl bg-[#439346] hover:bg-[#387F3B] disabled:opacity-60 active:scale-95 text-white font-extrabold text-sm sm:text-base uppercase tracking-wider transition-all flex items-center justify-center space-x-2 shadow-lg shadow-[#439346]/25"
                 >
-                  <span>Ver Orçamento Estimado</span>
+                  <span>{isLoading ? 'Calculando Orçamento...' : 'Ver Orçamento Estimado'}</span>
                   <ArrowRight className="w-5 h-5 shrink-0" />
                 </button>
               </div>
@@ -613,11 +745,46 @@ export const SimulatorWizard: React.FC = () => {
               Orçamento Estimado do Seu Projeto
             </h2>
             <p className="text-sm font-medium text-slate-600">
-              Calculado com base na projeção por m² de móveis planejados.
+              Calculado oficialmente com base na precificação por m² de móveis planejados.
             </p>
           </div>
 
           <div className="bg-[#1B2B48] text-white rounded-3xl p-8 sm:p-10 space-y-6 shadow-2xl text-center border border-[#283D64]">
+            
+            {/* Status do Roteamento Comercial */}
+            {submissionResult && (
+              <div className="max-w-lg mx-auto">
+                {submissionResult.distributionStatus === 'atribuido' ? (
+                  <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 text-left space-y-1">
+                    <div className="flex items-center justify-between text-emerald-400 font-extrabold text-xs uppercase tracking-wider">
+                      <span className="flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4" />
+                        Loja Parceira Atribuída
+                      </span>
+                      <span className="font-mono text-[10px] text-slate-400">Ref: #{submissionResult.simulationId.slice(0, 8)}</span>
+                    </div>
+                    <p className="text-xs text-slate-200">
+                      Sua solicitação em <strong>{submissionResult.city}/{submissionResult.state}</strong> foi enviada para:{' '}
+                      <strong className="text-emerald-300">{submissionResult.assignedStoreName || 'Loja Credenciada'}</strong>.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 text-left space-y-1">
+                    <div className="flex items-center justify-between text-amber-400 font-extrabold text-xs uppercase tracking-wider">
+                      <span className="flex items-center gap-1.5">
+                        <MapPin className="w-4 h-4" />
+                        Fila de Expansão Regional
+                      </span>
+                      <span className="font-mono text-[10px] text-slate-400">Ref: #{submissionResult.simulationId.slice(0, 8)}</span>
+                    </div>
+                    <p className="text-xs text-slate-200">
+                      Orçamento registrado com sucesso para <strong>{submissionResult.city}/{submissionResult.state}</strong>. Nossos consultores credenciados entrarão em contato.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="text-xs font-bold bg-[#EBF7EC] text-[#439346] w-fit mx-auto px-4 py-1.5 rounded-full">
               Estimativa Multi-Ambientes ({simulator.environments.length} {simulator.environments.length === 1 ? 'Cômodo' : 'Cômodos'})
             </div>

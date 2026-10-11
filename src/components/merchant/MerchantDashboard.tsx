@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   CheckCircle2, 
   Download, 
@@ -14,15 +14,28 @@ import {
   Sparkles,
   Lock,
   X,
-  DollarSign
+  DollarSign,
+  RefreshCw
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { LeadStatus } from '../../types';
+import { LeadStatus, Lead } from '../../types';
 import { LeadDetailDrawer } from './LeadDetailDrawer';
 import { MerchantERP } from './MerchantERP';
 import { MerchantAnalytics } from './MerchantAnalytics';
 import { OrderFolderModal } from './OrderFolderModal';
-import { Wrench, Activity, Users, Package, BarChart2 } from 'lucide-react';
+import { MerchantFinancialModal } from './MerchantFinancialModal';
+import { Wrench, Activity, Users, Package, BarChart2, CreditCard } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { switchDevelopmentStoreSession } from '../../lib/authService';
+
+const STORE_ID_TO_TENANT_UUID: Record<string, string> = {
+  'store-mogi': 'b1010000-0000-0000-0000-000000000001',
+  'store-suzano': 'b1020000-0000-0000-0000-000000000002',
+  'store-guarulhos': 'b1030000-0000-0000-0000-000000000003',
+  'store-sjc': 'b1040000-0000-0000-0000-000000000004',
+  'store-arujah': 'b1050000-0000-0000-0000-000000000005',
+  'store-sorocaba': 'b1060000-0000-0000-0000-000000000006',
+};
 
 export const MerchantDashboard: React.FC = () => {
   const { 
@@ -45,6 +58,8 @@ export const MerchantDashboard: React.FC = () => {
   // Modal States
   const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [isFinancialModalOpen, setIsFinancialModalOpen] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   // New Lead Form State
   const [newLeadForm, setNewLeadForm] = useState({
@@ -67,10 +82,89 @@ export const MerchantDashboard: React.FC = () => {
   const activePlan = simulatedPlanOverride || currentStore.plan;
   const isProPlan = activePlan === 'Pro';
 
-  // Filter leads assigned to this unit
-  const storeLeads = leads.filter(
-    (l) => l.assignedStoreId === currentStore.id || l.city.toLowerCase().includes(currentStore.city.toLowerCase()) || leads.length <= 6
+  const [realDbLeads, setRealDbLeads] = useState<Lead[]>([]);
+  const [loadingRealLeads, setLoadingRealLeads] = useState<boolean>(false);
+
+  // Autenticação correspondente à loja selecionada para garantir isolamento Multi-Tenant
+  const syncStoreAuthAndFetch = async () => {
+    setLoadingRealLeads(true);
+    setServerError(null);
+
+    try {
+      await switchDevelopmentStoreSession(selectedStoreId);
+
+      const tenantUuid = STORE_ID_TO_TENANT_UUID[selectedStoreId] || selectedStoreId;
+      const res = await supabase.rpc('get_store_leads', {
+        p_tenant_id: tenantUuid,
+      });
+
+      if (!res.error && res.data && res.data.success && Array.isArray(res.data.leads)) {
+        const mapped = res.data.leads.map((l: any) => ({
+          ...l,
+          assignedStoreId: selectedStoreId,
+          assignedStoreName: l.assignedStoreName || currentStore.name,
+          environmentsData: l.environmentsData || [],
+          notesList: l.notesList || [],
+        }));
+        setRealDbLeads(mapped);
+      }
+    } catch (err: any) {
+      console.warn('Erro ao consultar leads da loja no PostgreSQL:', err);
+    } finally {
+      setLoadingRealLeads(false);
+    }
+  };
+
+  useEffect(() => {
+    syncStoreAuthAndFetch();
+  }, [selectedStoreId]);
+
+  const handleStageChange = async (lead: Lead, targetStatus: LeadStatus) => {
+    setServerError(null);
+    if ((targetStatus === 'convertido' || targetStatus === 'perdido') && !lead.attachmentName) {
+      setSelectedLeadForDetail(lead);
+      return;
+    }
+
+    const assignmentId = lead.assignmentId || lead.id;
+    try {
+      const { data, error } = await supabase.rpc('update_lead_stage', {
+        p_assignment_id: assignmentId,
+        p_new_status: targetStatus,
+      });
+
+      if (error || !data?.success) {
+        const msg = error?.message || data?.error || 'Erro ao atualizar estágio do lead no servidor.';
+        setServerError(msg);
+        return;
+      }
+
+      if (targetStatus === 'convertido') {
+        await supabase.rpc('convert_lead_to_order', {
+          p_assignment_id: assignmentId,
+        });
+      }
+
+      updateLeadStatus(lead.id, targetStatus);
+      await syncStoreAuthAndFetch();
+    } catch (err: any) {
+      setServerError(err?.message || 'Erro inesperado.');
+    }
+  };
+
+  // Combina leads persistidos no PostgreSQL com a sessão local
+  const localMatchingLeads = leads.filter(
+    (l) => l.assignedStoreId === currentStore.id || l.assignedStoreId === (STORE_ID_TO_TENANT_UUID[selectedStoreId] || '')
   );
+
+  const mergedLeads = [
+    ...realDbLeads,
+    ...localMatchingLeads.filter((loc) => !realDbLeads.some((r) => r.id === loc.id)),
+  ];
+
+  const storeLeads = mergedLeads.length > 0 
+    ? mergedLeads 
+    : leads.filter((l) => l.assignedStoreId === currentStore.id || l.city.toLowerCase().includes(currentStore.city.toLowerCase()));
 
   // Time and Financial calculations
   const platformLeadsCount = storeLeads.filter(l => !l.isExternal && l.source !== 'instagram' && l.source !== 'google' && l.source !== 'indicacao' && l.source !== 'balcao').length;
@@ -107,37 +201,57 @@ export const MerchantDashboard: React.FC = () => {
     }
   };
 
-  const handleCreateExternalLead = (e: React.FormEvent) => {
+  const handleCreateExternalLead = async (e: React.FormEvent) => {
     e.preventDefault();
-    addLead({
-      name: newLeadForm.name,
-      phone: newLeadForm.phone,
-      whatsapp: newLeadForm.phone,
-      email: newLeadForm.email || 'cliente@externo.com',
-      city: newLeadForm.city || currentStore.city,
-      state: newLeadForm.state,
-      cep: '00000-000',
-      environment: newLeadForm.environment,
-      estimatedMin: Number(newLeadForm.estimatedMin),
-      estimatedMax: Number(newLeadForm.estimatedMax),
-      assignedStoreId: currentStore.id,
-      assignedStoreName: currentStore.name,
-      status: 'novo',
-      source: newLeadForm.source,
-      isExternal: true,
-    });
-    setIsAddLeadModalOpen(false);
-    setNewLeadForm({
-      name: '',
-      phone: '',
-      email: '',
-      city: '',
-      state: 'SP',
-      environment: 'Cozinha & Dormitório',
-      source: 'instagram',
-      estimatedMin: 15000,
-      estimatedMax: 22000,
-    });
+    setServerError(null);
+
+    // Validação estrita de plano no frontend e backend
+    if (!isProPlan) {
+      setIsAddLeadModalOpen(false);
+      setIsUpgradeModalOpen(true);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.rpc('create_external_lead', {
+        p_name: newLeadForm.name,
+        p_phone: newLeadForm.phone,
+        p_environment: newLeadForm.environment,
+        p_source: newLeadForm.source,
+        p_city: newLeadForm.city || currentStore.city,
+        p_state_uf: newLeadForm.state || 'SP',
+        p_estimated_min: Number(newLeadForm.estimatedMin),
+        p_estimated_max: Number(newLeadForm.estimatedMax),
+        p_email: newLeadForm.email || null,
+      });
+
+      if (error || !data?.success) {
+        const errMsg = error?.message || data?.error || 'Erro ao cadastrar lead no servidor.';
+        setServerError(errMsg);
+        if (errMsg.includes('Plano Pro')) {
+          setIsAddLeadModalOpen(false);
+          setIsUpgradeModalOpen(true);
+        }
+        return;
+      }
+
+      setIsAddLeadModalOpen(false);
+      setNewLeadForm({
+        name: '',
+        phone: '',
+        email: '',
+        city: '',
+        state: 'SP',
+        environment: 'Cozinha & Dormitório',
+        source: 'instagram',
+        estimatedMin: 15000,
+        estimatedMax: 22000,
+      });
+
+      await syncStoreAuthAndFetch();
+    } catch (err: any) {
+      setServerError(err?.message || 'Falha ao conectar com o banco.');
+    }
   };
 
   const handleExportCSV = () => {
@@ -238,6 +352,14 @@ export const MerchantDashboard: React.FC = () => {
               </span>
             )}
           </button>
+
+          <button
+            onClick={() => setIsFinancialModalOpen(true)}
+            className="px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200/60"
+          >
+            <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
+            Faturas & Assinatura
+          </button>
         </div>
 
         {/* Action Controls & Plan Toggle (Modo Teste) */}
@@ -288,12 +410,21 @@ export const MerchantDashboard: React.FC = () => {
             <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
           </div>
 
+          <button
+            onClick={syncStoreAuthAndFetch}
+            disabled={loadingRealLeads}
+            title="Sincronizar leads com o PostgreSQL"
+            className="p-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl text-slate-600 transition-colors flex items-center justify-center shrink-0 cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loadingRealLeads ? 'animate-spin text-[#439346]' : ''}`} />
+          </button>
+
         </div>
 
       </div>
 
       {merchantTab === 'erp' ? (
-        <MerchantERP merchantPlan={activePlan} />
+        <MerchantERP merchantPlan={activePlan} storeId={selectedStoreId} />
       ) : merchantTab === 'analytics' ? (
         isProPlan ? <MerchantAnalytics /> : (
           <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center max-w-3xl mx-auto my-8 shadow-sm">
@@ -357,6 +488,13 @@ export const MerchantDashboard: React.FC = () => {
       {/* Main CRM Toolbar & Filtering */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-5 space-y-4">
         
+        {serverError && (
+          <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-xl flex items-center justify-between animate-in fade-in">
+            <span>⚠️ {serverError}</span>
+            <button onClick={() => setServerError(null)} className="text-red-400 hover:text-red-700 font-black ml-2">✕</button>
+          </div>
+        )}
+
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
           
           {/* Search Box */}
@@ -513,7 +651,7 @@ export const MerchantDashboard: React.FC = () => {
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         <select
                           value={lead.status}
-                          onChange={(e) => updateLeadStatus(lead.id, e.target.value as LeadStatus)}
+                          onChange={(e) => handleStageChange(lead, e.target.value as LeadStatus)}
                           className="px-2.5 py-1 rounded-lg text-xs font-bold border outline-none cursor-pointer bg-white border-slate-300"
                         >
                           <option value="novo">● Novo Lead</option>
@@ -599,11 +737,7 @@ export const MerchantDashboard: React.FC = () => {
                             value={lead.status}
                             onChange={(e) => {
                               const targetStatus = e.target.value as LeadStatus;
-                              if ((targetStatus === 'orcado' || targetStatus === 'convertido' || targetStatus === 'perdido') && !lead.attachmentName) {
-                                setSelectedLeadForDetail(lead);
-                                return;
-                              }
-                              updateLeadStatus(lead.id, targetStatus);
+                              handleStageChange(lead, targetStatus);
                             }}
                             className="text-[10px] font-bold border border-slate-200 rounded px-1.5 py-1 bg-slate-50 text-slate-700 focus:outline-none"
                           >
@@ -793,6 +927,14 @@ export const MerchantDashboard: React.FC = () => {
           onClose={() => setSelectedOrderForFolder(null)}
         />
       )}
+
+      {/* Modal Portal Financeiro da Loja */}
+      <MerchantFinancialModal
+        isOpen={isFinancialModalOpen}
+        onClose={() => setIsFinancialModalOpen(false)}
+        tenantId={STORE_ID_TO_TENANT_UUID[selectedStoreId] || selectedStoreId}
+        storeName={currentStore.name}
+      />
 
     </div>
   );
