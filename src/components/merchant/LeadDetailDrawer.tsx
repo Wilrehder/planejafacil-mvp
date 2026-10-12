@@ -31,6 +31,7 @@ export const LeadDetailDrawer: React.FC = () => {
   const [newCommentText, setNewCommentText] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [recommendationNotice, setRecommendationNotice] = useState<string | null>(null);
 
   if (!selectedLeadForDetail) return null;
 
@@ -114,8 +115,6 @@ export const LeadDetailDrawer: React.FC = () => {
       setIsUploading(false);
     }
   };
-
-  const [recommendationNotice, setRecommendationNotice] = useState<string | null>(null);
 
   const handleStageChangeAttempt = async (targetStatus: LeadStatus) => {
     setValidationError(null);

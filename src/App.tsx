@@ -10,8 +10,20 @@ import { LeadDetailDrawer } from './components/merchant/LeadDetailDrawer';
 import { MerchantDashboard } from './components/merchant/MerchantDashboard';
 import { AppProvider, useApp } from './context/AppContext';
 
+import { LoginModal } from './components/auth/LoginModal';
+import { MustChangePasswordModal } from './components/auth/MustChangePasswordModal';
+
 const MainContent: React.FC = () => {
-  const { role, consumerTab } = useApp();
+  const { 
+    role, 
+    consumerTab, 
+    isLoginModalOpen, 
+    setIsLoginModalOpen, 
+    isMustChangePasswordOpen, 
+    setIsMustChangePasswordOpen,
+    loginSuccess,
+    currentUser
+  } = useApp();
 
   return (
     <div className="min-h-screen flex flex-col bg-surface-bg text-slate-800 antialiased selection:bg-brand-600 selection:text-white">
@@ -37,6 +49,18 @@ const MainContent: React.FC = () => {
       </div>
 
       {role === 'consumer' && consumerTab !== 'simulator' && <Footer />}
+
+      {/* Official Auth Modals */}
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onSuccess={(context) => loginSuccess(context)}
+      />
+
+      <MustChangePasswordModal
+        isOpen={isMustChangePasswordOpen}
+        onSuccess={() => setIsMustChangePasswordOpen(false)}
+      />
     </div>
   );
 };

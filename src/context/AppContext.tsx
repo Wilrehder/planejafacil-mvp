@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
+import { supabase } from '../lib/supabase';
+import { getCurrentUserContext, signOutUser, AuthenticatedUserContext } from '../lib/authService';
 import { INITIAL_LEADS, INITIAL_ORDERS, INITIAL_STORES, QUALITY_TIERS } from '../data/mockData';
 import { 
   AdminTab, 
@@ -69,6 +71,16 @@ interface AppContextType {
   setSelectedOrderForFolder: (order: StoreOrder | null) => void;
   updateOrder: (id: string, updates: Partial<StoreOrder>, auditAction?: string, userRole?: string, userName?: string) => void;
   
+  // Authentication & Session
+  currentUser: AuthenticatedUserContext | null;
+  isLoginModalOpen: boolean;
+  setIsLoginModalOpen: (open: boolean) => void;
+  isMustChangePasswordOpen: boolean;
+  setIsMustChangePasswordOpen: (open: boolean) => void;
+  loginSuccess: (context: AuthenticatedUserContext) => void;
+  logout: () => Promise<void>;
+  isHomologationMode: boolean;
+
   // Utilities
   triggerConfetti: () => void;
 }
@@ -131,6 +143,79 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [adminTab, setAdminTab] = useState<AdminTab>('finance');
   const [merchantTab, setMerchantTab] = useState<MerchantTab>('dashboard');
   const [consumerTab, setConsumerTab] = useState<'landing' | 'simulator'>('landing');
+
+  // Supabase Auth Session & Definite Profile
+  const [currentUser, setCurrentUser] = useState<AuthenticatedUserContext | null>(null);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isMustChangePasswordOpen, setIsMustChangePasswordOpen] = useState(false);
+  const isHomologationMode = import.meta.env.VITE_APP_ENV === 'homologation' || import.meta.env.DEV;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    // Sincronizar sessão oficial
+    getCurrentUserContext().then((ctx) => {
+      if (!isMounted || !ctx) return;
+      setCurrentUser(ctx);
+      if (ctx.role === 'platform_admin') {
+        setRole('admin');
+      } else if (ctx.role === 'store_owner' || ctx.role === 'store_operator') {
+        setRole('merchant');
+      }
+      if (ctx.mustChangePassword) {
+        setIsMustChangePasswordOpen(true);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        if (isMounted) {
+          setCurrentUser(null);
+          setRole('consumer');
+          setConsumerTab('landing');
+        }
+      } else if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        const ctx = await getCurrentUserContext();
+        if (isMounted && ctx) {
+          setCurrentUser(ctx);
+          if (ctx.role === 'platform_admin') {
+            setRole('admin');
+          } else if (ctx.role === 'store_owner' || ctx.role === 'store_operator') {
+            setRole('merchant');
+          }
+          if (ctx.mustChangePassword) {
+            setIsMustChangePasswordOpen(true);
+          }
+        }
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const loginSuccess = (context: AuthenticatedUserContext) => {
+    setCurrentUser(context);
+    if (context.role === 'platform_admin') {
+      setRole('admin');
+      setAdminTab('finance');
+    } else if (context.role === 'store_owner' || context.role === 'store_operator') {
+      setRole('merchant');
+      setMerchantTab('dashboard');
+    }
+    if (context.mustChangePassword) {
+      setIsMustChangePasswordOpen(true);
+    }
+  };
+
+  const logout = async () => {
+    await signOutUser();
+    setCurrentUser(null);
+    setRole('consumer');
+    setConsumerTab('landing');
+  };
 
   const [leads, setLeads] = useState<Lead[]>(INITIAL_LEADS);
   const [stores, setStores] = useState<Store[]>(INITIAL_STORES);
@@ -568,6 +653,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSelectedOrderForFolder,
         updateOrder,
         triggerConfetti,
+        currentUser,
+        isLoginModalOpen,
+        setIsLoginModalOpen,
+        isMustChangePasswordOpen,
+        setIsMustChangePasswordOpen,
+        loginSuccess,
+        logout,
+        isHomologationMode,
       }}
     >
       {children}

@@ -450,3 +450,82 @@ export async function toggleERPStageRule(
     return { success: false, error: err?.message || 'Erro ao configurar regra de documentos do ERP.' };
   }
 }
+
+/**
+ * Reprocessa uma fatura aberta para incluir novos leads faturáveis da competência
+ */
+export async function reprocessMonthlyInvoice(invoiceId: string): Promise<{
+  success: boolean;
+  status?: string;
+  additionalLeads?: number;
+  additionalAmount?: number;
+  totalLeadsCount?: number;
+  totalDue?: number;
+  message?: string;
+  error?: string;
+}> {
+  try {
+    const { data, error } = await supabase.rpc('reprocess_monthly_invoice', {
+      p_invoice_id: invoiceId,
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return {
+      success: data?.success || false,
+      status: data?.status,
+      additionalLeads: data?.additional_leads,
+      additionalAmount: data?.additional_amount,
+      totalLeadsCount: data?.total_leads_count,
+      totalDue: data?.total_due,
+      message: data?.message,
+      error: data?.error,
+    };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Erro ao reprocessar fatura.' };
+  }
+}
+
+/**
+ * Reatribui administrativamente um lead de uma loja para outra, cancelando a cobranca anterior
+ */
+export async function adminReassignLead(
+  leadId: string,
+  newTenantId: string,
+  reason: string
+): Promise<{
+  success: boolean;
+  leadId?: string;
+  oldTenantId?: string;
+  newTenantId?: string;
+  newAssignmentId?: string;
+  newStoreName?: string;
+  error?: string;
+}> {
+  try {
+    const { data, error } = await supabase.rpc('admin_reassign_lead', {
+      p_lead_id: leadId,
+      p_new_tenant_id: newTenantId,
+      p_reason: reason,
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return {
+      success: data?.success || false,
+      leadId: data?.lead_id,
+      oldTenantId: data?.old_tenant_id,
+      newTenantId: data?.new_tenant_id,
+      newAssignmentId: data?.new_assignment_id,
+      newStoreName: data?.new_store_name,
+      error: data?.error,
+    };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Erro ao reatribuir lead.' };
+  }
+}
+

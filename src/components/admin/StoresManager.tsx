@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Building2, Plus, Search, ShieldCheck, X, Check, Award, Zap, Phone, Mail, MapPin, Edit, Sparkles, Filter, ExternalLink, Power, PowerOff } from 'lucide-react';
+import { Building2, Plus, Search, ShieldCheck, X, Check, Award, Zap, Phone, Mail, MapPin, Edit, Sparkles, Filter, ExternalLink, Power, PowerOff, Users, KeyRound } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { STORE_PLANS } from '../../data/mockData';
 import { Store } from '../../types';
 import { saveStoreAndSubscription, setStoreSuspension } from '../../lib/financialService';
+import { provisionStoreAndUser } from '../../lib/authService';
+import { StoreUsersModal } from './StoreUsersModal';
 
 export const StoresManager: React.FC = () => {
   const { stores, addStore, isStoreModalOpen, setIsStoreModalOpen, leads, storeApplications, updateStoreApplicationStatus } = useApp();
@@ -12,6 +14,10 @@ export const StoresManager: React.FC = () => {
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('todos');
   const [activeTab, setActiveTab] = useState<'stores_list' | 'applications' | 'plans_info'>('stores_list');
   const [editingStore, setEditingStore] = useState<Store | null>(null);
+
+  // Modal de Gestão de Usuários da Loja
+  const [selectedStoreForUsers, setSelectedStoreForUsers] = useState<{ id: string; name: string; city: string } | null>(null);
+  const [isUsersModalOpen, setIsUsersModalOpen] = useState(false);
 
   const [formStore, setFormStore] = useState({
     name: '',
@@ -28,6 +34,9 @@ export const StoresManager: React.FC = () => {
     contractedPrice: 219.90,
     billingDueDay: 10,
     routingEnabled: true,
+    ownerEmail: '',
+    tempPassword: 'PlanejaFacil2026!',
+    mustChangePassword: true,
   });
 
   const filteredStores = stores.filter((s) => {
@@ -60,6 +69,9 @@ export const StoresManager: React.FC = () => {
       contractedPrice: 219.90,
       billingDueDay: 10,
       routingEnabled: true,
+      ownerEmail: '',
+      tempPassword: 'PlanejaFacil2026!',
+      mustChangePassword: true,
     });
     setIsStoreModalOpen(true);
   };
@@ -81,6 +93,9 @@ export const StoresManager: React.FC = () => {
       contractedPrice: store.monthlyRevenue || (store.plan === 'Pro' ? 219.90 : 119.90),
       billingDueDay: 10,
       routingEnabled: store.status === 'Ativa',
+      ownerEmail: store.email || '',
+      tempPassword: 'PlanejaFacil2026!',
+      mustChangePassword: false,
     });
     setIsStoreModalOpen(true);
   };
@@ -113,20 +128,41 @@ export const StoresManager: React.FC = () => {
     const monthlyRev = Number(formStore.contractedPrice) || (formStore.plan === 'Pro' ? 219.90 : 119.90);
 
     try {
-      await saveStoreAndSubscription({
-        storeId: editingStore ? editingStore.id : undefined,
-        name: formStore.name,
-        cnpj: formStore.cnpj,
-        cityName: formStore.city,
-        stateUf: formStore.state,
-        planTier: formStore.plan.toLowerCase() as 'basic' | 'pro',
-        contractedPrice: monthlyRev,
-        billingDueDay: Number(formStore.billingDueDay) || 10,
-        phone: formStore.phone,
-        email: formStore.email,
-        responsibleName: formStore.responsibleName,
-        isRoutingEnabled: formStore.routingEnabled && formStore.status === 'Ativa',
-      });
+      if (editingStore) {
+        await saveStoreAndSubscription({
+          storeId: editingStore.id,
+          name: formStore.name,
+          cnpj: formStore.cnpj,
+          cityName: formStore.city,
+          stateUf: formStore.state,
+          planTier: formStore.plan.toLowerCase() as 'basic' | 'pro',
+          contractedPrice: monthlyRev,
+          billingDueDay: Number(formStore.billingDueDay) || 10,
+          phone: formStore.phone,
+          email: formStore.email,
+          responsibleName: formStore.responsibleName,
+          isRoutingEnabled: formStore.routingEnabled && formStore.status === 'Ativa',
+        });
+      } else {
+        await provisionStoreAndUser({
+          name: formStore.name,
+          cnpj: formStore.cnpj,
+          responsibleName: formStore.responsibleName,
+          cityName: formStore.city,
+          stateUf: formStore.state,
+          phone: formStore.phone,
+          whatsapp: formStore.whatsapp,
+          email: formStore.email,
+          planTier: formStore.plan.toLowerCase() as any,
+          contractedPrice: monthlyRev,
+          billingDueDay: Number(formStore.billingDueDay) || 10,
+          isRoutingEnabled: formStore.routingEnabled && formStore.status === 'Ativa',
+          ownerEmail: formStore.ownerEmail || formStore.email,
+          ownerName: formStore.responsibleName || formStore.name,
+          tempPassword: formStore.tempPassword || 'PlanejaFacil2026!',
+          mustChangePassword: formStore.mustChangePassword ?? true,
+        });
+      }
     } catch (err) {
       console.warn('Erro ao salvar no PostgreSQL:', err);
     }
@@ -439,6 +475,18 @@ export const StoresManager: React.FC = () => {
                           >
                             {store.status === 'Inativa' ? <Power className="w-3.5 h-3.5" /> : <PowerOff className="w-3.5 h-3.5" />}
                             <span>{store.status === 'Inativa' ? 'Reativar' : 'Suspender'}</span>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setSelectedStoreForUsers({ id: store.id, name: store.name, city: store.city });
+                              setIsUsersModalOpen(true);
+                            }}
+                            className="px-3.5 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs border border-purple-200 transition-all inline-flex items-center space-x-1.5 cursor-pointer"
+                            title="Gerenciar usuários e acessos desta loja"
+                          >
+                            <Users className="w-3.5 h-3.5" />
+                            <span>Acessos</span>
                           </button>
 
                           <button
@@ -824,6 +872,49 @@ export const StoresManager: React.FC = () => {
                 </div>
               </div>
 
+              {/* Row 8: CREDENCIAIS DE ACESSO DO RESPONSÁVEL (Apenas no credenciamento inicial) */}
+              {!editingStore && (
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                  <div className="flex items-center space-x-2 text-xs font-bold text-purple-700 uppercase">
+                    <KeyRound className="w-4 h-4" />
+                    <span>Credenciais Iniciais de Acesso do Responsável</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">E-mail de Login *</label>
+                      <input
+                        type="email"
+                        required
+                        value={formStore.ownerEmail}
+                        onChange={(e) => setFormStore({ ...formStore, ownerEmail: e.target.value })}
+                        placeholder="login.lojista@loja.com"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-600 bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Senha Inicial Provisória *</label>
+                      <input
+                        type="text"
+                        required
+                        value={formStore.tempPassword}
+                        onChange={(e) => setFormStore({ ...formStore, tempPassword: e.target.value })}
+                        placeholder="PlanejaFacil2026!"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold font-mono focus:outline-none focus:ring-2 focus:ring-purple-600 bg-white"
+                      />
+                    </div>
+                  </div>
+                  <label className="flex items-center space-x-2 text-xs font-semibold text-slate-700 cursor-pointer pt-1">
+                    <input
+                      type="checkbox"
+                      checked={formStore.mustChangePassword}
+                      onChange={(e) => setFormStore({ ...formStore, mustChangePassword: e.target.checked })}
+                      className="w-4 h-4 text-purple-600 rounded border-slate-300 focus:ring-purple-500"
+                    />
+                    <span>Exigir que o lojista altere a senha no primeiro acesso</span>
+                  </label>
+                </div>
+              )}
+
               <div className="pt-3 flex items-center space-x-3">
                 <button
                   type="button"
@@ -844,6 +935,18 @@ export const StoresManager: React.FC = () => {
 
           </div>
         </div>
+      )}
+
+      {/* MODAL DE GESTÃO DE USUÁRIOS */}
+      {selectedStoreForUsers && (
+        <StoreUsersModal
+          isOpen={isUsersModalOpen}
+          onClose={() => {
+            setIsUsersModalOpen(false);
+            setSelectedStoreForUsers(null);
+          }}
+          store={selectedStoreForUsers}
+        />
       )}
 
     </div>

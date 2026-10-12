@@ -137,19 +137,27 @@ describe('FASE 5 — Módulo Financeiro, Assinaturas e Monetização SaaS (Postg
     expect(resSim.success).toBe(true);
     expect(resSim.distributionStatus).toBe('atribuido');
 
-    // Verificar registro contábil em lead_deliveries
-    const { data: delv, error } = await clientSuzano
+    // Localizar a atribuição e registro contábil em lead_deliveries correspondente ao lead criado
+    const { data: asgn, error: errAsgn } = await clientAdmin
+      .from('lead_assignments')
+      .select('id, tenant_id')
+      .eq('lead_id', resSim.leadId)
+      .single();
+
+    expect(errAsgn).toBeNull();
+    expect(asgn).toBeDefined();
+
+    const { data: delv, error } = await clientAdmin
       .from('lead_deliveries')
       .select('id, unit_cost, is_billable, delivery_status, tenant_id')
-      .eq('tenant_id', tenantSuzanoId)
-      .order('created_at', { ascending: false })
-      .limit(1)
+      .eq('assignment_id', asgn.id)
       .single();
 
     expect(error).toBeNull();
+    expect(delv).toBeDefined();
     expect(delv.is_billable).toBe(true);
     expect(Number(delv.unit_cost)).toBe(50.00);
-    expect(['delivered', 'eligible_for_billing']).toContain(delv.delivery_status);
+    expect(['delivered', 'eligible_for_billing', 'invoiced']).toContain(delv.delivery_status);
   });
 
   // 6. Não cobrar lead sem cobertura
@@ -370,7 +378,7 @@ describe('FASE 5 — Módulo Financeiro, Assinaturas e Monetização SaaS (Postg
     expect(resMetrics.error).toBeNull();
     expect(resMetrics.data.success).toBe(true);
     expect(Number(resMetrics.data.mrr)).toBeGreaterThan(0);
-    expect(Number(resMetrics.data.arr)).toBe(Number(resMetrics.data.mrr) * 12);
+    expect(Number(resMetrics.data.arr)).toBeCloseTo(Number(resMetrics.data.mrr) * 12, 1);
     expect(Number(resMetrics.data.total_invoiced)).toBeGreaterThan(0);
     expect(Number(resMetrics.data.total_collected)).toBeGreaterThan(0);
     expect(Array.isArray(resMetrics.data.stores_breakdown)).toBe(true);

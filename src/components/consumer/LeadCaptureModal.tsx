@@ -3,6 +3,8 @@ import { CheckCircle2, Phone, Mail, MapPin, User, X, ArrowRight, ShieldCheck } f
 import { useApp } from '../../context/AppContext';
 import { ENVIRONMENTS, FINISHES, HARDWARE_OPTIONS, LAYOUT_OPTIONS, DOOR_TYPE_OPTIONS, FURNITURE_MODULES } from '../../data/mockData';
 
+import { submitSimulationAndLead } from '../../lib/simulationService';
+
 export const LeadCaptureModal: React.FC = () => {
   const {
     isLeadCaptureOpen,
@@ -24,31 +26,86 @@ export const LeadCaptureModal: React.FC = () => {
 
   const [isSuccess, setIsSuccess] = useState(false);
   const [createdLeadId, setCreatedLeadId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (!isLeadCaptureOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    setErrorMessage(null);
 
     const envSummaryStr = simulator.environments.map((env) => `${env.name} (${env.areaM2}m²)`).join(', ');
 
-    const newLead = addLead({
-      name: formData.name,
-      phone: formData.phone,
-      whatsapp: formData.whatsapp.replace(/\D/g, ''),
-      email: formData.email,
-      city: formData.city,
-      state: simulator.clientInfo.state || 'SP',
-      cep: simulator.clientInfo.cep || '04538-133',
-      environment: envSummaryStr || 'Cozinha Principal',
-      environmentsData: simulator.environments,
-      estimatedMin: simulator.calculatedRange.min,
-      estimatedMax: simulator.calculatedRange.max,
-    });
+    try {
+      const activeEnvs = simulator.environments.length > 0 ? simulator.environments : [{
+        id: 'env-1',
+        typeId: 'cozinha',
+        name: 'Cozinha Planejada',
+        areaM2: 12,
+        wallCount: 3 as 1 | 2 | 3 | 4,
+        ceilingHeight: 2.7,
+        walls: []
+      }];
 
-    setCreatedLeadId(newLead.id);
-    setIsSuccess(true);
-    triggerConfetti();
+      const res = await submitSimulationAndLead({
+        clientInfo: {
+          name: formData.name,
+          phone: formData.phone,
+          cep: simulator.clientInfo.cep || '04538-133',
+          email: formData.email,
+        },
+        environments: activeEnvs.map(e => ({
+          typeId: e.typeId,
+          name: e.name,
+          areaM2: e.areaM2,
+          ceilingHeight: e.ceilingHeight || 2.7,
+          wallCount: e.wallCount as 1 | 2 | 3 | 4,
+        }))
+      });
+
+      const newLead = addLead({
+        id: res.leadId,
+        name: formData.name,
+        phone: formData.phone,
+        whatsapp: formData.whatsapp.replace(/\D/g, ''),
+        email: formData.email,
+        city: res.city || formData.city,
+        state: res.state || simulator.clientInfo.state || 'SP',
+        cep: simulator.clientInfo.cep || '04538-133',
+        environment: envSummaryStr || 'Cozinha Principal',
+        environmentsData: simulator.environments,
+        estimatedMin: res.budgetMin || simulator.calculatedRange.min,
+        estimatedMax: res.budgetMax || simulator.calculatedRange.max,
+        assignedStoreName: res.assignedStoreName,
+        assignedStoreId: res.assignedStoreId,
+      });
+
+      setCreatedLeadId(newLead.id);
+      setIsSuccess(true);
+      triggerConfetti();
+    } catch (err: any) {
+      console.warn('Fallback para lead local:', err);
+      const newLead = addLead({
+        name: formData.name,
+        phone: formData.phone,
+        whatsapp: formData.whatsapp.replace(/\D/g, ''),
+        email: formData.email,
+        city: formData.city,
+        state: simulator.clientInfo.state || 'SP',
+        cep: simulator.clientInfo.cep || '04538-133',
+        environment: envSummaryStr || 'Cozinha Principal',
+        environmentsData: simulator.environments,
+        estimatedMin: simulator.calculatedRange.min,
+        estimatedMax: simulator.calculatedRange.max,
+      });
+      setCreatedLeadId(newLead.id);
+      setIsSuccess(true);
+      triggerConfetti();
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClose = () => {

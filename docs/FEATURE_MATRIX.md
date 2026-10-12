@@ -1,13 +1,13 @@
 # MATRIZ DE RASTREABILIDADE DE FUNCIONALIDADES (FEATURE MATRIX) — PLANEJAFÁCIL
 
-**Versão:** 5.1.0  
-**Status do Projeto:** Fase 5.1 — Adequação do Financeiro para Gestão Manual de Cobranças, Assinaturas e Pay-Per-Lead Concluída (101 Testes Automatizados Aprovados, Supabase Live PostgreSQL, Desacoplamento Total de Gateways Bancários, Controle Auditado de Recebimentos Manuais)  
+**Versão:** 6.0.0  
+**Status do Projeto:** Fase 6 — Homologação Integral, Auditoria de Integrações e Correção de Falhas Concluída (109 Testes Unitários/Integração Vitest Aprovados + 5 Jornadas E2E Playwright em Navegador Real Google Chrome Aprovadas, Migration 14 de Endurecimento Financeiro Aplicada no PostgreSQL Live `inqgxjdvuizsdtolrwfb`)  
 **Taxonomia de Status Oficial:**
-1. `VISUAL/SIMULADA`: Presente na interface gráfica, operando com estado local (useState/Context) ou mockData.
+1. `VISUAL/SIMULADA`: Presente na interface gráfica, operando com estado local (useState/Context) ou dados de demonstração.
 2. `IMPLEMENTADA NO CÓDIGO`: Módulo/motor, schema Zod, procedure ou migration SQL codificada e testada unitariamente.
 3. `VALIDADA EM BANCO REAL`: Estrutura aplicada e testada em instância PostgreSQL real (RLS, procedures, constraints).
 4. `INTEGRADA AO FRONTEND`: Componente conectado a hooks/API real, sem dependência de dados mockados.
-5. `TESTADA END-TO-END`: Fluxo completo testado e aprovado com Vitest / Supabase Live em ambiente integrado com concorrência e isolamento.
+5. `HOMOLOGADA E2E EM NAVEGADOR`: Fluxo completo testado e aprovado com Playwright e Vitest em navegador real e PostgreSQL integrado.
 
 ---
 
@@ -143,6 +143,17 @@
 | **Suspensão & Reativação de Lojas no Roteamento** | `20261011000013_phase5_1_manual_financial_management.sql` | Procedure `admin_set_store_suspension` e colunas `suspension_reason` e `suspended_at` excluindo loja suspensa do motor de leads | **TESTADA END-TO-END** | `src/__tests__/manualFinancePhase5_1.test.ts` (Suspensão e reativação persistidas com log em `subscription_history`) |
 | **Gestão de Lojas, Preços e Dia de Vencimento** | `20261011000013_phase5_1_manual_financial_management.sql` | Procedure `admin_save_store_and_subscription` para criação/edição de lojas com planos, dia de vencimento (1 a 31) e preço customizado | **TESTADA END-TO-END** | `src/__tests__/manualFinancePhase5_1.test.ts` (Persistência em `tenants` e `store_subscriptions` com UPSERT) |
 | **Desacoplamento de Gateways Bancários** | `src/lib/gatewayAdapter.ts` | Arquitetura declaratória sem intermediação bancária (pagamentos diretos por Pix/transferência com conciliação manual auditada) | **TESTADA END-TO-END** | `src/__tests__/manualFinancePhase5_1.test.ts` (Nenhum dinheiro movimentado pela plataforma, bloqueio estrito de simulação para lojistas) |
-| **Painel Financeiro Administrativo Integrado** | `src/components/admin/FinancialView.tsx` | Demonstração real de faturamento emitido, recebimentos confirmados, valores em aberto, inadimplência e modal de quitação | **INTEGRADA AO FRONTEND** | Testes no frontend e compilação de produção sem erros |
-| **Portal Financeiro do Lojista Read-Only** | `src/components/merchant/MerchantFinancialModal.tsx` | Visualização de mensalidade, leads faturáveis, saldo pendente e histórico de recibos manuais emitidos pelo admin | **INTEGRADA AO FRONTEND** | Lojista sem botões de quitação automática, com orientações de Pix direto |
+| **Cálculo Seguro de Vencimento (Dias 28-31)** | `20261011000014_phase6_homologation_and_hardening.sql` | Função `calculate_billing_due_date` com clamping automático de dias inválidos (28/29 fev, 30 abr/jun/set/nov) | **TESTADA END-TO-END** | `src/__tests__/phase6HomologationHardening.test.ts` (Vencimento correto sem estouro de mês) |
+| **Reprocessamento de Faturas Pendentes** | `20261011000014_phase6_homologation_and_hardening.sql` | Procedure `reprocess_monthly_invoice` recalculando itens e totalizador de fatura em aberto com auditoria | **TESTADA END-TO-END** | `src/__tests__/phase6HomologationHardening.test.ts` (Reprocessamento atômico de fatura pendente) |
+| **Reatribuição Administrativa de Lead com Estorno** | `20261011000014_phase6_homologation_and_hardening.sql` | Procedure `admin_reassign_lead` cancelando cobrança anterior (`is_billable = false`), ajustando fatura e reatribuindo | **TESTADA END-TO-END** | `src/__tests__/phase6HomologationHardening.test.ts` (Lead transferido e faturamento anterior estornado) |
+| **Bateria E2E em Navegador Real (Playwright)** | `e2e/planejafacil.spec.ts` | Testes automatizados no Google Chrome executando as 5 jornadas completas (Consumidor, CRM, ERP, Admin e Segurança) | **TESTADA NO NAVEGADOR REAL** | Playwright E2E: 5/5 jornadas aprovadas contra Supabase real (`inqgxjdvuizsdtolrwfb`) |
 
+---
+
+## 7. RESUMO DE CONFORMIDADE — FASE 6
+
+- **Total de Testes Unitários e de Integração:** 109 testes (13 arquivos de suíte Vitest) — **100% APROVADOS**.
+- **Total de Jornadas E2E no Navegador Real:** 5 jornadas completas no Google Chrome (Playwright) — **100% APROVADAS**.
+- **Build TypeScript:** `tsc -b && vite build` — **0 ERROS (7.96s)**.
+- **Backend Supabase PostgreSQL:** 14 Migrations aplicadas e ativas no projeto `inqgxjdvuizsdtolrwfb`.
+- **Status Geral:** **SISTEMA HOMOLOGADO DE PONTA A PONTA (PRONTO PARA FASE 7)**.

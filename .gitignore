@@ -11,7 +11,11 @@ node_modules
 dist
 dist-ssr
 *.local
+# Local Environment Files & Secrets
 .env
+.env.*
+!.env.example
+*.local
 
 # Editor directories and files
 .vscode/*
@@ -23,3 +27,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Testing & Artifacts
+test-results/
+playwright-report/
+blob-report/
+.tempmediaStorage/
+
+# Deployment
+.vercel

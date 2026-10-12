@@ -6,6 +6,8 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   test: {
+    include: ['src/__tests__/**/*.test.ts'],
+    exclude: ['e2e/**'],
     fileParallelism: false,
     testTimeout: 20000,
   },
