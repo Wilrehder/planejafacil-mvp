@@ -21,7 +21,6 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@oxlint/binding-darwin-x64": "^1.87.0",
     "@playwright/test": "^1.64.0",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^24.13.3",
