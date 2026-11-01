@@ -141,7 +141,7 @@ export async function completePasswordChange(newPassword: string): Promise<void>
  * Provisiona uma nova loja parceira e a conta inicial do lojista (Admin)
  */
 export async function provisionStoreAndUser(params: ProvisionStoreUserParams) {
-  const { data, error } = await supabase.rpc('admin_provision_store_and_user', {
+  const { data, error } = await supabase.rpc('provision_store_and_user_v2', {
     p_name: params.name,
     p_cnpj: params.cnpj || null,
     p_responsible_name: params.responsibleName || null,
