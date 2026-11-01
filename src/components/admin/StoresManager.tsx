@@ -16,6 +16,7 @@ export const StoresManager: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'stores_list' | 'applications' | 'plans_info'>('stores_list');
   const [editingStore, setEditingStore] = useState<Store | null>(null);
   const [feedbackBanner, setFeedbackBanner] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
   const [isSubmittingStore, setIsSubmittingStore] = useState(false);
 
   // Modal de Gestão de Usuários da Loja
@@ -62,6 +63,7 @@ export const StoresManager: React.FC = () => {
   const handleOpenAddModal = () => {
     setEditingStore(null);
     setCepLookupSuccess(null);
+    setModalError(null);
     setFormStore({
       name: '',
       cnpj: '',
@@ -89,6 +91,7 @@ export const StoresManager: React.FC = () => {
   const handleOpenEditModal = (store: Store) => {
     setEditingStore(store);
     setCepLookupSuccess(null);
+    setModalError(null);
     setFormStore({
       name: store.name,
       cnpj: store.cnpj || '',
@@ -183,24 +186,60 @@ export const StoresManager: React.FC = () => {
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setModalError(null);
+
+    // Validações manuais para evitar pulos/foco incorreto do navegador
+    if (!formStore.name.trim()) {
+      setModalError('Informe o Nome Fantasia da loja.');
+      return;
+    }
+    if (!formStore.phone.trim()) {
+      setModalError('Informe o WhatsApp Comercial para recebimento dos leads.');
+      return;
+    }
+    if (!formStore.city.trim()) {
+      setModalError('Informe a Cidade Principal da loja.');
+      return;
+    }
+    if (!formStore.regionServed.trim()) {
+      setModalError('Informe a Região de Atendimento ou bairros atendidos.');
+      return;
+    }
+
+    if (!editingStore) {
+      if (!formStore.ownerEmail.trim()) {
+        setModalError('Informe o E-mail de Login do responsável pela loja.');
+        return;
+      }
+      if (!formStore.tempPassword.trim()) {
+        setModalError('Defina a Senha Inicial Provisória de acesso do lojista.');
+        return;
+      }
+    }
+
     setIsSubmittingStore(true);
     setFeedbackBanner(null);
-    const monthlyRev = Number(formStore.contractedPrice) || (formStore.plan === 'Pro' ? 219.90 : 119.90);
+
+    const rawPrice = String(formStore.contractedPrice).replace(',', '.');
+    const parsedPrice = parseFloat(rawPrice);
+    const monthlyRev = !isNaN(parsedPrice) && parsedPrice > 0 
+      ? parsedPrice 
+      : (formStore.plan === 'Pro' ? 219.90 : 119.90);
 
     try {
       if (editingStore) {
         await saveStoreAndSubscription({
           storeId: editingStore.id,
-          name: formStore.name,
-          cnpj: formStore.cnpj,
-          cityName: formStore.city,
+          name: formStore.name.trim(),
+          cnpj: formStore.cnpj.trim(),
+          cityName: formStore.city.trim(),
           stateUf: formStore.state,
           planTier: formStore.plan.toLowerCase() as 'basic' | 'pro',
           contractedPrice: monthlyRev,
           billingDueDay: Number(formStore.billingDueDay) || 10,
-          phone: formStore.phone,
-          email: formStore.email,
-          responsibleName: formStore.responsibleName,
+          phone: formStore.phone.trim(),
+          email: formStore.email.trim() || formStore.ownerEmail.trim(),
+          responsibleName: formStore.responsibleName.trim(),
           isRoutingEnabled: formStore.routingEnabled && formStore.status === 'Ativa',
         });
         await refreshStores();
@@ -210,36 +249,38 @@ export const StoresManager: React.FC = () => {
         });
       } else {
         await provisionStoreAndUser({
-          name: formStore.name,
-          cnpj: formStore.cnpj,
-          responsibleName: formStore.responsibleName,
+          name: formStore.name.trim(),
+          cnpj: formStore.cnpj.trim(),
+          responsibleName: formStore.responsibleName.trim() || formStore.name.trim(),
           cityIbgeCode: formStore.cityIbgeCode || undefined,
-          cityName: formStore.city,
+          cityName: formStore.city.trim(),
           stateUf: formStore.state,
-          phone: formStore.phone,
-          whatsapp: formStore.whatsapp,
-          email: formStore.email,
+          phone: formStore.phone.trim(),
+          whatsapp: formStore.whatsapp.trim() || formStore.phone.trim(),
+          email: formStore.email.trim() || formStore.ownerEmail.trim(),
           planTier: formStore.plan.toLowerCase() as any,
           contractedPrice: monthlyRev,
           billingDueDay: Number(formStore.billingDueDay) || 10,
           isRoutingEnabled: formStore.routingEnabled && formStore.status === 'Ativa',
-          ownerEmail: formStore.ownerEmail || formStore.email,
-          ownerName: formStore.responsibleName || formStore.name,
-          tempPassword: formStore.tempPassword || 'PlanejaFacil2026!',
+          ownerEmail: formStore.ownerEmail.trim(),
+          ownerName: formStore.responsibleName.trim() || formStore.name.trim(),
+          tempPassword: formStore.tempPassword.trim() || 'PlanejaFacil2026!',
           mustChangePassword: formStore.mustChangePassword ?? true,
         });
         await refreshStores();
         setFeedbackBanner({
           type: 'success',
-          text: `Loja "${formStore.name}" e acesso do lojista (${formStore.ownerEmail || formStore.email}) provisionados com sucesso!`,
+          text: `Loja "${formStore.name}" e acesso do lojista (${formStore.ownerEmail}) provisionados com sucesso!`,
         });
       }
       setIsStoreModalOpen(false);
     } catch (err: any) {
       console.error('Erro ao salvar no PostgreSQL:', err);
+      const msg = err?.message || 'Erro ao salvar loja no banco de dados. Verifique se está autenticado como Administrador.';
+      setModalError(msg);
       setFeedbackBanner({
         type: 'error',
-        text: err?.message || 'Erro ao salvar loja no banco de dados. Verifique se está autenticado como Administrador.',
+        text: msg,
       });
     } finally {
       setIsSubmittingStore(false);
@@ -741,7 +782,7 @@ export const StoresManager: React.FC = () => {
               </p>
             </div>
 
-            <form onSubmit={handleFormSubmit} className="space-y-5 text-left">
+            <form noValidate onSubmit={handleFormSubmit} className="space-y-5 text-left">
               
               {/* Row 1: Store Name & CNPJ */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -878,7 +919,11 @@ export const StoresManager: React.FC = () => {
                     return (
                       <div
                         key={plan.id}
-                        onClick={() => setFormStore({ ...formStore, plan: plan.id })}
+                        onClick={() => setFormStore({
+                          ...formStore,
+                          plan: plan.id,
+                          contractedPrice: plan.id === 'Pro' ? 219.90 : 119.90,
+                        })}
                         className={`p-3.5 rounded-2xl cursor-pointer border transition-all text-center space-y-1 ${
                           isSelected
                             ? 'bg-emerald-50 border-[#439346] ring-2 ring-[#439346]'
@@ -915,12 +960,13 @@ export const StoresManager: React.FC = () => {
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Preço Contratado (R$/mês) *</label>
                   <input
-                    type="number"
-                    step="0.01"
-                    min="0"
+                    type="text"
                     required
                     value={formStore.contractedPrice}
-                    onChange={(e) => setFormStore({ ...formStore, contractedPrice: parseFloat(e.target.value) || 0 })}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(',', '.');
+                      setFormStore({ ...formStore, contractedPrice: val as any });
+                    }}
                     placeholder="119.90 ou 219.90"
                     className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600"
                   />
@@ -1016,19 +1062,35 @@ export const StoresManager: React.FC = () => {
                 </div>
               )}
 
+              {modalError && (
+                <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs font-bold text-red-700 flex items-start space-x-2.5 animate-in fade-in duration-200">
+                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                  <span className="leading-snug">{modalError}</span>
+                </div>
+              )}
+
               <div className="pt-3 flex items-center space-x-3">
                 <button
                   type="button"
+                  disabled={isSubmittingStore}
                   onClick={() => setIsStoreModalOpen(false)}
-                  className="w-1/3 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase"
+                  className="w-1/3 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase disabled:opacity-50"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="w-2/3 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs uppercase tracking-wider shadow-emerald-glow transition-all"
+                  disabled={isSubmittingStore}
+                  className="w-2/3 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs uppercase tracking-wider shadow-emerald-glow transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
                 >
-                  {editingStore ? 'Salvar Alterações do Plano' : 'Ativar e Credenciar Loja'}
+                  {isSubmittingStore ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Processando e Ativando...</span>
+                    </>
+                  ) : (
+                    <span>{editingStore ? 'Salvar Alterações do Plano' : 'Ativar e Credenciar Loja'}</span>
+                  )}
                 </button>
               </div>
 
