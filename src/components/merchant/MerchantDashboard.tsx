@@ -47,9 +47,12 @@ export const MerchantDashboard: React.FC = () => {
     merchantTab,
     setMerchantTab,
     selectedOrderForFolder,
-    setSelectedOrderForFolder
+    setSelectedOrderForFolder,
+    currentUser
   } = useApp();
-  const [selectedStoreId, setSelectedStoreId] = useState<string>(stores[0]?.id || 'store-mogi');
+  const [selectedStoreId, setSelectedStoreId] = useState<string>(
+    currentUser?.tenantId || currentUser?.storeId || stores[0]?.id || ''
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [activeStatusTab, setActiveStatusTab] = useState<string>('todos');
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
@@ -74,8 +77,28 @@ export const MerchantDashboard: React.FC = () => {
     estimatedMax: 22000,
   });
 
-  // Currently selected partner store unit
-  const currentStore = stores.find((s) => s.id === selectedStoreId) || stores[0];
+  useEffect(() => {
+    if (currentUser?.tenantId && selectedStoreId !== currentUser.tenantId) {
+      setSelectedStoreId(currentUser.tenantId);
+    } else if (!selectedStoreId && stores.length > 0) {
+      setSelectedStoreId(stores[0].id);
+    }
+  }, [currentUser?.tenantId, stores]);
+
+  // Currently selected partner store unit (with safe fallback when no store is registered yet)
+  const fallbackStore = {
+    id: currentUser?.tenantId || '',
+    name: currentUser?.fullName || 'Minha Loja Parceira',
+    city: 'São Paulo',
+    state: 'SP',
+    plan: 'Pro' as const,
+    regionServed: 'SP',
+    leadsCount: 0,
+    status: 'Ativa' as const,
+    phone: '',
+    email: currentUser?.email || '',
+  };
+  const currentStore = stores.find((s) => s.id === selectedStoreId) || stores[0] || fallbackStore;
 
   // State override for test mode plan toggle
   const [simulatedPlanOverride, setSimulatedPlanOverride] = useState<'Basic' | 'Pro' | null>(null);
@@ -87,26 +110,35 @@ export const MerchantDashboard: React.FC = () => {
 
   // Autenticação correspondente à loja selecionada para garantir isolamento Multi-Tenant
   const syncStoreAuthAndFetch = async () => {
+    const activeTenantId = currentUser?.tenantId || STORE_ID_TO_TENANT_UUID[selectedStoreId] || selectedStoreId;
+    if (!activeTenantId) {
+      setRealDbLeads([]);
+      return;
+    }
+
     setLoadingRealLeads(true);
     setServerError(null);
 
     try {
-      await switchDevelopmentStoreSession(selectedStoreId);
+      if (!currentUser) {
+        await switchDevelopmentStoreSession(selectedStoreId);
+      }
 
-      const tenantUuid = STORE_ID_TO_TENANT_UUID[selectedStoreId] || selectedStoreId;
       const res = await supabase.rpc('get_store_leads', {
-        p_tenant_id: tenantUuid,
+        p_tenant_id: activeTenantId,
       });
 
       if (!res.error && res.data && res.data.success && Array.isArray(res.data.leads)) {
         const mapped = res.data.leads.map((l: any) => ({
           ...l,
-          assignedStoreId: selectedStoreId,
+          assignedStoreId: activeTenantId,
           assignedStoreName: l.assignedStoreName || currentStore.name,
           environmentsData: l.environmentsData || [],
           notesList: l.notesList || [],
         }));
         setRealDbLeads(mapped);
+      } else {
+        setRealDbLeads([]);
       }
     } catch (err: any) {
       console.warn('Erro ao consultar leads da loja no PostgreSQL:', err);
@@ -117,7 +149,7 @@ export const MerchantDashboard: React.FC = () => {
 
   useEffect(() => {
     syncStoreAuthAndFetch();
-  }, [selectedStoreId]);
+  }, [selectedStoreId, currentUser?.tenantId]);
 
   const handleStageChange = async (lead: Lead, targetStatus: LeadStatus) => {
     setServerError(null);
@@ -152,19 +184,8 @@ export const MerchantDashboard: React.FC = () => {
     }
   };
 
-  // Combina leads persistidos no PostgreSQL com a sessão local
-  const localMatchingLeads = leads.filter(
-    (l) => l.assignedStoreId === currentStore.id || l.assignedStoreId === (STORE_ID_TO_TENANT_UUID[selectedStoreId] || '')
-  );
-
-  const mergedLeads = [
-    ...realDbLeads,
-    ...localMatchingLeads.filter((loc) => !realDbLeads.some((r) => r.id === loc.id)),
-  ];
-
-  const storeLeads = mergedLeads.length > 0 
-    ? mergedLeads 
-    : leads.filter((l) => l.assignedStoreId === currentStore.id || l.city.toLowerCase().includes(currentStore.city.toLowerCase()));
+  // Leads reais da loja autenticada no PostgreSQL
+  const storeLeads = realDbLeads;
 
   // Time and Financial calculations
   const platformLeadsCount = storeLeads.filter(l => !l.isExternal && l.source !== 'instagram' && l.source !== 'google' && l.source !== 'indicacao' && l.source !== 'balcao').length;

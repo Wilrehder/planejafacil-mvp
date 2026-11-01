@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { supabase } from '../lib/supabase';
 import { getCurrentUserContext, signOutUser, AuthenticatedUserContext } from '../lib/authService';
-import { INITIAL_LEADS, INITIAL_ORDERS, INITIAL_STORES, QUALITY_TIERS } from '../data/mockData';
+import { getActivePricingRule } from '../lib/simulationService';
 import { 
   AdminTab, 
   ConfiguredEnvironment, 
@@ -40,8 +40,12 @@ interface AppContextType {
   updateLead: (id: string, updates: Partial<Lead>) => void;
   updateLeadStatus: (id: string, status: LeadStatus) => void;
   addStore: (newStore: Omit<Store, 'id' | 'leadsCount'>) => void;
-  addStoreApplication: (appData: Omit<PartnerStoreApplication, 'id' | 'createdAt' | 'status'>) => PartnerStoreApplication;
-  updateStoreApplicationStatus: (id: string, status: PartnerStoreApplication['status']) => void;
+  deleteStore: (id: string) => Promise<void>;
+  refreshStores: () => Promise<void>;
+  refreshLeads: () => Promise<void>;
+  refreshApplications: () => Promise<void>;
+  addStoreApplication: (appData: Omit<PartnerStoreApplication, 'id' | 'createdAt' | 'status'>) => Promise<PartnerStoreApplication>;
+  updateStoreApplicationStatus: (id: string, status: PartnerStoreApplication['status']) => Promise<void>;
 
   // Multi-Environment Simulator
   simulator: SimulatorState;
@@ -148,10 +152,66 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [currentUser, setCurrentUser] = useState<AuthenticatedUserContext | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isMustChangePasswordOpen, setIsMustChangePasswordOpen] = useState(false);
-  const isHomologationMode = import.meta.env.VITE_APP_ENV === 'homologation' || import.meta.env.DEV;
+  const isHomologationMode = import.meta.env.VITE_APP_ENV === 'homologation';
+
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [stores, setStores] = useState<Store[]>([]);
+  const [storeApplications, setStoreApplications] = useState<PartnerStoreApplication[]>([]);
+  const [simulator, setSimulator] = useState<SimulatorState>(initialSimulatorState);
+  const [baseSquareMeterPrice, setBaseSquareMeterPriceState] = useState<number>(1200);
+
+  const refreshStores = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_all_stores_sync');
+      if (!error && data?.success && Array.isArray(data.stores)) {
+        setStores(data.stores);
+      }
+    } catch (err) {
+      console.warn('Erro ao sincronizar lojas com o banco:', err);
+    }
+  };
+
+  const refreshLeads = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_all_leads_sync');
+      if (!error && data?.success && Array.isArray(data.leads)) {
+        setLeads(data.leads);
+      }
+    } catch (err) {
+      console.warn('Erro ao sincronizar leads com o banco:', err);
+    }
+  };
+
+  const refreshApplications = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_partner_applications');
+      if (!error && data?.success && Array.isArray(data.applications)) {
+        setStoreApplications(data.applications);
+      }
+    } catch (err) {
+      console.warn('Erro ao sincronizar candidaturas com o banco:', err);
+    }
+  };
+
+  const setBaseSquareMeterPrice = async (price: number) => {
+    setBaseSquareMeterPriceState(price);
+    try {
+      await supabase.rpc('update_active_pricing_rule', { p_base_m2_price: price });
+    } catch (err) {
+      console.warn('Erro ao salvar precificação no banco:', err);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
+
+    // Carregar dados oficiais do PostgreSQL na inicialização
+    refreshStores();
+    getActivePricingRule().then((rule) => {
+      if (isMounted && rule?.params?.baseM2Price) {
+        setBaseSquareMeterPriceState(rule.params.baseM2Price);
+      }
+    });
 
     // Sincronizar sessão oficial
     getCurrentUserContext().then((ctx) => {
@@ -159,6 +219,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCurrentUser(ctx);
       if (ctx.role === 'platform_admin') {
         setRole('admin');
+        refreshLeads();
+        refreshApplications();
       } else if (ctx.role === 'store_owner' || ctx.role === 'store_operator') {
         setRole('merchant');
       }
@@ -178,8 +240,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const ctx = await getCurrentUserContext();
         if (isMounted && ctx) {
           setCurrentUser(ctx);
+          refreshStores();
           if (ctx.role === 'platform_admin') {
             setRole('admin');
+            refreshLeads();
+            refreshApplications();
           } else if (ctx.role === 'store_owner' || ctx.role === 'store_operator') {
             setRole('merchant');
           }
@@ -198,9 +263,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const loginSuccess = (context: AuthenticatedUserContext) => {
     setCurrentUser(context);
+    refreshStores();
     if (context.role === 'platform_admin') {
       setRole('admin');
       setAdminTab('finance');
+      refreshLeads();
+      refreshApplications();
     } else if (context.role === 'store_owner' || context.role === 'store_operator') {
       setRole('merchant');
       setMerchantTab('dashboard');
@@ -216,12 +284,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setRole('consumer');
     setConsumerTab('landing');
   };
-
-  const [leads, setLeads] = useState<Lead[]>(INITIAL_LEADS);
-  const [stores, setStores] = useState<Store[]>(INITIAL_STORES);
-  const [simulator, setSimulator] = useState<SimulatorState>(initialSimulatorState);
-
-  const [baseSquareMeterPrice, setBaseSquareMeterPrice] = useState<number>(1200);
 
   const [isLeadCaptureOpen, setIsLeadCaptureOpen] = useState(false);
   const [selectedLeadForDetail, setSelectedLeadForDetail] = useState<Lead | null>(null);
@@ -353,13 +415,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
 
   const addLead = (leadData: Partial<Lead> & Omit<Lead, 'id' | 'createdAt' | 'assignedStoreId' | 'assignedStoreName' | 'status'>): Lead => {
-    const matchedStore = stores.find((s) => s.id === leadData.assignedStoreId) || stores.find((s) => s.state === leadData.state) || stores[0];
+    const matchedStore = stores.find((s) => s.id === leadData.assignedStoreId) || stores.find((s) => s.state === leadData.state);
 
     const newLead: Lead = {
       ...leadData,
-      id: `lead-${Date.now().toString().slice(-4)}`,
-      assignedStoreId: matchedStore.id,
-      assignedStoreName: matchedStore.name,
+      id: leadData.id || `lead-${Date.now().toString().slice(-4)}`,
+      assignedStoreId: leadData.assignedStoreId || matchedStore?.id || '',
+      assignedStoreName: leadData.assignedStoreName || matchedStore?.name || 'Fila Sem Cobertura',
       status: leadData.status || 'novo',
       source: leadData.source || 'plataforma',
       isExternal: leadData.isExternal || false,
@@ -368,9 +430,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setLeads((prev) => [newLead, ...prev]);
 
-    setStores((prev) =>
-      prev.map((s) => (s.id === matchedStore.id ? { ...s, leadsCount: s.leadsCount + 1 } : s))
-    );
+    if (matchedStore) {
+      setStores((prev) =>
+        prev.map((s) => (s.id === matchedStore.id ? { ...s, leadsCount: s.leadsCount + 1 } : s))
+      );
+    }
 
     return newLead;
   };
@@ -384,7 +448,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const [orders, setOrders] = useState<StoreOrder[]>(INITIAL_ORDERS);
+  const [orders, setOrders] = useState<StoreOrder[]>([]);
   const [selectedOrderForFolder, setSelectedOrderForFolder] = useState<StoreOrder | null>(null);
 
   const updateOrder = (
@@ -544,50 +608,50 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const [storeApplications, setStoreApplications] = useState<PartnerStoreApplication[]>([
-    {
-      id: 'app-1',
-      storeName: 'Marcenaria & Design Italínea',
-      contactName: 'Ricardo Oliveira',
-      phone: '(11) 98888-7777',
-      email: 'ricardo@marcenariaitalinea.com.br',
-      city: 'São Paulo',
-      state: 'SP',
-      desiredPlan: 'Pro',
-      notes: 'Gostaria de integrar 2 filiais na Zona Sul de SP.',
-      status: 'nova',
-      createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-    },
-    {
-      id: 'app-2',
-      storeName: 'Studio Moveis Campinas',
-      contactName: 'Vanessa Souza',
-      phone: '(19) 97777-6666',
-      email: 'vanessa@studiomoveis.com.br',
-      city: 'Campinas',
-      state: 'SP',
-      desiredPlan: 'Basic',
-      notes: 'Tenho interesse em receber solicitações da região de Campinas e Valinhos.',
-      status: 'em_contato',
-      createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-    }
-  ]);
+  const addStoreApplication = async (appData: Omit<PartnerStoreApplication, 'id' | 'createdAt' | 'status'>): Promise<PartnerStoreApplication> => {
+    try {
+      const { data, error } = await supabase.rpc('submit_partner_application', {
+        p_store_name: appData.storeName,
+        p_contact_name: appData.contactName,
+        p_phone: appData.phone,
+        p_email: appData.email,
+        p_city: appData.city,
+        p_state_uf: appData.state,
+        p_desired_plan: appData.desiredPlan,
+        p_notes: appData.notes || null,
+      });
 
-  const addStoreApplication = (appData: Omit<PartnerStoreApplication, 'id' | 'createdAt' | 'status'>): PartnerStoreApplication => {
-    const newApp: PartnerStoreApplication = {
+      if (!error && data?.success && data.application) {
+        const created: PartnerStoreApplication = data.application;
+        setStoreApplications((prev) => [created, ...prev]);
+        return created;
+      }
+    } catch (err) {
+      console.warn('Erro ao enviar candidatura ao banco:', err);
+    }
+
+    const fallbackApp: PartnerStoreApplication = {
       ...appData,
       id: `app-${Date.now().toString().slice(-4)}`,
       status: 'nova',
       createdAt: new Date().toISOString(),
     };
-    setStoreApplications((prev) => [newApp, ...prev]);
-    return newApp;
+    setStoreApplications((prev) => [fallbackApp, ...prev]);
+    return fallbackApp;
   };
 
-  const updateStoreApplicationStatus = (id: string, status: PartnerStoreApplication['status']) => {
+  const updateStoreApplicationStatus = async (id: string, status: PartnerStoreApplication['status']) => {
     setStoreApplications((prev) =>
       prev.map((app) => (app.id === id ? { ...app, status } : app))
     );
+    try {
+      await supabase.rpc('update_partner_application_status', {
+        p_id: id,
+        p_status: status,
+      });
+    } catch (err) {
+      console.warn('Erro ao atualizar status da candidatura:', err);
+    }
   };
 
   const addStore = (newStoreData: Omit<Store, 'id' | 'leadsCount'>) => {
@@ -596,7 +660,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `store-${Date.now().toString().slice(-4)}`,
       leadsCount: 0,
     };
-    setStores((prev) => [...prev, newStore]);
+    setStores((prev) => [newStore, ...prev]);
+  };
+
+  const deleteStore = async (id: string) => {
+    const { error } = await supabase
+      .from('tenants')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      throw error;
+    }
+
+    setStores((prev) => prev.filter((s) => s.id !== id));
   };
 
   const triggerConfetti = () => {
@@ -630,6 +707,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateLead,
         updateLeadStatus,
         addStore,
+        deleteStore,
+        refreshStores,
+        refreshLeads,
+        refreshApplications,
         addStoreApplication,
         updateStoreApplicationStatus,
         simulator,

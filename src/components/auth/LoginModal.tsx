@@ -250,39 +250,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
           </form>
         )}
 
-        {/* Homologation Quick-fill Buttons */}
-        <div className="pt-4 border-t border-slate-100 space-y-2 text-center">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-            Atalhos de Acesso Rápido (Homologação)
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              type="button"
-              onClick={() => handleDemoFill('admin@planejafacil.com.br')}
-              className="px-2 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 border border-purple-200 text-[10px] font-bold text-purple-700 transition-colors flex items-center justify-center space-x-1"
-            >
-              <ShieldCheck className="w-3 h-3" />
-              <span>Admin</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDemoFill('dono.suzano@loja.com')}
-              className="px-2 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-[10px] font-bold text-emerald-700 transition-colors flex items-center justify-center space-x-1"
-            >
-              <Store className="w-3 h-3" />
-              <span>Suzano</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDemoFill('dono.mogi@loja.com')}
-              className="px-2 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-[10px] font-bold text-amber-700 transition-colors flex items-center justify-center space-x-1"
-            >
-              <Store className="w-3 h-3" />
-              <span>Mogi</span>
-            </button>
-          </div>
-        </div>
-
       </div>
     </div>
   );

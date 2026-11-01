@@ -54,11 +54,10 @@ export const MerchantERP: React.FC<MerchantERPProps> = ({ merchantPlan, storeId 
         fetchERPMetrics(storeId),
       ]);
 
-      if (ordersRes.success && ordersRes.orders.length > 0) {
+      if (ordersRes.success) {
         setLiveOrders(ordersRes.orders);
       } else {
-        // Fallback para orders do contexto
-        setLiveOrders(contextOrders);
+        setLiveOrders([]);
       }
 
       if (metricsRes.success && metricsRes.metrics) {
@@ -76,8 +75,7 @@ export const MerchantERP: React.FC<MerchantERPProps> = ({ merchantPlan, storeId 
     loadOrdersAndMetrics();
   }, [storeId, contextOrders.length]);
 
-  // Usar pedidos do liveOrders se houver, caso contrário contextOrders
-  const displayedOrders = liveOrders.length > 0 ? liveOrders : contextOrders;
+  const displayedOrders = liveOrders;
 
   const filteredOrders = displayedOrders.filter((order) => {
     const matchesSearch =

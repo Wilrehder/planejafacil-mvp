@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -6,13 +6,18 @@ import {
   Eye, 
   Filter, 
   Search, 
-  SlidersHorizontal 
+  SlidersHorizontal,
+  RefreshCw
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Lead, LeadStatus } from '../../types';
 
 export const LeadsTable: React.FC = () => {
-  const { leads, setSelectedLeadForDetail } = useApp();
+  const { leads, setSelectedLeadForDetail, refreshLeads } = useApp();
+
+  useEffect(() => {
+    refreshLeads();
+  }, []);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('todos');

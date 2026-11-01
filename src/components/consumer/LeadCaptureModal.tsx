@@ -17,11 +17,11 @@ export const LeadCaptureModal: React.FC = () => {
   } = useApp();
 
   const [formData, setFormData] = useState({
-    name: 'Ana Carolina Mendes',
-    phone: '(11) 99123-4567',
-    whatsapp: '(11) 99123-4567',
-    email: 'ana.mendes@email.com',
-    city: simulator.clientInfo?.city || 'São Paulo',
+    name: '',
+    phone: '',
+    whatsapp: '',
+    email: '',
+    city: simulator.clientInfo?.city || '',
   });
 
   const [isSuccess, setIsSuccess] = useState(false);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, Plus, Search, ShieldCheck, X, Check, Award, Zap, Phone, Mail, MapPin, Edit, Sparkles, Filter, ExternalLink, Power, PowerOff, Users, KeyRound } from 'lucide-react';
+import { Building2, Plus, Search, ShieldCheck, X, Check, Award, Zap, Phone, Mail, MapPin, Edit, Sparkles, Filter, ExternalLink, Power, PowerOff, Users, KeyRound, Trash2, AlertCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { STORE_PLANS } from '../../data/mockData';
 import { Store } from '../../types';
@@ -8,12 +8,14 @@ import { provisionStoreAndUser } from '../../lib/authService';
 import { StoreUsersModal } from './StoreUsersModal';
 
 export const StoresManager: React.FC = () => {
-  const { stores, addStore, isStoreModalOpen, setIsStoreModalOpen, leads, storeApplications, updateStoreApplicationStatus } = useApp();
+  const { stores, refreshStores, deleteStore, isStoreModalOpen, setIsStoreModalOpen, leads, storeApplications, updateStoreApplicationStatus } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPlanFilter, setSelectedPlanFilter] = useState<string>('todos');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('todos');
   const [activeTab, setActiveTab] = useState<'stores_list' | 'applications' | 'plans_info'>('stores_list');
   const [editingStore, setEditingStore] = useState<Store | null>(null);
+  const [feedbackBanner, setFeedbackBanner] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isSubmittingStore, setIsSubmittingStore] = useState(false);
 
   // Modal de Gestão de Usuários da Loja
   const [selectedStoreForUsers, setSelectedStoreForUsers] = useState<{ id: string; name: string; city: string } | null>(null);
@@ -102,7 +104,7 @@ export const StoresManager: React.FC = () => {
 
   const handleToggleSuspension = async (store: Store) => {
     const isCurrentlySuspended = store.status === 'Inativa';
-    const newStatus = isCurrentlySuspended ? 'Ativa' : 'Inativa';
+    setFeedbackBanner(null);
 
     try {
       await setStoreSuspension(
@@ -110,21 +112,43 @@ export const StoresManager: React.FC = () => {
         !isCurrentlySuspended,
         isCurrentlySuspended ? 'Reativação comercial pelo administrador' : 'Suspensão administrativa'
       );
-    } catch (err) {
-      console.warn('Erro ao sincronizar suspensão com banco:', err);
+      await refreshStores();
+      setFeedbackBanner({
+        type: 'success',
+        text: isCurrentlySuspended ? `Loja "${store.name}" reativada com sucesso.` : `Loja "${store.name}" suspensa do rodízio.`,
+      });
+    } catch (err: any) {
+      setFeedbackBanner({
+        type: 'error',
+        text: err?.message || 'Erro ao atualizar status da loja no banco de dados.',
+      });
     }
+  };
 
-    const idx = stores.findIndex((s) => s.id === store.id);
-    if (idx !== -1) {
-      stores[idx] = {
-        ...stores[idx],
-        status: newStatus,
-      };
+  const handleDeleteStore = async (store: Store) => {
+    if (!window.confirm(`Tem certeza que deseja excluir permanentemente a loja "${store.name}" e todos os seus dados vinculados?`)) {
+      return;
+    }
+    setFeedbackBanner(null);
+    try {
+      await deleteStore(store.id);
+      await refreshStores();
+      setFeedbackBanner({
+        type: 'success',
+        text: `Loja "${store.name}" excluída com sucesso.`,
+      });
+    } catch (err: any) {
+      setFeedbackBanner({
+        type: 'error',
+        text: err?.message || 'Erro ao excluir loja no banco de dados.',
+      });
     }
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmittingStore(true);
+    setFeedbackBanner(null);
     const monthlyRev = Number(formStore.contractedPrice) || (formStore.plan === 'Pro' ? 219.90 : 119.90);
 
     try {
@@ -142,6 +166,11 @@ export const StoresManager: React.FC = () => {
           email: formStore.email,
           responsibleName: formStore.responsibleName,
           isRoutingEnabled: formStore.routingEnabled && formStore.status === 'Ativa',
+        });
+        await refreshStores();
+        setFeedbackBanner({
+          type: 'success',
+          text: `Loja "${formStore.name}" atualizada com sucesso no banco de dados!`,
         });
       } else {
         await provisionStoreAndUser({
@@ -162,31 +191,22 @@ export const StoresManager: React.FC = () => {
           tempPassword: formStore.tempPassword || 'PlanejaFacil2026!',
           mustChangePassword: formStore.mustChangePassword ?? true,
         });
+        await refreshStores();
+        setFeedbackBanner({
+          type: 'success',
+          text: `Loja "${formStore.name}" e acesso do lojista (${formStore.ownerEmail || formStore.email}) provisionados com sucesso!`,
+        });
       }
-    } catch (err) {
-      console.warn('Erro ao salvar no PostgreSQL:', err);
-    }
-
-    if (editingStore) {
-      // Edit existing store in array
-      const storeIdx = stores.findIndex((s) => s.id === editingStore.id);
-      if (storeIdx !== -1) {
-        stores[storeIdx] = {
-          ...editingStore,
-          ...formStore,
-          monthlyRevenue: monthlyRev,
-        };
-      }
-    } else {
-      // Add new store
-      addStore({
-        ...formStore,
-        monthlyRevenue: monthlyRev,
-        contractDate: new Date().toISOString().split('T')[0],
+      setIsStoreModalOpen(false);
+    } catch (err: any) {
+      console.error('Erro ao salvar no PostgreSQL:', err);
+      setFeedbackBanner({
+        type: 'error',
+        text: err?.message || 'Erro ao salvar loja no banco de dados. Verifique se está autenticado como Administrador.',
       });
+    } finally {
+      setIsSubmittingStore(false);
     }
-
-    setIsStoreModalOpen(false);
   };
 
   const selectedPlanDetails = STORE_PLANS.find((p) => p.id === formStore.plan) || STORE_PLANS[1];
@@ -236,6 +256,22 @@ export const StoresManager: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {feedbackBanner && (
+        <div className={`p-4 rounded-2xl border flex items-center justify-between text-xs font-bold ${
+          feedbackBanner.type === 'success'
+            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+            : 'bg-red-50 text-red-700 border-red-200'
+        }`}>
+          <div className="flex items-center space-x-2">
+            {feedbackBanner.type === 'success' ? <Check className="w-4 h-4 text-emerald-600" /> : <AlertCircle className="w-4 h-4 text-red-600" />}
+            <span>{feedbackBanner.text}</span>
+          </div>
+          <button onClick={() => setFeedbackBanner(null)} className="text-slate-400 hover:text-slate-700">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* PLAN DISCRIMINATION OVERVIEW CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -439,14 +475,7 @@ export const StoresManager: React.FC = () => {
 
                         {/* Leads Count */}
                         <td className="py-4 px-6 whitespace-nowrap font-extrabold text-slate-900">
-                          {(() => {
-                            const dynamicCount = leads.filter((l) => l.assignedStoreId === store.id || l.assignedStoreName === store.name || (l.city && l.city.toLowerCase().includes(store.city.toLowerCase()))).length;
-                            return (
-                              <>
-                                <span className="text-sm text-emerald-700">{dynamicCount}</span> <span className="text-slate-500 font-medium">leads recebidos</span>
-                              </>
-                            );
-                          })()}
+                          <span className="text-sm text-emerald-700">{store.leadsCount || 0}</span> <span className="text-slate-500 font-medium">leads recebidos</span>
                         </td>
 
                         {/* Status Badge */}
@@ -495,6 +524,14 @@ export const StoresManager: React.FC = () => {
                           >
                             <Edit className="w-3.5 h-3.5" />
                             <span>Editar Plano</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleDeleteStore(store)}
+                            className="p-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200 transition-all inline-flex items-center justify-center cursor-pointer"
+                            title="Excluir Loja"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </td>
 
