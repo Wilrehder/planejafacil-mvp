@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Building2, Plus, Search, ShieldCheck, X, Check, Award, Zap, Phone, Mail, MapPin, Edit, Sparkles, Filter, ExternalLink, Power, PowerOff, Users, KeyRound, Trash2, AlertCircle } from 'lucide-react';
+import { Building2, Plus, Search, ShieldCheck, X, Check, Award, Zap, Phone, Mail, MapPin, Edit, Sparkles, Filter, ExternalLink, Power, PowerOff, Users, KeyRound, Trash2, AlertCircle, Loader2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { STORE_PLANS } from '../../data/mockData';
 import { Store } from '../../types';
 import { saveStoreAndSubscription, setStoreSuspension } from '../../lib/financialService';
 import { provisionStoreAndUser } from '../../lib/authService';
+import { lookupCep } from '../../lib/cepService';
 import { StoreUsersModal } from './StoreUsersModal';
 
 export const StoresManager: React.FC = () => {
@@ -20,12 +21,16 @@ export const StoresManager: React.FC = () => {
   // Modal de Gestão de Usuários da Loja
   const [selectedStoreForUsers, setSelectedStoreForUsers] = useState<{ id: string; name: string; city: string } | null>(null);
   const [isUsersModalOpen, setIsUsersModalOpen] = useState(false);
+  const [cepSearchLoading, setCepSearchLoading] = useState(false);
+  const [cepLookupSuccess, setCepLookupSuccess] = useState<string | null>(null);
 
   const [formStore, setFormStore] = useState({
     name: '',
     cnpj: '',
+    cep: '',
     responsibleName: '',
     city: '',
+    cityIbgeCode: '',
     state: 'SP',
     plan: 'Pro' as 'Basic' | 'Pro',
     regionServed: '',
@@ -56,11 +61,14 @@ export const StoresManager: React.FC = () => {
 
   const handleOpenAddModal = () => {
     setEditingStore(null);
+    setCepLookupSuccess(null);
     setFormStore({
       name: '',
       cnpj: '',
+      cep: '',
       responsibleName: '',
       city: '',
+      cityIbgeCode: '',
       state: 'SP',
       plan: 'Pro',
       regionServed: '',
@@ -80,11 +88,14 @@ export const StoresManager: React.FC = () => {
 
   const handleOpenEditModal = (store: Store) => {
     setEditingStore(store);
+    setCepLookupSuccess(null);
     setFormStore({
       name: store.name,
       cnpj: store.cnpj || '',
+      cep: '',
       responsibleName: store.responsibleName || '',
       city: store.city,
+      cityIbgeCode: '',
       state: store.state,
       plan: store.plan,
       regionServed: store.regionServed,
@@ -100,6 +111,31 @@ export const StoresManager: React.FC = () => {
       mustChangePassword: false,
     });
     setIsStoreModalOpen(true);
+  };
+
+  const handleStoreCepBlur = async (rawCep: string) => {
+    const cleanCep = rawCep.replace(/\D/g, '');
+    if (cleanCep.length !== 8) return;
+
+    setCepSearchLoading(true);
+    setCepLookupSuccess(null);
+    try {
+      const res = await lookupCep(cleanCep);
+      if (res.success && res.city && res.state) {
+        setFormStore((prev) => ({
+          ...prev,
+          city: res.city || prev.city,
+          state: res.state || prev.state,
+          cityIbgeCode: res.ibgeCode || prev.cityIbgeCode,
+          regionServed: prev.regionServed || `${res.city} e Cidades Vizinhas (${res.state})`,
+        }));
+        setCepLookupSuccess(`Localização validada com sucesso via IBGE (${res.city} - ${res.state})`);
+      }
+    } catch {
+      // Ignora falha de busca de CEP e permite preenchimento manual
+    } finally {
+      setCepSearchLoading(false);
+    }
   };
 
   const handleToggleSuspension = async (store: Store) => {
@@ -177,6 +213,7 @@ export const StoresManager: React.FC = () => {
           name: formStore.name,
           cnpj: formStore.cnpj,
           responsibleName: formStore.responsibleName,
+          cityIbgeCode: formStore.cityIbgeCode || undefined,
           cityName: formStore.city,
           stateUf: formStore.state,
           phone: formStore.phone,
@@ -758,8 +795,28 @@ export const StoresManager: React.FC = () => {
                 </div>
               </div>
 
-              {/* Row 3: City & State */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Row 3: CEP com Auto-Completar & Cidade / UF */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    CEP da Loja
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      maxLength={9}
+                      value={formStore.cep}
+                      onChange={(e) => setFormStore({ ...formStore, cep: e.target.value })}
+                      onBlur={(e) => handleStoreCepBlur(e.target.value)}
+                      placeholder="00000-000"
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-brand-600"
+                    />
+                    {cepSearchLoading && (
+                      <Loader2 className="w-3.5 h-3.5 text-brand-600 animate-spin absolute right-3 top-3" />
+                    )}
+                  </div>
+                </div>
+
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Cidade Principal *</label>
                   <input
@@ -790,6 +847,13 @@ export const StoresManager: React.FC = () => {
                   </select>
                 </div>
               </div>
+
+              {cepLookupSuccess && (
+                <div className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] font-semibold text-emerald-800 flex items-center space-x-1.5">
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{cepLookupSuccess}</span>
+                </div>
+              )}
 
               {/* Row 4: Region Served */}
               <div>
