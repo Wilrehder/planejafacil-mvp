@@ -763,26 +763,33 @@ export const StoresManager: React.FC = () => {
 
       {/* ADD / EDIT STORE MODAL */}
       {isStoreModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
-          <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 sm:p-8 space-y-6 my-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-2xl max-h-[92vh] flex flex-col bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
             
-            <button
-              onClick={() => setIsStoreModalOpen(false)}
-              className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            {/* Header Fixo */}
+            <div className="px-6 py-4 sm:py-5 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
+              <div className="space-y-0.5 text-left pr-4">
+                <h3 className="text-lg sm:text-xl font-black text-slate-900">
+                  {editingStore ? `Editar Plano & Cadastro — ${editingStore.name}` : 'Credenciar Nova Loja Parceira'}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Preencha os dados comerciais da loja e selecione o plano de assinatura SaaS B2B.
+                </p>
+              </div>
 
-            <div className="space-y-1 text-left">
-              <h3 className="text-xl font-black text-slate-900">
-                {editingStore ? `Editar Plano & Cadastro — ${editingStore.name}` : 'Credenciar Nova Loja Parceira'}
-              </h3>
-              <p className="text-xs text-slate-500">
-                Preencha os dados comerciais da loja e selecione o plano de assinatura SaaS B2B.
-              </p>
+              <button
+                type="button"
+                onClick={() => setIsStoreModalOpen(false)}
+                className="p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <form noValidate onSubmit={handleFormSubmit} className="space-y-5 text-left">
+            <form noValidate onSubmit={handleFormSubmit} className="flex flex-col flex-1 overflow-hidden text-left">
+              
+              {/* Corpo com Rolagem Limpa do Topo ao Fim */}
+              <div className="p-6 overflow-y-auto space-y-5 flex-1">
               
               {/* Row 1: Store Name & CNPJ */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1062,36 +1069,41 @@ export const StoresManager: React.FC = () => {
                 </div>
               )}
 
-              {modalError && (
-                <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs font-bold text-red-700 flex items-start space-x-2.5 animate-in fade-in duration-200">
-                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                  <span className="leading-snug">{modalError}</span>
-                </div>
-              )}
+              </div>
 
-              <div className="pt-3 flex items-center space-x-3">
-                <button
-                  type="button"
-                  disabled={isSubmittingStore}
-                  onClick={() => setIsStoreModalOpen(false)}
-                  className="w-1/3 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase disabled:opacity-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmittingStore}
-                  className="w-2/3 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs uppercase tracking-wider shadow-emerald-glow transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
-                >
-                  {isSubmittingStore ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Processando e Ativando...</span>
-                    </>
-                  ) : (
-                    <span>{editingStore ? 'Salvar Alterações do Plano' : 'Ativar e Credenciar Loja'}</span>
-                  )}
-                </button>
+              {/* Footer Fixo na Base */}
+              <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50 shrink-0 space-y-3">
+                {modalError && (
+                  <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs font-bold text-red-700 flex items-start space-x-2.5 animate-in fade-in duration-200">
+                    <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                    <span className="leading-snug">{modalError}</span>
+                  </div>
+                )}
+
+                <div className="flex items-center space-x-3">
+                  <button
+                    type="button"
+                    disabled={isSubmittingStore}
+                    onClick={() => setIsStoreModalOpen(false)}
+                    className="w-1/3 py-3 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs uppercase disabled:opacity-50 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingStore}
+                    className="w-2/3 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs uppercase tracking-wider shadow-emerald-glow transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
+                  >
+                    {isSubmittingStore ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Processando e Ativando...</span>
+                      </>
+                    ) : (
+                      <span>{editingStore ? 'Salvar Alterações do Plano' : 'Ativar e Credenciar Loja'}</span>
+                    )}
+                  </button>
+                </div>
               </div>
 
             </form>
