@@ -11,9 +11,13 @@ import {
   CheckCircle2,
   Clock,
   ShieldCheck,
-  Building
+  Building,
+  UserCheck,
+  X,
+  Loader2
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { adminReassignLead } from '../../lib/financialService';
 
 interface AdminLeadOverview {
   id: string;
@@ -53,6 +57,49 @@ export const AdminRoutingQueue: React.FC = () => {
   const [recentLeads, setRecentLeads] = useState<AdminLeadOverview[]>([]);
   const [selectedRegion, setSelectedRegion] = useState<string>('Suzano');
   const [activeTab, setActiveTab] = useState<'fila' | 'leads'>('fila');
+  const [leadStatusFilter, setLeadStatusFilter] = useState<'todos' | 'sem_cobertura' | 'atribuido'>('todos');
+  
+  // Modal de Direcionamento Manual de Lead
+  const [selectedLeadForAssign, setSelectedLeadForAssign] = useState<AdminLeadOverview | null>(null);
+  const [targetStoreId, setTargetStoreId] = useState<string>('');
+  const [assignReason, setAssignReason] = useState<string>('Direcionamento manual pelo Administrador');
+  const [isAssigning, setIsAssigning] = useState(false);
+  const [assignFeedback, setAssignFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const handleOpenAssignModal = (lead: AdminLeadOverview) => {
+    setSelectedLeadForAssign(lead);
+    setTargetStoreId(stores.find(s => s.status === 'ativa')?.id || stores[0]?.id || '');
+    setAssignReason(lead.distribution_status === 'sem_cobertura' ? 'Direcionamento de lead sem cobertura regional' : 'Reatribuição comercial');
+    setAssignFeedback(null);
+  };
+
+  const handleConfirmAssign = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedLeadForAssign || !targetStoreId) return;
+
+    setIsAssigning(true);
+    setAssignFeedback(null);
+    try {
+      const res = await adminReassignLead(selectedLeadForAssign.id, targetStoreId, assignReason);
+      if (res.success) {
+        setAssignFeedback({ 
+          type: 'success', 
+          text: `Lead direcionado com sucesso para "${res.newStoreName}"!` 
+        });
+        await fetchOverview();
+        setTimeout(() => {
+          setSelectedLeadForAssign(null);
+          setAssignFeedback(null);
+        }, 1800);
+      } else {
+        setAssignFeedback({ type: 'error', text: res.error || 'Erro ao direcionar lead.' });
+      }
+    } catch (err: any) {
+      setAssignFeedback({ type: 'error', text: err?.message || 'Falha ao processar direcionamento.' });
+    } finally {
+      setIsAssigning(false);
+    }
+  };
 
   const fetchOverview = async () => {
     try {
@@ -307,13 +354,42 @@ export const AdminRoutingQueue: React.FC = () => {
 
       {/* Aba de Histórico Real de Leads */}
       {activeTab === 'leads' && (
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-          <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm space-y-0">
+          <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50">
             <div>
               <h3 className="font-extrabold text-slate-900 text-sm">Leads Gravados no PostgreSQL</h3>
               <p className="text-xs text-slate-500">Últimos registros persistidos e roteados pelo sistema.</p>
             </div>
-            <div className="text-xs font-bold text-slate-400">Exibindo {recentLeads.length} leads</div>
+            
+            {/* Quick status filters */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setLeadStatusFilter('todos')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${
+                  leadStatusFilter === 'todos' ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                Todos ({recentLeads.length})
+              </button>
+              <button
+                onClick={() => setLeadStatusFilter('sem_cobertura')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-colors flex items-center gap-1.5 ${
+                  leadStatusFilter === 'sem_cobertura' ? 'bg-amber-600 text-white' : 'bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100'
+                }`}
+              >
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span>Sem Cobertura ({uncoveredCount})</span>
+              </button>
+              <button
+                onClick={() => setLeadStatusFilter('atribuido')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 ${
+                  leadStatusFilter === 'atribuido' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 border border-emerald-200 text-emerald-800 hover:bg-emerald-100'
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Atribuídos ({assignedCount})</span>
+              </button>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -327,70 +403,216 @@ export const AdminRoutingQueue: React.FC = () => {
                   <th className="p-3.5">Loja Atribuída</th>
                   <th className="p-3.5">Regra Geográfica</th>
                   <th className="p-3.5">Data / Hora</th>
+                  <th className="p-3.5 text-right">Ação</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                {recentLeads.map((lead) => {
-                  const isAssigned = lead.distribution_status === 'atribuido';
-                  const isUncovered = lead.distribution_status === 'sem_cobertura';
+                {recentLeads
+                  .filter((lead) => {
+                    if (leadStatusFilter === 'sem_cobertura') return lead.distribution_status === 'sem_cobertura';
+                    if (leadStatusFilter === 'atribuido') return lead.distribution_status === 'atribuido';
+                    return true;
+                  })
+                  .map((lead) => {
+                    const isAssigned = lead.distribution_status === 'atribuido';
+                    const isUncovered = lead.distribution_status === 'sem_cobertura';
 
-                  return (
-                    <tr key={lead.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="p-3.5">
-                        <div className="font-bold text-slate-900">{lead.name}</div>
-                        <div className="text-[11px] text-slate-400 font-mono">{lead.phone}</div>
-                      </td>
-                      <td className="p-3.5 font-semibold">
-                        {lead.city_name} / {lead.state_uf}
-                      </td>
-                      <td className="p-3.5 font-bold text-slate-900">
-                        {formatCurrency(lead.estimated_min)} - {formatCurrency(lead.estimated_max)}
-                      </td>
-                      <td className="p-3.5">
-                        {isAssigned && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-[11px] font-bold">
-                            <CheckCircle2 className="w-3 h-3" /> Atribuído
-                          </span>
-                        )}
-                        {isUncovered && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg text-[11px] font-bold">
-                            <AlertCircle className="w-3 h-3" /> Sem Cobertura
-                          </span>
-                        )}
-                        {!isAssigned && !isUncovered && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-[11px] font-bold">
-                            <Clock className="w-3 h-3" /> {lead.distribution_status}
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-3.5 font-bold text-slate-800">
-                        {lead.assigned_store_name || <span className="text-slate-400 italic">Nenhuma (Fila Admin)</span>}
-                      </td>
-                      <td className="p-3.5">
-                        {lead.assignment_reason === 'same_city_round_robin' && (
-                          <span className="text-[10px] font-bold uppercase bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-200">
-                            P1: Mesma Cidade
-                          </span>
-                        )}
-                        {lead.assignment_reason === 'nearby_coverage_fallback' && (
-                          <span className="text-[10px] font-bold uppercase bg-purple-50 text-purple-700 px-2 py-0.5 rounded border border-purple-200">
-                            P2: Cobertura Regional
-                          </span>
-                        )}
-                        {isUncovered && (
-                          <span className="text-[10px] font-bold uppercase bg-amber-50 text-amber-700 px-2 py-0.5 rounded border border-amber-200">
-                            P3: Sem Cobertura
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-3.5 text-[11px] text-slate-400 font-mono">
-                        {new Date(lead.created_at).toLocaleString('pt-BR')}
-                      </td>
-                    </tr>
-                  );
-                })}
+                    return (
+                      <tr key={lead.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="p-3.5">
+                          <div className="font-bold text-slate-900">{lead.name}</div>
+                          <div className="text-[11px] text-slate-400 font-mono">{lead.phone}</div>
+                        </td>
+                        <td className="p-3.5 font-semibold">
+                          {lead.city_name} / {lead.state_uf}
+                        </td>
+                        <td className="p-3.5 font-bold text-slate-900">
+                          {formatCurrency(lead.estimated_min)} - {formatCurrency(lead.estimated_max)}
+                        </td>
+                        <td className="p-3.5">
+                          {isAssigned && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-[11px] font-bold">
+                              <CheckCircle2 className="w-3 h-3" /> Atribuído
+                            </span>
+                          )}
+                          {isUncovered && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg text-[11px] font-bold">
+                              <AlertCircle className="w-3 h-3" /> Sem Cobertura
+                            </span>
+                          )}
+                          {!isAssigned && !isUncovered && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-[11px] font-bold">
+                              <Clock className="w-3 h-3" /> {lead.distribution_status}
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3.5 font-bold text-slate-800">
+                          {lead.assigned_store_name || <span className="text-slate-400 italic">Nenhuma (Fila Admin)</span>}
+                        </td>
+                        <td className="p-3.5">
+                          {lead.assignment_reason === 'same_city_round_robin' && (
+                            <span className="text-[10px] font-bold uppercase bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-200">
+                              P1: Mesma Cidade
+                            </span>
+                          )}
+                          {lead.assignment_reason === 'nearby_coverage_fallback' && (
+                            <span className="text-[10px] font-bold uppercase bg-purple-50 text-purple-700 px-2 py-0.5 rounded border border-purple-200">
+                              P2: Cobertura Regional
+                            </span>
+                          )}
+                          {isUncovered && (
+                            <span className="text-[10px] font-bold uppercase bg-amber-50 text-amber-700 px-2 py-0.5 rounded border border-amber-200">
+                              P3: Sem Cobertura
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3.5 text-[11px] text-slate-400 font-mono">
+                          {new Date(lead.created_at).toLocaleString('pt-BR')}
+                        </td>
+                        <td className="p-3.5 text-right whitespace-nowrap">
+                          <button
+                            onClick={() => handleOpenAssignModal(lead)}
+                            className={`px-3 py-1.5 rounded-xl font-extrabold text-xs inline-flex items-center gap-1.5 transition-all shadow-sm ${
+                              isUncovered
+                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-glow'
+                                : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                            }`}
+                          >
+                            <UserCheck className="w-3.5 h-3.5" />
+                            <span>{isUncovered ? 'Direcionar para Loja' : 'Reatribuir'}</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE DIRECIONAMENTO MANUAL DE LEAD */}
+      {selectedLeadForAssign && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col text-left">
+            
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
+              <div>
+                <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                  <UserCheck className="w-5 h-5 text-emerald-600" />
+                  <span>Direcionar Lead para Loja Parceira</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Atribua este lead a uma marcenaria ou loja credenciada.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedLeadForAssign(null)}
+                className="p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleConfirmAssign} className="p-6 space-y-4">
+              
+              {/* Card Resumo do Lead */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-slate-900">{selectedLeadForAssign.name}</span>
+                  <span className="text-[11px] font-bold text-slate-500 font-mono">{selectedLeadForAssign.phone}</span>
+                </div>
+                <div className="text-xs text-slate-600 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                  <span>{selectedLeadForAssign.city_name} / {selectedLeadForAssign.state_uf}</span>
+                </div>
+                <div className="text-xs font-semibold text-emerald-700">
+                  Orçamento: {formatCurrency(selectedLeadForAssign.estimated_min)} - {formatCurrency(selectedLeadForAssign.estimated_max)}
+                </div>
+              </div>
+
+              {/* Seleção de Loja de Destino */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Selecione a Loja Parceira de Destino *
+                </label>
+                <select
+                  required
+                  value={targetStoreId}
+                  onChange={(e) => setTargetStoreId(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-brand-600"
+                >
+                  {stores
+                    .filter(s => s.status === 'ativa')
+                    .map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} — {s.city_name}/{s.state_uf} ({s.leads_count_cache} leads na conta)
+                      </option>
+                    ))}
+                </select>
+                <span className="text-[11px] text-slate-400 mt-1 block">
+                  Apenas lojas ativas com credenciamento aprovado.
+                </span>
+              </div>
+
+              {/* Motivo do Direcionamento */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Motivo ou Observação Operacional
+                </label>
+                <input
+                  type="text"
+                  value={assignReason}
+                  onChange={(e) => setAssignReason(e.target.value)}
+                  placeholder="Ex: Loja aceitou atender o cliente na região vizinha"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-600"
+                />
+              </div>
+
+              {/* Feedback Banner */}
+              {assignFeedback && (
+                <div className={`p-3.5 rounded-xl border text-xs font-bold flex items-center gap-2 ${
+                  assignFeedback.type === 'success'
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                    : 'bg-red-50 text-red-700 border-red-200'
+                }`}>
+                  {assignFeedback.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <AlertCircle className="w-4 h-4 text-red-600" />}
+                  <span>{assignFeedback.text}</span>
+                </div>
+              )}
+
+              {/* Botões */}
+              <div className="pt-2 flex items-center gap-3">
+                <button
+                  type="button"
+                  disabled={isAssigning}
+                  onClick={() => setSelectedLeadForAssign(null)}
+                  className="w-1/3 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isAssigning}
+                  className="w-2/3 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs uppercase tracking-wider shadow-emerald-glow transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isAssigning ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Direcionando...</span>
+                    </>
+                  ) : (
+                    <span>Confirmar Direcionamento</span>
+                  )}
+                </button>
+              </div>
+
+            </form>
+
           </div>
         </div>
       )}
