@@ -24,7 +24,8 @@ import { MerchantERP } from './MerchantERP';
 import { MerchantAnalytics } from './MerchantAnalytics';
 import { OrderFolderModal } from './OrderFolderModal';
 import { MerchantFinancialModal } from './MerchantFinancialModal';
-import { Wrench, Activity, Users, Package, BarChart2, CreditCard } from 'lucide-react';
+import { MerchantMetaIntegration } from './MerchantMetaIntegration';
+import { Wrench, Activity, Users, Package, BarChart2, CreditCard, Share2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { switchDevelopmentStoreSession } from '../../lib/authService';
 
@@ -375,6 +376,21 @@ export const MerchantDashboard: React.FC = () => {
           </button>
 
           <button
+            onClick={() => setMerchantTab('meta')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+              merchantTab === 'meta'
+                ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 text-white shadow-md'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+            }`}
+          >
+            <Share2 className={`w-3.5 h-3.5 ${merchantTab === 'meta' ? 'text-white' : 'text-purple-600'}`} />
+            <span>Meta Omni-Channel</span>
+            <span className="bg-purple-500/20 text-purple-700 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-purple-500/30 uppercase ml-1">
+              Pro ⭐
+            </span>
+          </button>
+
+          <button
             onClick={() => setIsFinancialModalOpen(true)}
             className="px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200/60"
           >
@@ -444,7 +460,13 @@ export const MerchantDashboard: React.FC = () => {
 
       </div>
 
-      {merchantTab === 'erp' ? (
+      {merchantTab === 'meta' ? (
+        <MerchantMetaIntegration
+          storeId={selectedStoreId}
+          storeName={currentStore.name}
+          storePlan={activePlan}
+        />
+      ) : merchantTab === 'erp' ? (
         <MerchantERP merchantPlan={activePlan} storeId={selectedStoreId} />
       ) : merchantTab === 'analytics' ? (
         isProPlan ? <MerchantAnalytics /> : (

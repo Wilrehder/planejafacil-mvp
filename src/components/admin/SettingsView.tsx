@@ -194,10 +194,49 @@ export const SettingsView: React.FC = () => {
         )}
 
         {activeTab === 'integracoes' && (
-          <div className="space-y-5 text-left">
-            <h3 className="text-lg font-bold text-slate-900">Integrações com WhatsApp API</h3>
+          <div className="space-y-6 text-left">
+            <div>
+              <h3 className="text-lg font-bold text-slate-900">Integrações Oficiais do SaaS</h3>
+              <p className="text-xs text-slate-500">APIs configuradas para roteamento, notificações e captura omni-channel.</p>
+            </div>
+
             <div className="space-y-4">
-              <div className="p-4 rounded-2xl border border-slate-200 flex items-center justify-between">
+              {/* Meta Business App Oficial */}
+              <div className="p-5 rounded-3xl border border-slate-200 bg-gradient-to-r from-slate-900 via-[#1B2B48] to-[#0A192F] text-white space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-500 via-pink-500 to-blue-500 flex items-center justify-center font-bold text-lg shadow-md">
+                      M
+                    </div>
+                    <div>
+                      <div className="font-extrabold text-white text-sm flex items-center gap-2">
+                        <span>Meta for Developers (Instagram, Facebook & WhatsApp)</span>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold uppercase">
+                          App Configurado
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-300 font-mono mt-0.5">
+                        App ID: 1113302228332124 • Planeja Fácil
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs border-t border-slate-800">
+                  <div className="p-3 bg-white/5 rounded-2xl border border-white/10 space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-400">Domínio Registrado</span>
+                    <div className="font-mono text-emerald-400 font-bold">useplanejafacil.com</div>
+                  </div>
+
+                  <div className="p-3 bg-white/5 rounded-2xl border border-white/10 space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-400">Canal dos Lojistas</span>
+                    <div className="text-slate-200 font-bold">Exclusivo Plano Pro (Sem Custo por Lead)</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* WhatsApp Business API */}
+              <div className="p-4 rounded-2xl border border-slate-200 flex items-center justify-between bg-white">
                 <div className="flex items-center space-x-3">
                   <div className="p-2.5 bg-emerald-100 text-emerald-600 rounded-xl font-bold">WA</div>
                   <div>
