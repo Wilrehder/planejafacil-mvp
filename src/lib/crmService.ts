@@ -183,11 +183,20 @@ export async function uploadAndAttachProposal(
     const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
     const storagePath = `${tenantUuid}/${assignmentId}_${Date.now()}_${sanitizedFileName}`;
 
+    // Determinar content-type seguro para XML Promob ou PDF
+    let contentType = file.type;
+    if (!contentType || contentType === '') {
+      if (file.name.toLowerCase().endsWith('.xml')) contentType = 'text/xml';
+      else if (file.name.toLowerCase().endsWith('.pdf')) contentType = 'application/pdf';
+      else contentType = 'application/octet-stream';
+    }
+
     // Upload seguro para o bucket privado lead-proposals
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('lead-proposals')
       .upload(storagePath, file, {
         cacheControl: '3600',
+        contentType,
         upsert: true,
       });
 
