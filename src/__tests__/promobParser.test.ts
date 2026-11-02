@@ -21,3 +21,4 @@ describe('Promob XML Parser', () => {
     expect(result.environmentName).toBe('Cozinha');
   });
 });
+

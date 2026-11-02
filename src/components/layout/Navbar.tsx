@@ -148,18 +148,6 @@ export const Navbar: React.FC = () => {
               </div>
             )}
 
-            {/* 2. BOTÃO DE LOGIN / ENTRAR (Para visitantes públicos ou lojistas não autenticados) */}
-            {role === 'consumer' && !currentUser && (
-              <button
-                data-testid="login-button"
-                onClick={() => setIsLoginModalOpen(true)}
-                className="flex items-center space-x-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-[#1B2B48] hover:bg-slate-900 text-white text-xs font-bold transition-all shadow-sm"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>Área do Lojista</span>
-              </button>
-            )}
-
             {/* 3. BOTÃO DE LOGOUT / USUÁRIO AUTENTICADO */}
             {(role !== 'consumer' || currentUser) && (
               <div className="flex items-center space-x-2">

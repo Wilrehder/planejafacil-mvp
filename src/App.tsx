@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { LandingPage } from './components/consumer/LandingPage';
 import { LeadCaptureModal } from './components/consumer/LeadCaptureModal';
@@ -12,6 +12,19 @@ import { AppProvider, useApp } from './context/AppContext';
 
 import { LoginModal } from './components/auth/LoginModal';
 import { MustChangePasswordModal } from './components/auth/MustChangePasswordModal';
+import { PainelLoginPage } from './components/auth/PainelLoginPage';
+
+const isPainelDomainOrPath = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname.toLowerCase();
+  const path = window.location.pathname.toLowerCase();
+  return (
+    host.startsWith('painel.') ||
+    host.startsWith('app.') ||
+    path.startsWith('/painel') ||
+    path.startsWith('/login')
+  );
+};
 
 const MainContent: React.FC = () => {
   const { 
@@ -24,6 +37,23 @@ const MainContent: React.FC = () => {
     loginSuccess,
     currentUser
   } = useApp();
+
+  const [isPainelEnv, setIsPainelEnv] = useState<boolean>(isPainelDomainOrPath());
+
+  useEffect(() => {
+    setIsPainelEnv(isPainelDomainOrPath());
+  }, []);
+
+  // Se o usuário acessar via painel.useplanejafacil.com ou /painel ou /login e não estiver autenticado:
+  if (isPainelEnv && !currentUser && role === 'consumer') {
+    return (
+      <PainelLoginPage
+        onSuccess={(context) => {
+          loginSuccess(context);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-surface-bg text-slate-800 antialiased selection:bg-brand-600 selection:text-white">

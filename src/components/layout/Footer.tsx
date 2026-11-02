@@ -115,6 +115,7 @@ export const Footer: React.FC = () => {
           <div className="flex items-center space-x-6 font-medium">
             <a href="#" className="hover:text-slate-400 transition-colors">Termos de Uso</a>
             <a href="#" className="hover:text-slate-400 transition-colors">Privacidade</a>
+            <a href="/painel" className="hover:text-slate-300 text-slate-500 transition-colors">Portal do Parceiro (Painel)</a>
           </div>
         </div>
 

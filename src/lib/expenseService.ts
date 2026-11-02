@@ -148,3 +148,4 @@ export async function saveStoreCommercialSettings(settings: StoreCommercialSetti
     return { success: false, error: err?.message || 'Falha ao salvar regras.' };
   }
 }
+
