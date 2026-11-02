@@ -56,7 +56,7 @@ export const MerchantDashboard: React.FC = () => {
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [activeStatusTab, setActiveStatusTab] = useState<string>('todos');
-  const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
+  const [viewMode, setViewMode] = useState<'table' | 'kanban'>('kanban');
   const [sourceFilter, setSourceFilter] = useState<'todos' | 'plataforma' | 'externo'>('todos');
 
   // Modal States
@@ -78,6 +78,7 @@ export const MerchantDashboard: React.FC = () => {
     estimatedMax: 22000,
   });
 
+  // Sincronizar tenant da loja logada
   useEffect(() => {
     if (currentUser?.tenantId && selectedStoreId !== currentUser.tenantId) {
       setSelectedStoreId(currentUser.tenantId);
@@ -86,7 +87,7 @@ export const MerchantDashboard: React.FC = () => {
     }
   }, [currentUser?.tenantId, stores]);
 
-  // Currently selected partner store unit (with safe fallback when no store is registered yet)
+  // Loja parceira autenticada (garante isolamento do lojista com base na sua conta)
   const fallbackStore = {
     id: currentUser?.tenantId || '',
     name: currentUser?.fullName || 'Minha Loja Parceira',
@@ -99,11 +100,15 @@ export const MerchantDashboard: React.FC = () => {
     phone: '',
     email: currentUser?.email || '',
   };
-  const currentStore = stores.find((s) => s.id === selectedStoreId) || stores[0] || fallbackStore;
+  
+  const currentStore = 
+    stores.find((s) => (currentUser?.tenantId && s.id === currentUser.tenantId) || (currentUser?.storeId && s.id === currentUser.storeId)) ||
+    stores.find((s) => s.id === selectedStoreId) || 
+    stores[0] || 
+    fallbackStore;
 
-  // State override for test mode plan toggle
-  const [simulatedPlanOverride, setSimulatedPlanOverride] = useState<'Basic' | 'Pro' | null>(null);
-  const activePlan = simulatedPlanOverride || currentStore.plan;
+  // Plano real oficial da loja (sem sobreposição manual)
+  const activePlan = currentStore.plan;
   const isProPlan = activePlan === 'Pro';
 
   const [realDbLeads, setRealDbLeads] = useState<Lead[]>([]);
@@ -111,7 +116,7 @@ export const MerchantDashboard: React.FC = () => {
 
   // Autenticação correspondente à loja selecionada para garantir isolamento Multi-Tenant
   const syncStoreAuthAndFetch = async () => {
-    const activeTenantId = currentUser?.tenantId || STORE_ID_TO_TENANT_UUID[selectedStoreId] || selectedStoreId;
+    const activeTenantId = currentUser?.tenantId || currentStore.id || STORE_ID_TO_TENANT_UUID[selectedStoreId] || selectedStoreId;
     if (!activeTenantId) {
       setRealDbLeads([]);
       return;
@@ -160,6 +165,12 @@ export const MerchantDashboard: React.FC = () => {
     }
 
     const assignmentId = lead.assignmentId || lead.id;
+
+    // Atualização otimista imediata no Kanban para resposta instantânea na interface
+    setRealDbLeads((prev) =>
+      prev.map((l) => (l.id === lead.id ? { ...l, status: targetStatus } : l))
+    );
+
     try {
       const { data, error } = await supabase.rpc('update_lead_stage', {
         p_assignment_id: assignmentId,
@@ -169,6 +180,8 @@ export const MerchantDashboard: React.FC = () => {
       if (error || !data?.success) {
         const msg = error?.message || data?.error || 'Erro ao atualizar estágio do lead no servidor.';
         setServerError(msg);
+        // Em caso de erro, reverte recarregando os dados oficiais do servidor
+        await syncStoreAuthAndFetch();
         return;
       }
 
@@ -179,9 +192,9 @@ export const MerchantDashboard: React.FC = () => {
       }
 
       updateLeadStatus(lead.id, targetStatus);
-      await syncStoreAuthAndFetch();
     } catch (err: any) {
       setServerError(err?.message || 'Erro inesperado.');
+      await syncStoreAuthAndFetch();
     }
   };
 
@@ -399,63 +412,28 @@ export const MerchantDashboard: React.FC = () => {
           </button>
         </div>
 
-        {/* Action Controls & Plan Toggle (Modo Teste) */}
-        <div className="flex flex-wrap items-center gap-3 pr-2 shrink-0">
-          
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
-            <span className="text-[10px] font-extrabold uppercase text-slate-500 px-2 hidden sm:inline">Simular Plano:</span>
-            <button
-              onClick={() => {
-                setSimulatedPlanOverride('Basic');
-                setViewMode('table');
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
-                !isProPlan 
-                  ? 'bg-white text-slate-800 shadow-sm border border-slate-200' 
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              Básico
-            </button>
-            <button
-              onClick={() => {
-                setSimulatedPlanOverride('Pro');
-                setViewMode('kanban');
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
-                isProPlan 
-                  ? 'bg-[#439346] text-white shadow-sm' 
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              Pro ⭐
-            </button>
-          </div>
-
-          <div className="relative">
-            <select
-              value={selectedStoreId}
-              onChange={(e) => setSelectedStoreId(e.target.value)}
-              className="appearance-none bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold py-2.5 px-3.5 pr-8 rounded-xl focus:outline-none focus:border-[#439346] cursor-pointer"
-            >
-              {stores.map((store) => (
-                <option key={store.id} value={store.id} className="bg-white text-slate-800 py-1">
-                  {store.name} ({store.plan})
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+        {/* Identificação Segura da Loja Conectada e Ações */}
+        <div className="flex flex-wrap items-center gap-2.5 pr-2 shrink-0">
+          <div className="bg-white border border-slate-200/90 text-slate-800 text-xs font-bold py-2 px-3.5 rounded-xl flex items-center gap-2 shadow-xs">
+            <StoreIcon className="w-3.5 h-3.5 text-[#439346]" />
+            <span className="font-extrabold text-[#1B2B48]">{currentStore.name}</span>
+            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md ${
+              isProPlan 
+                ? 'bg-amber-50 text-amber-800 border border-amber-300/80' 
+                : 'bg-slate-100 text-slate-700 border border-slate-200'
+            }`}>
+              Plano {currentStore.plan} {isProPlan ? '⭐' : ''}
+            </span>
           </div>
 
           <button
             onClick={syncStoreAuthAndFetch}
             disabled={loadingRealLeads}
             title="Sincronizar leads com o PostgreSQL"
-            className="p-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl text-slate-600 transition-colors flex items-center justify-center shrink-0 cursor-pointer"
+            className="p-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-slate-600 transition-colors flex items-center justify-center shrink-0 cursor-pointer shadow-xs"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loadingRealLeads ? 'animate-spin text-[#439346]' : ''}`} />
           </button>
-
         </div>
 
       </div>

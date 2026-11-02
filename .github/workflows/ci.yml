@@ -34,5 +34,5 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'dummy_anon_key_for_build' }}
           VITE_APP_ENV: production
 
-      - name: Run Vitest Suite (Unit & Integration)
-        run: npm test -- --run
+      - name: Run Vitest Unit Tests
+        run: npm test

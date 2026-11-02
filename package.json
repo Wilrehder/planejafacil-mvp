@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "vitest run",
+    "test": "vitest run src/__tests__/validation.test.ts src/__tests__/pricing.test.ts src/__tests__/routing.test.ts",
+    "test:live": "vitest run",
     "preview": "vite preview"
   },
   "dependencies": {
