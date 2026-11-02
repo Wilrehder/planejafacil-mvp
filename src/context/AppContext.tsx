@@ -474,30 +474,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   ) => {
     let globalActionMessage = auditAction || 'Atualização de dados no pedido.';
     let globalStageChanged = false;
-    let globalNextStage: OrderStage = 'medicao';
+    let globalNextStage: OrderStage = updates.currentStage || 'medicao';
 
     setOrders((prevOrders) =>
       prevOrders.map((order) => {
         if (order.id !== id) return order;
 
-        const merged: StoreOrder = { ...order, ...updates };
-
-        // Avaliação Automática de Avanço de Etapa (Event-driven without Kanban drag-and-drop)
-        let nextStage: OrderStage = merged.currentStage;
-
-        if (merged.currentStage === 'medicao' && merged.medicaoFile && merged.medicaoDone) {
-          nextStage = 'projeto_aprovacao';
-        } else if (merged.currentStage === 'projeto_aprovacao' && merged.projectFile && merged.projectApproved) {
-          nextStage = 'producao';
-        } else if (merged.currentStage === 'producao' && merged.producaoDone) {
-          nextStage = 'montagem';
-        } else if (merged.currentStage === 'montagem' && merged.montagemFoto && merged.montagemDone) {
-          nextStage = 'entrega_aceite';
-        } else if (merged.currentStage === 'entrega_aceite' && (merged.aceiteFile || merged.clientConfirmedAceite)) {
-          nextStage = 'concluido';
-        }
-
-        const stageChanged = nextStage !== merged.currentStage;
+        const nextStage: OrderStage = updates.currentStage || order.currentStage;
+        const merged: StoreOrder = { ...order, ...updates, currentStage: nextStage };
+        const stageChanged = nextStage !== order.currentStage;
         globalStageChanged = stageChanged;
         globalNextStage = nextStage;
 
@@ -511,7 +496,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         };
 
         const actionMsg = auditAction
-          ? (stageChanged ? `${auditAction}. Etapa avançada automaticamente para "${stageNamesMap[nextStage]}".` : auditAction)
+          ? (stageChanged ? `${auditAction}. Etapa avançada para "${stageNamesMap[nextStage]}".` : auditAction)
           : (stageChanged ? `Etapa do pedido avançada para "${stageNamesMap[nextStage]}".` : 'Atualização de dados no pedido.');
         
         globalActionMessage = actionMsg;
@@ -535,30 +520,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (selectedOrderForFolder && selectedOrderForFolder.id === id) {
       setSelectedOrderForFolder((prev) => {
         if (!prev) return null;
-        const merged: StoreOrder = { ...prev, ...updates };
-
-        let nextStage: OrderStage = merged.currentStage;
-
-        if (merged.currentStage === 'medicao' && merged.medicaoFile && merged.medicaoDone) {
-          nextStage = 'projeto_aprovacao';
-        } else if (merged.currentStage === 'projeto_aprovacao' && merged.projectFile && merged.projectApproved) {
-          nextStage = 'producao';
-        } else if (merged.currentStage === 'producao' && merged.producaoDone) {
-          nextStage = 'montagem';
-        } else if (merged.currentStage === 'montagem' && merged.montagemFoto && merged.montagemDone) {
-          nextStage = 'entrega_aceite';
-        } else if (merged.currentStage === 'entrega_aceite' && (merged.aceiteFile || merged.clientConfirmedAceite)) {
-          nextStage = 'concluido';
-        }
-
-        const stageNamesMap: Record<OrderStage, string> = {
-          medicao: 'Medição Técnica',
-          projeto_aprovacao: 'Projeto & Aprovação',
-          producao: 'Produção',
-          montagem: 'Montagem na Obra',
-          entrega_aceite: 'Entrega / Aceite',
-          concluido: 'Pedido Concluído'
-        };
+        const nextStage: OrderStage = updates.currentStage || prev.currentStage;
+        const merged: StoreOrder = { ...prev, ...updates, currentStage: nextStage };
 
         const newLog: OrderAuditLog = {
           id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,

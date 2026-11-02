@@ -256,9 +256,10 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
       return;
     }
 
+    setSuccessMessage('Medição concluída e registrada com sucesso!');
     updateOrder(
       order.id,
-      { medicaoFile: medicaoFileName, medicaoDone: true },
+      { currentStage: 'projeto_aprovacao', medicaoFile: medicaoFileName, medicaoDone: true },
       `Medição concluída. Arquivo anexado: ${medicaoFileName}`,
       'Medição',
       'Carlos Medições'
@@ -298,9 +299,10 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
       return;
     }
 
+    setSuccessMessage('Projeto executivo aprovado! Pedido avançado para Produção.');
     updateOrder(
       order.id,
-      { projectFile: projectFileName, projectApproved: true },
+      { currentStage: 'producao', projectFile: projectFileName, projectApproved: true },
       `Projeto anexado e aprovação confirmada. Arquivo: ${projectFileName}`,
       'Projetista',
       'Fernanda Designer'
@@ -331,9 +333,10 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
       return;
     }
 
+    setSuccessMessage('Produção finalizada! Pedido encaminhado para Montagem.');
     updateOrder(
       order.id,
-      { producaoFile: producaoFileName, producaoDone: true },
+      { currentStage: 'montagem', producaoFile: producaoFileName, producaoDone: true },
       `Produção concluída.${producaoFileName ? ' Documentos anexados: ' + producaoFileName : ''}`,
       'Fábrica / PCP',
       'Operador ERP'
@@ -369,9 +372,10 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
       return;
     }
 
+    setSuccessMessage('Montagem finalizada! Pedido liberado para Entrega e Aceite.');
     updateOrder(
       order.id,
-      { montagemFoto: montagemFotoName, montagemDone: true },
+      { currentStage: 'entrega_aceite', montagemFoto: montagemFotoName, montagemDone: true },
       `Montagem concluída. Fotos anexadas: ${montagemFotoName}`,
       'Montador',
       'Roberto Montagens'
@@ -407,9 +411,10 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
       return;
     }
 
+    setSuccessMessage('Pedido concluído com sucesso e Termo de Aceite validado!');
     updateOrder(
       order.id,
-      { aceiteFile: aceiteFileName, clientConfirmedAceite },
+      { currentStage: 'concluido', aceiteFile: aceiteFileName, clientConfirmedAceite },
       `Recebimento e Aceite confirmados pelo cliente.`,
       'Diretoria / Pós-Venda',
       'Lojista Parceiro'
