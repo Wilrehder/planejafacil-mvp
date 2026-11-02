@@ -108,19 +108,30 @@ export const SimulatorWizard: React.FC = () => {
     try {
       setOauthLoading(provider);
       setSocialNotice(null);
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: window.location.href,
+          skipBrowserRedirect: true,
         },
       });
+
       if (error) {
         console.warn(`OAuth ${provider} info:`, error.message);
-        setSocialNotice(`Integração com ${provider === 'google' ? 'Google' : 'Apple'} em fase de configuração. Você pode preencher os campos abaixo.`);
+        setSocialNotice(`O login com ${provider === 'google' ? 'Google' : 'Apple'} precisa ser ativado no painel Supabase. Você pode preencher os campos abaixo diretamente.`);
+        return;
+      }
+
+      if (data?.url) {
+        // Abre em janela popup para não perder o formulário do cliente caso a conta não esteja ativa
+        const popup = window.open(data.url, `${provider}_auth`, 'width=520,height=650,left=200,top=100');
+        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+          window.location.href = data.url;
+        }
       }
     } catch (err: any) {
       console.warn(`OAuth ${provider} error:`, err);
-      setSocialNotice(`Não foi possível conectar com ${provider === 'google' ? 'Google' : 'Apple'}. Por favor, informe seus dados abaixo.`);
+      setSocialNotice(`Não foi possível conectar com ${provider === 'google' ? 'Google' : 'Apple'}. Por favor, preencha manualmente.`);
     } finally {
       setOauthLoading(null);
     }

@@ -51,12 +51,22 @@ export const LeadCaptureModal: React.FC = () => {
     try {
       setOauthLoading(provider);
       setSocialNotice(null);
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
-        options: { redirectTo: window.location.href },
+        options: { 
+          redirectTo: window.location.href,
+          skipBrowserRedirect: true,
+        },
       });
       if (error) {
         setSocialNotice(`Integração com ${provider === 'google' ? 'Google' : 'Apple'} em fase de configuração. Preencha os campos abaixo.`);
+        return;
+      }
+      if (data?.url) {
+        const popup = window.open(data.url, `${provider}_auth`, 'width=520,height=650,left=200,top=100');
+        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+          window.location.href = data.url;
+        }
       }
     } catch {
       setSocialNotice(`Não foi possível conectar com ${provider === 'google' ? 'Google' : 'Apple'}.`);
