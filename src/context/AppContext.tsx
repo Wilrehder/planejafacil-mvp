@@ -59,7 +59,8 @@ interface AppContextType {
   
   // Configuração Global de Precificação pelo Admin
   baseSquareMeterPrice: number;
-  setBaseSquareMeterPrice: (price: number) => void;
+  cityM2Prices: Record<string, number>;
+  setBaseSquareMeterPrice: (price: number, cityPrices?: Record<string, number>) => Promise<void>;
 
   // Modals & Drawers
   isLeadCaptureOpen: boolean;
@@ -159,6 +160,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [storeApplications, setStoreApplications] = useState<PartnerStoreApplication[]>([]);
   const [simulator, setSimulator] = useState<SimulatorState>(initialSimulatorState);
   const [baseSquareMeterPrice, setBaseSquareMeterPriceState] = useState<number>(1200);
+  const [cityM2Prices, setCityM2Prices] = useState<Record<string, number>>({});
 
   const refreshStores = async () => {
     try {
@@ -193,10 +195,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const setBaseSquareMeterPrice = async (price: number) => {
+  const setBaseSquareMeterPrice = async (price: number, cityPrices?: Record<string, number>) => {
     setBaseSquareMeterPriceState(price);
+    if (cityPrices) {
+      setCityM2Prices(cityPrices);
+    }
     try {
-      await supabase.rpc('update_active_pricing_rule', { p_base_m2_price: price });
+      await supabase.rpc('update_active_pricing_rule', { 
+        p_base_m2_price: price,
+        p_city_m2_prices: cityPrices || cityM2Prices
+      });
     } catch (err) {
       console.warn('Erro ao salvar precificação no banco:', err);
     }
@@ -210,6 +218,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     getActivePricingRule().then((rule) => {
       if (isMounted && rule?.params?.baseM2Price) {
         setBaseSquareMeterPriceState(rule.params.baseM2Price);
+        if (rule.params.cityM2Prices) {
+          setCityM2Prices(rule.params.cityM2Prices);
+        }
       }
     });
 
@@ -396,7 +407,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const effectiveCeilingFurnitureHeight = Math.min(ceiling, 2.6);
       const estimatedFurnitureM2 = totalWallLength * effectiveCeilingFurnitureHeight * 0.75; // 75% da parede coberta com móveis
 
-      const envCost = estimatedFurnitureM2 * baseSquareMeterPrice;
+      const clientCity = simulator.clientInfo?.city;
+      const cityOverridePrice = clientCity && cityM2Prices && cityM2Prices[clientCity];
+      const effectiveM2Price = cityOverridePrice || baseSquareMeterPrice;
+      const envCost = estimatedFurnitureM2 * effectiveM2Price;
       totalRawCost += envCost;
     });
 
@@ -722,6 +736,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         resetSimulator,
         calculateEstimate,
         baseSquareMeterPrice,
+        cityM2Prices,
         setBaseSquareMeterPrice,
         isLeadCaptureOpen,
         setIsLeadCaptureOpen,

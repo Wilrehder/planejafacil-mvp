@@ -101,9 +101,19 @@ export const MerchantDashboard: React.FC = () => {
     email: currentUser?.email || '',
   };
   
+  // Identifica todas as lojas pertencentes ao mesmo proprietário
+  const userEmail = currentUser?.email?.toLowerCase().trim();
+  const ownedStores = stores.filter((s) => {
+    if (currentUser?.tenantId && s.id === currentUser.tenantId) return true;
+    if (userEmail && s.email && s.email.toLowerCase().trim() === userEmail) return true;
+    return false;
+  });
+  const isMultiStoreOwner = ownedStores.length > 1;
+
   const currentStore = 
+    stores.find((s) => s.id === selectedStoreId) ||
     stores.find((s) => (currentUser?.tenantId && s.id === currentUser.tenantId) || (currentUser?.storeId && s.id === currentUser.storeId)) ||
-    stores.find((s) => s.id === selectedStoreId) || 
+    ownedStores[0] ||
     stores[0] || 
     fallbackStore;
 
@@ -116,7 +126,10 @@ export const MerchantDashboard: React.FC = () => {
 
   // Autenticação correspondente à loja selecionada para garantir isolamento Multi-Tenant
   const syncStoreAuthAndFetch = async () => {
-    const activeTenantId = currentUser?.tenantId || currentStore.id || STORE_ID_TO_TENANT_UUID[selectedStoreId] || selectedStoreId;
+    const activeTenantId = selectedStoreId === 'all'
+      ? 'all'
+      : (selectedStoreId || currentUser?.tenantId || currentStore.id);
+
     if (!activeTenantId) {
       setRealDbLeads([]);
       return;
@@ -126,7 +139,7 @@ export const MerchantDashboard: React.FC = () => {
     setServerError(null);
 
     try {
-      if (!currentUser) {
+      if (!currentUser && selectedStoreId !== 'all') {
         await switchDevelopmentStoreSession(selectedStoreId);
       }
 
@@ -137,7 +150,7 @@ export const MerchantDashboard: React.FC = () => {
       if (!res.error && res.data && res.data.success && Array.isArray(res.data.leads)) {
         const mapped = res.data.leads.map((l: any) => ({
           ...l,
-          assignedStoreId: activeTenantId,
+          assignedStoreId: l.assignedStoreId || activeTenantId,
           assignedStoreName: l.assignedStoreName || currentStore.name,
           environmentsData: l.environmentsData || [],
           notesList: l.notesList || [],
@@ -414,17 +427,38 @@ export const MerchantDashboard: React.FC = () => {
 
         {/* Identificação Segura da Loja Conectada e Ações */}
         <div className="flex flex-wrap items-center gap-2.5 pr-2 shrink-0">
-          <div className="bg-white border border-slate-200/90 text-slate-800 text-xs font-bold py-2 px-3.5 rounded-xl flex items-center gap-2 shadow-xs">
-            <StoreIcon className="w-3.5 h-3.5 text-[#439346]" />
-            <span className="font-extrabold text-[#1B2B48]">{currentStore.name}</span>
-            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md ${
-              isProPlan 
-                ? 'bg-amber-50 text-amber-800 border border-amber-300/80' 
-                : 'bg-slate-100 text-slate-700 border border-slate-200'
-            }`}>
-              Plano {currentStore.plan} {isProPlan ? '⭐' : ''}
-            </span>
-          </div>
+          {isMultiStoreOwner ? (
+            <div className="flex items-center gap-2 bg-white border border-slate-200/90 rounded-xl px-3 py-1.5 shadow-xs">
+              <StoreIcon className="w-3.5 h-3.5 text-[#439346]" />
+              <div className="flex flex-col">
+                <span className="text-[9px] font-extrabold uppercase text-slate-400">Minhas Unidades:</span>
+                <select
+                  value={selectedStoreId}
+                  onChange={(e) => setSelectedStoreId(e.target.value)}
+                  className="text-xs font-black text-[#1B2B48] bg-transparent outline-none cursor-pointer pr-1"
+                >
+                  <option value="all">Todas as Minhas Lojas (Consolidado)</option>
+                  {ownedStores.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({s.city})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white border border-slate-200/90 text-slate-800 text-xs font-bold py-2 px-3.5 rounded-xl flex items-center gap-2 shadow-xs">
+              <StoreIcon className="w-3.5 h-3.5 text-[#439346]" />
+              <span className="font-extrabold text-[#1B2B48]">{currentStore.name}</span>
+              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md ${
+                isProPlan 
+                  ? 'bg-amber-50 text-amber-800 border border-amber-300/80' 
+                  : 'bg-slate-100 text-slate-700 border border-slate-200'
+              }`}>
+                Plano {currentStore.plan} {isProPlan ? '⭐' : ''}
+              </span>
+            </div>
+          )}
 
           <button
             onClick={syncStoreAuthAndFetch}
@@ -447,7 +481,7 @@ export const MerchantDashboard: React.FC = () => {
       ) : merchantTab === 'erp' ? (
         <MerchantERP merchantPlan={activePlan} storeId={selectedStoreId} />
       ) : merchantTab === 'analytics' ? (
-        isProPlan ? <MerchantAnalytics /> : (
+        isProPlan ? <MerchantAnalytics storeId={selectedStoreId === 'all' ? 'all' : (currentUser?.tenantId || currentStore.id)} /> : (
           <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center max-w-3xl mx-auto my-8 shadow-sm">
             <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-200">
               <Lock className="w-8 h-8" />

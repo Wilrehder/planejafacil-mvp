@@ -25,6 +25,7 @@ import {
   convertLeadToOrderOnServer,
   STORE_ID_TO_TENANT_UUID 
 } from '../../lib/crmService';
+import { parsePromobXML, PromobProjectData } from '../../lib/promobParser';
 
 export const LeadDetailDrawer: React.FC = () => {
   const { selectedLeadForDetail, setSelectedLeadForDetail, updateLead, updateLeadStatus } = useApp();
@@ -84,6 +85,16 @@ export const LeadDetailDrawer: React.FC = () => {
       setIsUploading(true);
       setValidationError(null);
 
+      let promobInfo: PromobProjectData | null = null;
+      if (file.name.toLowerCase().endsWith('.xml')) {
+        try {
+          const xmlText = await file.text();
+          promobInfo = parsePromobXML(xmlText);
+        } catch (e: any) {
+          console.warn('Erro ao processar XML Promob:', e);
+        }
+      }
+
       const tenantUuid =
         STORE_ID_TO_TENANT_UUID[lead.assignedStoreId] ||
         lead.assignedStoreId ||
@@ -98,11 +109,27 @@ export const LeadDetailDrawer: React.FC = () => {
 
       await updateLeadStageOnServer(assignmentId, 'orcado');
 
-      const updatedLeadData = {
+      const updatedLeadData: any = {
         attachmentName: uploadRes.attachmentName || file.name,
         attachmentUrl: uploadRes.attachmentUrl || URL.createObjectURL(file),
         status: 'orcado' as LeadStatus,
       };
+
+      if (promobInfo && promobInfo.budgetValue > 0) {
+        updatedLeadData.estimatedMax = promobInfo.budgetValue;
+        if (promobInfo.factoryOrderCost > 0) {
+          updatedLeadData.estimatedMin = promobInfo.factoryOrderCost;
+        }
+        if (promobInfo.environmentName && !lead.environment) {
+          updatedLeadData.environment = promobInfo.environmentName;
+        }
+
+        // Registrar nota automática com dados do Promob
+        await addLeadNoteOnServer(
+          assignmentId,
+          `📐 Projeto Promob importado! Orçamento Venda: R$ ${promobInfo.budgetValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | Custo Fábrica: R$ ${promobInfo.factoryOrderCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${promobInfo.projectName || 'Módulos'})`
+        );
+      }
 
       updateLead(lead.id, updatedLeadData);
       setSelectedLeadForDetail({
@@ -340,14 +367,14 @@ export const LeadDetailDrawer: React.FC = () => {
                     {isUploading ? (
                       <>
                         <Loader2 className="w-5 h-5 text-[#439346] animate-spin" />
-                        <span className="text-xs font-bold text-slate-700">Enviando para o Storage seguro...</span>
+                        <span className="text-xs font-bold text-slate-700">Processando e enviando anexo...</span>
                       </>
                     ) : (
                       <>
                         <Upload className="w-5 h-5 text-slate-400" />
-                        <span className="text-xs font-bold text-[#1B2B48]">Anexar Proposta Técnica em PDF</span>
-                        <span className="text-[10px] text-slate-400">Exigido para mover para a etapa Orçado (Bucket Privado)</span>
-                        <input type="file" accept=".pdf,.png,.jpg,.jpeg" onChange={handleRealFileUpload} disabled={isUploading} className="hidden" />
+                        <span className="text-xs font-bold text-[#1B2B48]">Anexar Proposta Técnica ou Promob XML</span>
+                        <span className="text-[10px] text-slate-400">Aceita arquivos PDF ou XML Promob (.xml) com auto-preenchimento</span>
+                        <input type="file" accept=".pdf,.xml,.png,.jpg,.jpeg" onChange={handleRealFileUpload} disabled={isUploading} className="hidden" />
                       </>
                     )}
                   </label>

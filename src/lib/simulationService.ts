@@ -68,6 +68,7 @@ export async function getActivePricingRule(): Promise<{
     version: 1,
     params: {
       baseM2Price: 1200,
+      cityM2Prices: {} as Record<string, number>,
       marginMinFactor: 0.88,
       marginMaxFactor: 1.15,
       furnitureCoverageRatio: 0.75,
@@ -78,7 +79,7 @@ export async function getActivePricingRule(): Promise<{
   try {
     const { data, error } = await supabase
       .from('pricing_rules')
-      .select('id, version, base_m2_price, margin_min_factor, margin_max_factor, furniture_coverage_ratio, max_effective_height')
+      .select('id, version, base_m2_price, city_m2_prices, margin_min_factor, margin_max_factor, furniture_coverage_ratio, max_effective_height')
       .eq('is_active', true)
       .order('version', { ascending: false })
       .limit(1)
@@ -93,6 +94,7 @@ export async function getActivePricingRule(): Promise<{
       version: data.version,
       params: {
         baseM2Price: Number(data.base_m2_price) || 1200,
+        cityM2Prices: (data.city_m2_prices && typeof data.city_m2_prices === 'object') ? data.city_m2_prices : {},
         marginMinFactor: Number(data.margin_min_factor) || 0.88,
         marginMaxFactor: Number(data.margin_max_factor) || 1.15,
         furnitureCoverageRatio: Number(data.furniture_coverage_ratio) || 0.75,

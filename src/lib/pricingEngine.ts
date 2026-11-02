@@ -6,6 +6,7 @@ export interface EnvironmentCalculationInput {
 
 export interface PricingRuleConfig {
   baseM2Price: number;
+  cityM2Prices?: Record<string, number>;
   marginMinFactor?: number; // default 0.88 (-12%)
   marginMaxFactor?: number; // default 1.15 (+15%)
   furnitureCoverageRatio?: number; // default 0.75 (75%)
@@ -27,7 +28,8 @@ export interface CalculationResult {
  */
 export function calculateSimulationBudget(
   environments: EnvironmentCalculationInput[],
-  config: PricingRuleConfig = { baseM2Price: 1200 }
+  config: PricingRuleConfig = { baseM2Price: 1200 },
+  cityName?: string
 ): CalculationResult {
   if (!environments || environments.length === 0) {
     return {
@@ -38,7 +40,8 @@ export function calculateSimulationBudget(
     };
   }
 
-  const basePrice = config.baseM2Price || 1200;
+  const effectiveCityPrice = cityName && config.cityM2Prices && config.cityM2Prices[cityName];
+  const basePrice = effectiveCityPrice || config.baseM2Price || 1200;
   const minFactor = config.marginMinFactor ?? 0.88;
   const maxFactor = config.marginMaxFactor ?? 1.15;
   const coverageRatio = config.furnitureCoverageRatio ?? 0.75;
