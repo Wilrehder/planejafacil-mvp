@@ -113,6 +113,7 @@ export const LeadCaptureModal: React.FC = () => {
 
       const newLead = addLead({
         id: res.leadId,
+        assignmentId: res.assignmentId,
         name: formData.name,
         phone: formData.phone,
         whatsapp: formData.whatsapp.replace(/\D/g, ''),

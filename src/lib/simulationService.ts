@@ -24,6 +24,7 @@ export interface SimulationSubmissionResult {
   success: boolean;
   simulationId: string;
   leadId: string;
+  assignmentId?: string;
   assignedStoreId?: string;
   assignedStoreName?: string;
   assignmentReason?: string;
@@ -212,6 +213,7 @@ export async function submitSimulationAndLead(
       success: true,
       simulationId: data.simulation_id,
       leadId: data.lead_id,
+      assignmentId: data.assignment_id || undefined,
       assignedStoreId: data.assigned_store_id || undefined,
       assignedStoreName: data.assigned_store_name || undefined,
       assignmentReason: data.assignment_reason || undefined,

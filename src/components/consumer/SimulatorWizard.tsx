@@ -290,6 +290,8 @@ export const SimulatorWizard: React.FC = () => {
 
       // Sincroniza localmente com o AppContext para navegação em tempo real
       addLead({
+        id: result.leadId,
+        assignmentId: (result as any).assignmentId,
         name: simulator.clientInfo.name || 'Cliente Orçamento',
         phone: simulator.clientInfo.phone || '(11) 99999-9999',
         whatsapp: simulator.clientInfo.phone || '(11) 99999-9999',

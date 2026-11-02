@@ -155,7 +155,18 @@ export const MerchantDashboard: React.FC = () => {
           environmentsData: l.environmentsData || [],
           notesList: l.notesList || [],
         }));
-        setRealDbLeads(mapped);
+
+        // Deduplica leads por assignmentId ou id para prevenir cartões fantasmas ou duplicatas no CRM Kanban
+        const seenIds = new Set<string>();
+        const uniqueLeads: Lead[] = [];
+        for (const l of mapped) {
+          const key = l.assignmentId || l.id;
+          if (!seenIds.has(key)) {
+            seenIds.add(key);
+            uniqueLeads.push(l);
+          }
+        }
+        setRealDbLeads(uniqueLeads);
       } else {
         setRealDbLeads([]);
       }
@@ -181,7 +192,7 @@ export const MerchantDashboard: React.FC = () => {
 
     // Atualização otimista imediata no Kanban para resposta instantânea na interface
     setRealDbLeads((prev) =>
-      prev.map((l) => (l.id === lead.id ? { ...l, status: targetStatus } : l))
+      prev.map((l) => (l.id === lead.id || (lead.assignmentId && l.assignmentId === lead.assignmentId) ? { ...l, status: targetStatus } : l))
     );
 
     try {
@@ -205,6 +216,7 @@ export const MerchantDashboard: React.FC = () => {
       }
 
       updateLeadStatus(lead.id, targetStatus);
+      await syncStoreAuthAndFetch();
     } catch (err: any) {
       setServerError(err?.message || 'Erro inesperado.');
       await syncStoreAuthAndFetch();
@@ -233,7 +245,9 @@ export const MerchantDashboard: React.FC = () => {
       lead.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
       lead.environment.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus = activeStatusTab === 'todos' || lead.status === activeStatusTab;
+    const matchesStatus = viewMode === 'kanban' 
+      ? true 
+      : (activeStatusTab === 'todos' || lead.status === activeStatusTab);
 
     const isExt = lead.isExternal || lead.source === 'instagram' || lead.source === 'google' || lead.source === 'indicacao' || lead.source === 'balcao';
     const matchesSource = sourceFilter === 'todos' || (sourceFilter === 'plataforma' && !isExt) || (sourceFilter === 'externo' && isExt);
@@ -635,29 +649,31 @@ export const MerchantDashboard: React.FC = () => {
 
         </div>
 
-        {/* Status Filter Tabs */}
-        <div className="flex items-center space-x-2 overflow-x-auto pb-1">
-          {[
-            { id: 'todos', label: 'Todos' },
-            { id: 'novo', label: 'Novos' },
-            { id: 'em_atendimento', label: 'Em Atendimento' },
-            { id: 'orcado', label: 'Orçados' },
-            { id: 'convertido', label: 'Vendas Fechadas' },
-            { id: 'perdido', label: 'Perdidos' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveStatusTab(tab.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-colors ${
-                activeStatusTab === tab.id
-                  ? 'bg-[#1B2B48] text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        {/* Status Filter Tabs (Apenas no Modo Tabela) */}
+        {viewMode === 'table' && (
+          <div className="flex items-center space-x-2 overflow-x-auto pb-1">
+            {[
+              { id: 'todos', label: 'Todos' },
+              { id: 'novo', label: 'Novos' },
+              { id: 'em_atendimento', label: 'Em Atendimento' },
+              { id: 'orcado', label: 'Orçados' },
+              { id: 'convertido', label: 'Vendas Fechadas' },
+              { id: 'perdido', label: 'Perdidos' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveStatusTab(tab.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-colors ${
+                  activeStatusTab === tab.id
+                    ? 'bg-[#1B2B48] text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* ========================================================================= */}
         {/* VISÃO 1: TABELA MINIMALISTA */}
@@ -767,7 +783,7 @@ export const MerchantDashboard: React.FC = () => {
                   <div className="space-y-2.5 flex-1 overflow-y-auto">
                     {stageLeads.map((lead) => (
                       <div 
-                        key={lead.id} 
+                        key={lead.assignmentId || lead.id} 
                         onClick={() => setSelectedLeadForDetail(lead)}
                         className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-2.5 hover:shadow-md transition-all cursor-pointer"
                       >
@@ -973,7 +989,7 @@ export const MerchantDashboard: React.FC = () => {
       )}
 
       {/* Drawer Details */}
-      <LeadDetailDrawer />
+      <LeadDetailDrawer onLeadUpdated={syncStoreAuthAndFetch} />
 
       {/* Modal Pasta do Pedido ERP */}
       {selectedOrderForFolder && (

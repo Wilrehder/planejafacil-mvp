@@ -26,13 +26,25 @@ import {
   STORE_ID_TO_TENANT_UUID 
 } from '../../lib/crmService';
 import { parsePromobXML, PromobProjectData } from '../../lib/promobParser';
+import { PromobNegotiationModal } from './PromobNegotiationModal';
 
-export const LeadDetailDrawer: React.FC = () => {
+interface LeadDetailDrawerProps {
+  onLeadUpdated?: () => void;
+}
+
+export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdated }) => {
   const { selectedLeadForDetail, setSelectedLeadForDetail, updateLead, updateLeadStatus } = useApp();
   const [newCommentText, setNewCommentText] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [recommendationNotice, setRecommendationNotice] = useState<string | null>(null);
+
+  // Estado do Modal de Negociação Promob XML
+  const [pendingPromob, setPendingPromob] = useState<{
+    file: File;
+    promobInfo: PromobProjectData;
+    tenantUuid: string;
+  } | null>(null);
 
   if (!selectedLeadForDetail) return null;
 
@@ -67,38 +79,20 @@ export const LeadDetailDrawer: React.FC = () => {
         ...lead,
         notesList: updatedNotes,
       });
+      onLeadUpdated?.();
     } catch {
       // fallback
     }
   };
 
-  const handleRealFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 15 * 1024 * 1024) {
-      setValidationError('O arquivo não pode exceder 15MB.');
-      return;
-    }
-
+  const executeUploadAndAttach = async (
+    file: File, 
+    tenantUuid: string, 
+    commercialOverride?: { finalPrice: number; factoryCost: number; summaryNote: string }
+  ) => {
     try {
       setIsUploading(true);
       setValidationError(null);
-
-      let promobInfo: PromobProjectData | null = null;
-      if (file.name.toLowerCase().endsWith('.xml')) {
-        try {
-          const xmlText = await file.text();
-          promobInfo = parsePromobXML(xmlText);
-        } catch (e: any) {
-          console.warn('Erro ao processar XML Promob:', e);
-        }
-      }
-
-      const tenantUuid =
-        STORE_ID_TO_TENANT_UUID[lead.assignedStoreId] ||
-        lead.assignedStoreId ||
-        'b1010000-0000-0000-0000-000000000001';
 
       const uploadRes = await uploadAndAttachProposal(assignmentId, file, tenantUuid);
       if (!uploadRes.success) {
@@ -115,20 +109,12 @@ export const LeadDetailDrawer: React.FC = () => {
         status: 'orcado' as LeadStatus,
       };
 
-      if (promobInfo && promobInfo.budgetValue > 0) {
-        updatedLeadData.estimatedMax = promobInfo.budgetValue;
-        if (promobInfo.factoryOrderCost > 0) {
-          updatedLeadData.estimatedMin = promobInfo.factoryOrderCost;
+      if (commercialOverride) {
+        updatedLeadData.estimatedMax = commercialOverride.finalPrice;
+        if (commercialOverride.factoryCost > 0) {
+          updatedLeadData.estimatedMin = commercialOverride.factoryCost;
         }
-        if (promobInfo.environmentName && !lead.environment) {
-          updatedLeadData.environment = promobInfo.environmentName;
-        }
-
-        // Registrar nota automática com dados do Promob
-        await addLeadNoteOnServer(
-          assignmentId,
-          `📐 Projeto Promob importado! Orçamento Venda: R$ ${promobInfo.budgetValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | Custo Fábrica: R$ ${promobInfo.factoryOrderCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${promobInfo.projectName || 'Módulos'})`
-        );
+        await addLeadNoteOnServer(assignmentId, commercialOverride.summaryNote);
       }
 
       updateLead(lead.id, updatedLeadData);
@@ -136,11 +122,63 @@ export const LeadDetailDrawer: React.FC = () => {
         ...lead,
         ...updatedLeadData,
       });
+
+      onLeadUpdated?.();
     } catch (err: any) {
       setValidationError(err?.message || 'Falha ao processar upload.');
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleRealFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 15 * 1024 * 1024) {
+      setValidationError('O arquivo não pode exceder 15MB.');
+      return;
+    }
+
+    const tenantUuid =
+      STORE_ID_TO_TENANT_UUID[lead.assignedStoreId] ||
+      lead.assignedStoreId ||
+      'b1010000-0000-0000-0000-000000000001';
+
+    // Se for arquivo XML do Promob, intercepta para abrir o Modal de Conferência e Negociação
+    if (file.name.toLowerCase().endsWith('.xml')) {
+      try {
+        const xmlText = await file.text();
+        const promobInfo = parsePromobXML(xmlText);
+        if (promobInfo && promobInfo.budgetValue > 0) {
+          setPendingPromob({ file, promobInfo, tenantUuid });
+          return;
+        }
+      } catch (err: any) {
+        console.warn('Erro ao processar XML Promob:', err);
+      }
+    }
+
+    // Caso seja PDF ou outro arquivo normal
+    await executeUploadAndAttach(file, tenantUuid);
+  };
+
+  const handleConfirmPromobNegotiation = async (result: {
+    finalPrice: number;
+    factoryCost: number;
+    discountPct: number;
+    paymentMethod: string;
+    installments: number;
+    netProfit: number;
+    summaryNote: string;
+  }) => {
+    if (!pendingPromob) return;
+    await executeUploadAndAttach(pendingPromob.file, pendingPromob.tenantUuid, {
+      finalPrice: result.finalPrice,
+      factoryCost: result.factoryCost,
+      summaryNote: result.summaryNote,
+    });
+    setPendingPromob(null);
   };
 
   const handleStageChangeAttempt = async (targetStatus: LeadStatus) => {
@@ -169,6 +207,7 @@ export const LeadDetailDrawer: React.FC = () => {
         ...lead,
         status: targetStatus,
       });
+      onLeadUpdated?.();
     } catch (err: any) {
       setValidationError(err?.message || 'Falha ao atualizar etapa.');
     }
@@ -204,6 +243,7 @@ export const LeadDetailDrawer: React.FC = () => {
         ...updates,
       });
       setValidationError(null);
+      onLeadUpdated?.();
     } catch (err: any) {
       setValidationError(err?.message || 'Erro ao processar resultado.');
     }
@@ -465,6 +505,20 @@ export const LeadDetailDrawer: React.FC = () => {
         </div>
 
       </div>
+
+      {/* Modal de Conferência e Negociação Promob XML */}
+      {pendingPromob && (
+        <PromobNegotiationModal
+          isOpen={!!pendingPromob}
+          onClose={() => setPendingPromob(null)}
+          onConfirm={handleConfirmPromobNegotiation}
+          promobData={pendingPromob.promobInfo}
+          fileName={pendingPromob.file.name}
+          tenantId={pendingPromob.tenantUuid}
+          clientName={lead.name}
+          environmentName={lead.environment}
+        />
+      )}
     </div>
   );
 };
