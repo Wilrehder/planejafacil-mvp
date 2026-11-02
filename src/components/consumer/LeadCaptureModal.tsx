@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { CheckCircle2, Phone, Mail, MapPin, User, X, ArrowRight, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { CheckCircle2, Phone, Mail, MapPin, User, X, ArrowRight, ShieldCheck, Loader2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ENVIRONMENTS, FINISHES, HARDWARE_OPTIONS, LAYOUT_OPTIONS, DOOR_TYPE_OPTIONS, FURNITURE_MODULES } from '../../data/mockData';
+import { supabase } from '../../lib/supabase';
 
 import { submitSimulationAndLead } from '../../lib/simulationService';
 
@@ -28,6 +29,41 @@ export const LeadCaptureModal: React.FC = () => {
   const [createdLeadId, setCreatedLeadId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [oauthLoading, setOauthLoading] = useState<'google' | 'apple' | null>(null);
+  const [socialNotice, setSocialNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const user = session.user;
+        const metaName = user.user_metadata?.full_name || user.user_metadata?.name || '';
+        const userEmail = user.email || '';
+        setFormData(prev => ({
+          ...prev,
+          name: prev.name || metaName,
+          email: prev.email || userEmail,
+        }));
+      }
+    });
+  }, []);
+
+  const handleOAuthQuickFill = async (provider: 'google' | 'apple') => {
+    try {
+      setOauthLoading(provider);
+      setSocialNotice(null);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo: window.location.href },
+      });
+      if (error) {
+        setSocialNotice(`Integração com ${provider === 'google' ? 'Google' : 'Apple'} em fase de configuração. Preencha os campos abaixo.`);
+      }
+    } catch {
+      setSocialNotice(`Não foi possível conectar com ${provider === 'google' ? 'Google' : 'Apple'}.`);
+    } finally {
+      setOauthLoading(null);
+    }
+  };
 
   if (!isLeadCaptureOpen) return null;
 
@@ -151,6 +187,59 @@ export const LeadCaptureModal: React.FC = () => {
 
             <form onSubmit={handleSubmit} className="space-y-4 text-left">
               
+              {/* Preenchimento Rápido com Google ou Apple */}
+              <div className="space-y-2 pb-1 border-b border-slate-100">
+                <div className="flex items-center justify-center space-x-2">
+                  <span className="h-px bg-slate-200 flex-1"></span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Preencher Rapidamente
+                  </span>
+                  <span className="h-px bg-slate-200 flex-1"></span>
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => handleOAuthQuickFill('google')}
+                    disabled={Boolean(oauthLoading)}
+                    className="flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 active:scale-95 transition-all text-slate-700 font-bold text-xs shadow-sm hover:shadow"
+                  >
+                    {oauthLoading === 'google' ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-[#439346]" />
+                    ) : (
+                      <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                      </svg>
+                    )}
+                    <span>Google</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleOAuthQuickFill('apple')}
+                    disabled={Boolean(oauthLoading)}
+                    className="flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl border border-slate-900 bg-slate-900 hover:bg-black active:scale-95 transition-all text-white font-bold text-xs shadow-sm hover:shadow"
+                  >
+                    {oauthLoading === 'apple' ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    ) : (
+                      <svg className="w-4 h-4 shrink-0 fill-current" viewBox="0 0 170 170">
+                        <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.04-7.67-7.83-11.96-14.39-7.39-11.39-13.12-24.78-17.18-40.17-4.06-15.39-6.09-29.35-6.09-41.87 0-14.67 3.52-27.18 10.56-37.52 7.04-10.34 16.27-15.58 27.69-15.72 5.01 0 10.58 1.45 16.71 4.35 6.13 2.91 10.3 4.41 12.51 4.5 1.74 0 6.02-1.52 12.83-4.56 6.81-3.04 12.28-4.45 16.4-4.24 13.06.65 23.33 5.43 30.82 14.34-11.75 7.18-17.41 16.97-16.97 29.38.43 9.79 4.23 18.06 11.4 24.81 7.18 6.74 15.67 10.55 25.46 11.42-2.17 6.53-4.78 13.05-7.82 19.56zm-31.5-104.93c.11-7.83 3.04-15.22 8.78-22.18 5.74-6.96 12.63-11.42 20.67-13.39.22 1.09.33 2.18.33 3.26 0 7.83-3.15 15.55-9.45 23.16-6.3 7.61-13.69 12.07-22.18 13.39-.43-1.41-.65-2.82-.65-4.24z"/>
+                      </svg>
+                    )}
+                    <span>Apple</span>
+                  </button>
+                </div>
+
+                {socialNotice && (
+                  <div className="p-2 bg-blue-50 border border-blue-200 rounded-lg text-[10px] font-semibold text-blue-700 text-center animate-in fade-in">
+                    {socialNotice}
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-[#1B2B48] uppercase mb-1">Nome Completo</label>
                 <div className="relative">
