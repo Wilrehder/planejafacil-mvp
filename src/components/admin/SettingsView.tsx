@@ -9,9 +9,11 @@ import {
   Check,
   Plus,
   Trash2,
-  MapPin
+  MapPin,
+  Loader2
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { supabase } from '../../lib/supabase';
 
 export const SettingsView: React.FC = () => {
   const { baseSquareMeterPrice, cityM2Prices, setBaseSquareMeterPrice } = useApp();
@@ -21,6 +23,28 @@ export const SettingsView: React.FC = () => {
   const [newCityName, setNewCityName] = useState('');
   const [newCityPrice, setNewCityPrice] = useState<number>(1400);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [realUsers, setRealUsers] = useState<{ id: string; name: string; email: string; role: string }[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+
+  useEffect(() => {
+    setLoadingUsers(true);
+    supabase
+      .from('users')
+      .select('id, full_name, email, role')
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setRealUsers(
+            data.map(u => ({
+              id: u.id,
+              name: u.full_name || u.email.split('@')[0],
+              email: u.email,
+              role: u.role === 'platform_admin' ? 'Super Admin (SaaS)' : u.role === 'store_owner' ? 'Lojista Parceiro' : 'Consultor'
+            }))
+          );
+        }
+        setLoadingUsers(false);
+      });
+  }, []);
 
   useEffect(() => {
     setTempPrice(baseSquareMeterPrice);
@@ -249,7 +273,7 @@ export const SettingsView: React.FC = () => {
 
         {activeTab === 'perfil' && (
           <div className="space-y-5 text-left">
-            <h3 className="text-lg font-bold text-slate-900">Perfil da Empresa</h3>
+            <h3 className="text-lg font-bold text-slate-900">Perfil da Plataforma</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Nome Comercial</label>
@@ -260,47 +284,54 @@ export const SettingsView: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">E-mail Corporativo</label>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">E-mail Central do SaaS</label>
                 <input
                   type="email"
-                  defaultValue="contato@planejafacil.com.br"
+                  defaultValue="wrehdervalle@gmail.com"
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">CNPJ</label>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Domínio Oficial</label>
                 <input
                   type="text"
-                  defaultValue="48.123.456/0001-90"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold"
+                  defaultValue="www.useplanejafacil.com"
+                  disabled
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600"
                 />
               </div>
-              <button className="px-6 py-2.5 rounded-xl bg-brand-600 text-white font-bold text-xs uppercase tracking-wider shadow-blue-glow">
-                Salvar Alterações
-              </button>
             </div>
           </div>
         )}
 
         {activeTab === 'usuarios' && (
           <div className="space-y-5 text-left">
-            <h3 className="text-lg font-bold text-slate-900">Gestão de Equipe & Permissões</h3>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Gestão de Equipe & Usuários Reais</h3>
+                <p className="text-xs text-slate-500">Contas oficiais cadastradas no PostgreSQL do Supabase.</p>
+              </div>
+              {loadingUsers && <Loader2 className="w-4 h-4 animate-spin text-brand-600" />}
+            </div>
+
             <div className="space-y-3">
-              {[
-                { name: 'Gabriel Torres (Admin)', role: 'Super Admin', email: 'gabriel@planejafacil.com.br' },
-                { name: 'Juliana Paes', role: 'Gerente Comercial', email: 'juliana@planejafacil.com.br' },
-                { name: 'Lucas Amaral', role: 'Suporte Lojistas', email: 'lucas@planejafacil.com.br' },
-              ].map((u) => (
-                <div key={u.email} className="p-4 rounded-xl border border-slate-200 flex items-center justify-between">
-                  <div>
-                    <div className="font-bold text-slate-900 text-sm">{u.name}</div>
-                    <div className="text-xs text-slate-400">{u.email}</div>
+              {realUsers.length > 0 ? (
+                realUsers.map((u) => (
+                  <div key={u.id} className="p-4 rounded-xl border border-slate-200 flex items-center justify-between bg-white shadow-xs">
+                    <div>
+                      <div className="font-bold text-slate-900 text-sm">{u.name}</div>
+                      <div className="text-xs text-slate-400 font-mono">{u.email}</div>
+                    </div>
+                    <span className="px-3 py-1 bg-brand-50 text-brand-700 rounded-full text-xs font-bold border border-brand-200">
+                      {u.role}
+                    </span>
                   </div>
-                  <span className="px-3 py-1 bg-brand-50 text-brand-700 rounded-full text-xs font-bold border border-brand-200">
-                    {u.role}
-                  </span>
+                ))
+              ) : (
+                <div className="p-4 rounded-xl border border-slate-200 text-xs text-slate-400 text-center">
+                  Nenhum usuário adicional cadastrado.
                 </div>
-              ))}
+              )}
             </div>
           </div>
         )}
