@@ -3,7 +3,8 @@ import {
   DollarSign, 
   MapPin, 
   Store, 
-  Radar
+  Radar,
+  Settings
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import type { AdminTab } from '../../types';
@@ -11,6 +12,7 @@ import { FinancialView } from './FinancialView';
 import { LeadsTable } from './LeadsTable';
 import { StoresManager } from './StoresManager';
 import { AdminRoutingQueue } from './AdminRoutingQueue';
+import { SettingsView } from './SettingsView';
 
 export const AdminDashboard: React.FC = () => {
   const { adminTab, setAdminTab } = useApp();
@@ -20,6 +22,7 @@ export const AdminDashboard: React.FC = () => {
     { id: 'routing', label: 'Fila de Distribuição', icon: MapPin },
     { id: 'stores', label: 'Lojas Parceiras', icon: Store },
     { id: 'radar', label: 'Leads Recebidos', icon: Radar },
+    { id: 'settings', label: 'Configurações & M²', icon: Settings },
   ];
 
   return (
@@ -71,6 +74,7 @@ export const AdminDashboard: React.FC = () => {
               {adminTab === 'routing' && 'Fila de Distribuição de Leads'}
               {adminTab === 'stores' && 'Gestão de Lojas Parceiras'}
               {adminTab === 'radar' && 'Auditoria de Leads'}
+              {adminTab === 'settings' && 'Configurações & Precificação do M²'}
             </h1>
           </div>
 
@@ -93,6 +97,9 @@ export const AdminDashboard: React.FC = () => {
 
         {/* RADAR TAB */}
         {adminTab === 'radar' && <LeadsTable />}
+
+        {/* SETTINGS TAB */}
+        {adminTab === 'settings' && <SettingsView />}
 
       </main>
 

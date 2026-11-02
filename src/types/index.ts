@@ -57,7 +57,7 @@ export interface SimulatorState {
   };
 }
 
-export type AdminTab = 'finance' | 'routing' | 'stores' | 'radar';
+export type AdminTab = 'finance' | 'routing' | 'stores' | 'radar' | 'settings';
 export type MerchantTab = 'dashboard' | 'leads' | 'erp' | 'analytics' | 'settings' | 'meta';
 export type LeadStatus = 'novo' | 'em_atendimento' | 'orcado' | 'convertido' | 'perdido';
 
