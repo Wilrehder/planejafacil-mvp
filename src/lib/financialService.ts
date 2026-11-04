@@ -4,7 +4,8 @@ import {
   StoreFinancialOverview, 
   Invoice,
   AdminBillingHubData,
-  StoreBillingCycle
+  StoreBillingCycle,
+  PlanModulesConfig
 } from '../types';
 
 /**
@@ -662,4 +663,56 @@ export async function adminReassignLead(
     return { success: false, error: err?.message || 'Erro ao reatribuir lead.' };
   }
 }
+
+/**
+ * Consulta a configuração vigente dos Planos SaaS (Basic e Pro) e seus módulos
+ */
+export async function fetchSaaSPlansConfig() {
+  try {
+    const { data, error } = await supabase.rpc('get_saas_plans_config');
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return {
+      success: true,
+      plans: data?.plans || [],
+    };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Erro ao consultar planos SaaS.' };
+  }
+}
+
+/**
+ * Atualiza os valores e módulos dos Planos SaaS com versionamento temporal
+ */
+export async function saveSaaSPlansConfig(params: {
+  basicPrice: number;
+  proPrice: number;
+  leadPrice: number;
+  basicModules: PlanModulesConfig | Record<string, boolean>;
+  proModules: PlanModulesConfig | Record<string, boolean>;
+}) {
+  try {
+    const { data, error } = await supabase.rpc('admin_update_saas_plans', {
+      p_basic_price: params.basicPrice,
+      p_pro_price: params.proPrice,
+      p_lead_price: params.leadPrice,
+      p_basic_modules: params.basicModules,
+      p_pro_modules: params.proModules,
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return {
+      success: true,
+      version: data?.version,
+      message: data?.message || 'Planos atualizados com sucesso!',
+    };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Erro ao salvar configuração de planos.' };
+  }
+}
+
 

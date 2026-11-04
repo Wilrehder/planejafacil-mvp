@@ -194,13 +194,13 @@ export async function listStoreUsers(tenantId: string): Promise<StoreUserSummary
 }
 
 /**
- * Cria um usuário adicional para uma loja (Operador / Vendedor)
+ * Cria um usuário adicional para uma loja (Gerente, Vendedor ou Montador)
  */
 export async function createStoreUser(params: {
   tenantId: string;
   email: string;
   fullName: string;
-  role?: 'store_owner' | 'store_operator';
+  role?: 'store_owner' | 'store_operator' | 'store_assembler';
   tempPassword?: string;
   mustChangePassword?: boolean;
 }) {
@@ -211,6 +211,21 @@ export async function createStoreUser(params: {
     p_role: params.role || 'store_operator',
     p_temp_password: params.tempPassword || 'PlanejaFacil2026!',
     p_must_change_password: params.mustChangePassword ?? true,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+/**
+ * Consulta a lista de usuários da loja e o limite de acessos por plano
+ */
+export async function fetchStoreUsersAndLimit(tenantId: string) {
+  const { data, error } = await supabase.rpc('get_store_users_and_limit', {
+    p_tenant_id: tenantId,
   });
 
   if (error) {

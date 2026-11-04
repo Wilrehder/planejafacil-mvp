@@ -208,6 +208,8 @@ export interface Store {
   email: string;
   monthlyRevenue?: number;
   contractDate?: string;
+  billingDueDay?: number;
+  routingEnabled?: boolean;
 }
 
 export interface PartnerStoreApplication {
@@ -521,4 +523,42 @@ export interface AdminBillingHubData {
   competenceMonth: string;
   summary: AdminBillingHubSummary;
   stores: StoreBillingCycle[];
+}
+
+export type StoreUserRole = 'store_owner' | 'store_operator' | 'store_assembler';
+
+export interface PlanModulesConfig {
+  crm: boolean;
+  simulator: boolean;
+  meta: boolean;
+  erp: boolean;
+  digital_folder: boolean;
+  promob: boolean;
+  [key: string]: boolean;
+}
+
+export interface SaaSPlanConfig {
+  id: string;
+  planTier: 'basic' | 'pro';
+  monthlyPrice: number;
+  leadPrice: number;
+  maxUsers: number;
+  modules: PlanModulesConfig;
+  version: number;
+  effectiveFrom: string;
+}
+
+export interface StoreUsersQuota {
+  planTier: 'basic' | 'pro';
+  maxUsers: number;
+  activeUsersCount: number;
+  users: Array<{
+    id: string;
+    fullName: string;
+    email: string;
+    role: string;
+    isActive: boolean;
+    mustChangePassword: boolean;
+    createdAt: string;
+  }>;
 }

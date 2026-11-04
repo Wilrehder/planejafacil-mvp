@@ -10,14 +10,23 @@ import {
   Plus,
   Trash2,
   MapPin,
-  Loader2
+  Loader2,
+  Award,
+  Sparkles,
+  Layers,
+  Users,
+  ShieldAlert,
+  HelpCircle,
+  AlertCircle
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { supabase } from '../../lib/supabase';
+import { fetchSaaSPlansConfig, saveSaaSPlansConfig } from '../../lib/financialService';
+import { PlanModulesConfig } from '../../types';
 
 export const SettingsView: React.FC = () => {
   const { baseSquareMeterPrice, cityM2Prices, setBaseSquareMeterPrice } = useApp();
-  const [activeTab, setActiveTab] = useState<'precificacao' | 'perfil' | 'usuarios' | 'logo' | 'integracoes'>('precificacao');
+  const [activeTab, setActiveTab] = useState<'precificacao' | 'planos' | 'perfil' | 'usuarios' | 'logo' | 'integracoes'>('precificacao');
   const [tempPrice, setTempPrice] = useState<number>(baseSquareMeterPrice);
   const [tempCityPrices, setTempCityPrices] = useState<Record<string, number>>(cityM2Prices || {});
   const [newCityName, setNewCityName] = useState('');
@@ -25,6 +34,106 @@ export const SettingsView: React.FC = () => {
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [realUsers, setRealUsers] = useState<{ id: string; name: string; email: string; role: string }[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+
+  // Estados dos Planos SaaS B2B
+  const [saasPlans, setSaasPlans] = useState<{
+    basicPrice: number;
+    proPrice: number;
+    leadPrice: number;
+    basicModules: PlanModulesConfig;
+    proModules: PlanModulesConfig;
+  }>({
+    basicPrice: 119.90,
+    proPrice: 219.90,
+    leadPrice: 50.00,
+    basicModules: {
+      crm: true,
+      simulator: true,
+      meta: false,
+      erp: false,
+      digital_folder: false,
+      promob: false,
+    },
+    proModules: {
+      crm: true,
+      simulator: true,
+      meta: true,
+      erp: true,
+      digital_folder: true,
+      promob: true,
+    },
+  });
+  const [loadingPlans, setLoadingPlans] = useState(false);
+  const [savingPlans, setSavingPlans] = useState(false);
+  const [plansSavedSuccess, setPlansSavedSuccess] = useState(false);
+  const [plansError, setPlansError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadSaaSPlans();
+  }, []);
+
+  const loadSaaSPlans = async () => {
+    setLoadingPlans(true);
+    try {
+      const res = await fetchSaaSPlansConfig();
+      if (res.success && res.plans && res.plans.length > 0) {
+        const basic = res.plans.find((p: any) => p.planTier === 'basic');
+        const pro = res.plans.find((p: any) => p.planTier === 'pro');
+        if (basic && pro) {
+          setSaasPlans({
+            basicPrice: basic.monthlyPrice,
+            proPrice: pro.monthlyPrice,
+            leadPrice: basic.leadPrice || 50,
+            basicModules: basic.modules || {
+              crm: true,
+              simulator: true,
+              meta: false,
+              erp: false,
+              digital_folder: false,
+              promob: false,
+            },
+            proModules: pro.modules || {
+              crm: true,
+              simulator: true,
+              meta: true,
+              erp: true,
+              digital_folder: true,
+              promob: true,
+            },
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Erro ao carregar planos:', err);
+    } finally {
+      setLoadingPlans(false);
+    }
+  };
+
+  const handleSaveSaaSPlans = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingPlans(true);
+    setPlansError(null);
+    setPlansSavedSuccess(false);
+
+    const res = await saveSaaSPlansConfig({
+      basicPrice: Number(saasPlans.basicPrice),
+      proPrice: Number(saasPlans.proPrice),
+      leadPrice: Number(saasPlans.leadPrice),
+      basicModules: saasPlans.basicModules,
+      proModules: saasPlans.proModules,
+    });
+
+    setSavingPlans(false);
+
+    if (res.success) {
+      setPlansSavedSuccess(true);
+      setTimeout(() => setPlansSavedSuccess(false), 4000);
+      await loadSaaSPlans();
+    } else {
+      setPlansError(res.error || 'Erro ao salvar configuração dos planos.');
+    }
+  };
 
   useEffect(() => {
     setLoadingUsers(true);
@@ -94,6 +203,7 @@ export const SettingsView: React.FC = () => {
       <div className="border-b border-slate-200 px-6 pt-4 flex space-x-6 overflow-x-auto">
         {[
           { id: 'precificacao', label: 'Precificação do m²', icon: DollarSign },
+          { id: 'planos', label: 'Planos SaaS & Acessos', icon: Award },
           { id: 'perfil', label: 'Perfil da Empresa', icon: User },
           { id: 'usuarios', label: 'Usuários & Permissões', icon: ShieldCheck },
           { id: 'logo', label: 'Logotipo Oficial', icon: Palette },
@@ -118,7 +228,7 @@ export const SettingsView: React.FC = () => {
         })}
       </div>
 
-      <div className="p-6 sm:p-8 max-w-3xl">
+      <div className="p-6 sm:p-8 max-w-4xl">
         
         {/* PRECIFICAÇÃO TAB */}
         {activeTab === 'precificacao' && (
@@ -265,6 +375,276 @@ export const SettingsView: React.FC = () => {
                 <div className="flex items-center space-x-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200">
                   <Check className="w-4 h-4" />
                   <span>Precificação atualizada com sucesso!</span>
+                </div>
+              )}
+            </div>
+          </form>
+        )}
+
+        {/* PLANOS SAAS & ACESSOS TAB */}
+        {activeTab === 'planos' && (
+          <form onSubmit={handleSaveSaaSPlans} className="space-y-6 text-left">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <Award className="w-5 h-5 text-brand-600" />
+                  <span>Configuração dos Planos de Assinatura & Acessos B2B</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-1 font-medium">
+                  Defina os valores das mensalidades, a taxa por lead e controle quais módulos do sistema são liberados em cada plano.
+                </p>
+              </div>
+
+              {loadingPlans && (
+                <div className="flex items-center space-x-2 text-xs font-bold text-brand-600">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Carregando dados vigentes...</span>
+                </div>
+              )}
+            </div>
+
+            {/* Taxa de Lead Unificada */}
+            <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-50 to-emerald-50/40 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div className="text-xs font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-emerald-600" />
+                  <span>Taxa Padrão por Lead Enviado (R$)</span>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-0.5 font-medium">
+                  Valor cobrado na fatura mensal por cada lead qualificado roteado à loja credenciada.
+                </p>
+              </div>
+
+              <div className="relative w-44 shrink-0">
+                <span className="absolute left-4 top-2.5 text-sm font-extrabold text-slate-400">R$</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="5"
+                  value={saasPlans.leadPrice}
+                  onChange={(e) => setSaasPlans(prev => ({ ...prev, leadPrice: Number(e.target.value) }))}
+                  className="w-full pl-12 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm font-extrabold text-slate-900 outline-none focus:border-brand-600 bg-white"
+                />
+              </div>
+            </div>
+
+            {/* Grid dos Dois Planos */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              {/* PLANO BÁSICO */}
+              <div className="p-6 rounded-3xl border-2 border-slate-200 bg-white shadow-xs space-y-5 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
+                        Plano Básico
+                      </span>
+                      <h4 className="text-base font-black text-slate-900 mt-2">Plano Básico</h4>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Mensalidade</span>
+                      <div className="relative w-32 inline-block">
+                        <span className="absolute left-3 top-2 text-xs font-bold text-slate-400">R$</span>
+                        <input
+                          type="number"
+                          step="1"
+                          min="0"
+                          value={saasPlans.basicPrice}
+                          onChange={(e) => setSaasPlans(prev => ({ ...prev, basicPrice: Number(e.target.value) }))}
+                          className="w-full pl-9 pr-2 py-1.5 rounded-lg border border-slate-300 text-sm font-black text-slate-900 outline-none focus:border-brand-600 bg-slate-50"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Limite de Usuários */}
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center space-x-2.5">
+                    <Users className="w-4 h-4 text-slate-600 shrink-0" />
+                    <div>
+                      <div className="text-xs font-extrabold text-slate-900">1 Acesso por Loja</div>
+                      <div className="text-[11px] text-slate-500 font-medium">Restrito ao Gerente / Proprietário da loja</div>
+                    </div>
+                  </div>
+
+                  {/* Seleção de Módulos */}
+                  <div className="space-y-2.5 pt-2 border-t border-slate-100">
+                    <div className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
+                      Módulos do Sistema Liberados:
+                    </div>
+
+                    {[
+                      { key: 'crm', label: 'CRM de Oportunidades & Funil Kanban', desc: 'Gestão de etapas comerciais e leads' },
+                      { key: 'simulator', label: 'Simulador 3D de Ambientes & Cálculo m²', desc: 'Orçamentação preliminar de cômodos' },
+                      { key: 'meta', label: 'Tráfego Pago & Meta Ads Exclusivo', desc: 'Captação oficial no Instagram/Facebook' },
+                      { key: 'erp', label: 'ERP de Produção & Fases do Pedido', desc: 'Medição, corte, montagem e pós-venda' },
+                      { key: 'digital_folder', label: 'Pasta Digital de Documentos', desc: 'Upload de contratos, projetos e termos' },
+                      { key: 'promob', label: 'Integração Promob & Arquivos 3D', desc: 'Importação de projetos de fábrica' },
+                    ].map((mod) => {
+                      const isChecked = Boolean((saasPlans.basicModules as any)[mod.key]);
+                      return (
+                        <label
+                          key={mod.key}
+                          className={`flex items-start space-x-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                            isChecked
+                              ? 'bg-slate-50 border-slate-300'
+                              : 'bg-white border-dashed border-slate-200 opacity-60 hover:opacity-100'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setSaasPlans(prev => ({
+                                ...prev,
+                                basicModules: {
+                                  ...prev.basicModules,
+                                  [mod.key]: checked,
+                                },
+                              }));
+                            }}
+                            className="w-4 h-4 mt-0.5 rounded text-brand-600 border-slate-300 focus:ring-brand-500"
+                          />
+                          <div className="text-xs">
+                            <span className="font-bold text-slate-900 block">{mod.label}</span>
+                            <span className="text-[11px] text-slate-500">{mod.desc}</span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* PLANO PRO */}
+              <div className="p-6 rounded-3xl border-2 border-emerald-500 bg-white shadow-sm space-y-5 flex flex-col justify-between relative">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        Plano Pro (Recomendado)
+                      </span>
+                      <h4 className="text-base font-black text-slate-900 mt-2">Plano Pro</h4>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Mensalidade</span>
+                      <div className="relative w-32 inline-block">
+                        <span className="absolute left-3 top-2 text-xs font-bold text-emerald-600">R$</span>
+                        <input
+                          type="number"
+                          step="1"
+                          min="0"
+                          value={saasPlans.proPrice}
+                          onChange={(e) => setSaasPlans(prev => ({ ...prev, proPrice: Number(e.target.value) }))}
+                          className="w-full pl-9 pr-2 py-1.5 rounded-lg border border-emerald-300 text-sm font-black text-emerald-700 outline-none focus:border-emerald-600 bg-emerald-50/50"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Limite de Usuários */}
+                  <div className="p-3 bg-emerald-50/70 rounded-xl border border-emerald-200 flex items-center space-x-2.5">
+                    <Users className="w-4 h-4 text-emerald-700 shrink-0" />
+                    <div>
+                      <div className="text-xs font-extrabold text-emerald-900">Até 3 Acessos por Loja</div>
+                      <div className="text-[11px] text-emerald-700 font-medium">1 Gerente, 1 Vendedor e 1 Montador</div>
+                    </div>
+                  </div>
+
+                  {/* Seleção de Módulos */}
+                  <div className="space-y-2.5 pt-2 border-t border-slate-100">
+                    <div className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
+                      Módulos do Sistema Liberados:
+                    </div>
+
+                    {[
+                      { key: 'crm', label: 'CRM de Oportunidades & Funil Kanban', desc: 'Gestão de etapas comerciais e leads' },
+                      { key: 'simulator', label: 'Simulador 3D de Ambientes & Cálculo m²', desc: 'Orçamentação preliminar de cômodos' },
+                      { key: 'meta', label: 'Tráfego Pago & Meta Ads Exclusivo', desc: 'Captação oficial no Instagram/Facebook' },
+                      { key: 'erp', label: 'ERP de Produção & Fases do Pedido', desc: 'Medição, corte, montagem e pós-venda' },
+                      { key: 'digital_folder', label: 'Pasta Digital de Documentos', desc: 'Upload de contratos, projetos e termos' },
+                      { key: 'promob', label: 'Integração Promob & Arquivos 3D', desc: 'Importação de projetos de fábrica' },
+                    ].map((mod) => {
+                      const isChecked = Boolean((saasPlans.proModules as any)[mod.key]);
+                      return (
+                        <label
+                          key={mod.key}
+                          className={`flex items-start space-x-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                            isChecked
+                              ? 'bg-emerald-50/40 border-emerald-300'
+                              : 'bg-white border-dashed border-slate-200 opacity-60 hover:opacity-100'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setSaasPlans(prev => ({
+                                ...prev,
+                                proModules: {
+                                  ...prev.proModules,
+                                  [mod.key]: checked,
+                                },
+                              }));
+                            }}
+                            className="w-4 h-4 mt-0.5 rounded text-emerald-600 border-slate-300 focus:ring-emerald-500"
+                          />
+                          <div className="text-xs">
+                            <span className="font-bold text-slate-900 block">{mod.label}</span>
+                            <span className="text-[11px] text-slate-500">{mod.desc}</span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Aviso de Auditoria e Versionamento Temporal */}
+            <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-200 flex items-start space-x-3 text-xs">
+              <ShieldAlert className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <div className="font-extrabold text-blue-900">
+                  Versionamento e Proteção de Histórico Contábil
+                </div>
+                <div className="text-blue-800 text-[11px] leading-relaxed">
+                  As alterações de preços e módulos entram em vigor imediatamente para os novos ciclos de faturamento. Faturas de meses anteriores, registros fechados e comprovantes Pix emitidos no passado permanecem <strong>100% inalterados e congelados</strong> com os valores históricos originais.
+                </div>
+              </div>
+            </div>
+
+            {plansError && (
+              <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs font-bold text-red-700 flex items-center space-x-2">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                <span>{plansError}</span>
+              </div>
+            )}
+
+            <div className="flex items-center space-x-4 pt-2">
+              <button
+                type="submit"
+                disabled={savingPlans}
+                className="px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs uppercase tracking-wider shadow-blue-glow transition-all active:scale-95 cursor-pointer disabled:opacity-50 flex items-center space-x-2"
+              >
+                {savingPlans ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Salvando Planos...</span>
+                  </>
+                ) : (
+                  <span>Salvar Configuração dos Planos</span>
+                )}
+              </button>
+
+              {plansSavedSuccess && (
+                <div className="flex items-center space-x-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200 animate-in fade-in">
+                  <Check className="w-4 h-4" />
+                  <span>Configuração dos planos atualizada com versionamento auditado!</span>
                 </div>
               )}
             </div>
