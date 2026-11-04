@@ -22,6 +22,7 @@ import {
   MapPin,
   Phone,
   ShieldCheck,
+  ShieldAlert,
   Info
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -506,6 +507,20 @@ Assim que realizar o pagamento, por gentileza nos envie o comprovante por aqui p
               Em Atraso ({summary.overdueCount})
             </button>
           )}
+
+          {Boolean(summary.notEnrolledCount && summary.notEnrolledCount > 0) && (
+            <button
+              onClick={() => setStatusFilter('not_enrolled')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                statusFilter === 'not_enrolled'
+                  ? 'bg-slate-700 text-white shadow-sm'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+              Sem Assinatura no Mês ({summary.notEnrolledCount})
+            </button>
+          )}
         </div>
 
         {/* Input de Busca */}
@@ -545,6 +560,7 @@ Assim que realizar o pagamento, por gentileza nos envie o comprovante por aqui p
             const isOpen = store.cycleStatus === 'open';
             const isClosed = store.cycleStatus === 'closed';
             const isOverdue = store.cycleStatus === 'overdue';
+            const isNotEnrolled = store.cycleStatus === 'not_enrolled';
 
             const dueDateFormatted = store.dueDate
               ? new Date(store.dueDate + 'T12:00:00').toLocaleDateString('pt-BR')
@@ -558,7 +574,9 @@ Assim que realizar o pagamento, por gentileza nos envie o comprovante por aqui p
               <div
                 key={store.storeId}
                 className={`bg-white rounded-3xl border transition-all duration-200 flex flex-col justify-between overflow-hidden shadow-sm hover:shadow-md ${
-                  isOverdue
+                  isNotEnrolled
+                    ? 'border-slate-200/90 bg-slate-50/40 opacity-90'
+                    : isOverdue
                     ? 'border-rose-300 ring-1 ring-rose-200'
                     : isPaid
                     ? 'border-emerald-200'
@@ -593,6 +611,12 @@ Assim que realizar o pagamento, por gentileza nos envie o comprovante por aqui p
 
                     {/* Badge de Status do Ciclo */}
                     <div className="shrink-0">
+                      {isNotEnrolled && (
+                        <span className="px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1">
+                          <ShieldAlert className="w-3.5 h-3.5 text-slate-400" />
+                          Sem Assinatura
+                        </span>
+                      )}
                       {isPaid && (
                         <span className="px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 flex items-center gap-1">
                           <CheckCircle2 className="w-3.5 h-3.5" />
@@ -622,136 +646,167 @@ Assim que realizar o pagamento, por gentileza nos envie o comprovante por aqui p
 
                   {/* Informação do Ciclo */}
                   <div className="mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-[11px] text-slate-600 flex items-center justify-between">
-                    <span className="font-semibold text-slate-500">Vencimento da Fatura:</span>
-                    <span className="font-extrabold text-slate-900">{dueDateFormatted}</span>
+                    <span className="font-semibold text-slate-500">
+                      {isNotEnrolled ? 'Credenciamento no SaaS:' : 'Vencimento da Fatura:'}
+                    </span>
+                    <span className="font-extrabold text-slate-900">
+                      {isNotEnrolled ? (store.enrolledDate ? `Iniciado em ${store.enrolledDate}` : 'Mês posterior') : dueDateFormatted}
+                    </span>
                   </div>
                 </div>
 
                 {/* Corpo do Card: Valores e Composição */}
-                <div className="p-5 py-4 space-y-3.5 flex-1">
-                  {/* Linhas de Composição */}
-                  <div className="space-y-1.5 text-xs">
-                    <div className="flex items-center justify-between text-slate-600">
-                      <span>Mensalidade Fixa SaaS:</span>
-                      <span className="font-bold text-slate-900">{formatCurrency(store.monthlyFee)}</span>
+                {isNotEnrolled ? (
+                  <div className="p-6 py-8 space-y-3 flex-1 text-center flex flex-col justify-center items-center">
+                    <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                      <StoreIcon className="w-5 h-5" />
                     </div>
+                    <div className="space-y-1 max-w-xs">
+                      <div className="text-xs font-black text-slate-800">
+                        Loja Não Credenciada Nesta Competência
+                      </div>
+                      <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                        Esta loja parceira ingressou no aplicativo em <strong className="text-slate-700">{store.enrolledMonth ? formatMonthTitle(store.enrolledMonth) : 'mês posterior'}</strong>. Faturamento e cobrança de mensalidade vigoram a partir do mês de credenciamento.
+                      </p>
+                    </div>
+                    <div className="px-3 py-1 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-600 border border-slate-200">
+                      R$ 0,00 cobrado neste mês
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-5 py-4 space-y-3.5 flex-1">
+                    {/* Linhas de Composição */}
+                    <div className="space-y-1.5 text-xs">
+                      <div className="flex items-center justify-between text-slate-600">
+                        <span>Mensalidade Fixa SaaS:</span>
+                        <span className="font-bold text-slate-900">{formatCurrency(store.monthlyFee)}</span>
+                      </div>
 
-                    <div className="flex items-center justify-between text-slate-600">
-                      <span className="flex items-center gap-1">
-                        <span>Leads Entregues no Ciclo:</span>
-                        <span className="font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded text-[10px]">
-                          {store.leadsCount} un
+                      <div className="flex items-center justify-between text-slate-600">
+                        <span className="flex items-center gap-1">
+                          <span>Leads Entregues no Ciclo:</span>
+                          <span className="font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded text-[10px]">
+                            {store.leadsCount} un
+                          </span>
                         </span>
-                      </span>
-                      <span className="font-bold text-slate-900">{formatCurrency(store.leadsAmount)}</span>
+                        <span className="font-bold text-slate-900">{formatCurrency(store.leadsAmount)}</span>
+                      </div>
+
+                      {store.amountPaid > 0 && !isPaid && (
+                        <div className="flex items-center justify-between text-emerald-700 font-bold pt-1 border-t border-dashed border-slate-200">
+                          <span>Valor Já Pago:</span>
+                          <span>- {formatCurrency(store.amountPaid)}</span>
+                        </div>
+                      )}
                     </div>
 
-                    {store.amountPaid > 0 && !isPaid && (
-                      <div className="flex items-center justify-between text-emerald-700 font-bold pt-1 border-t border-dashed border-slate-200">
-                        <span>Valor Já Pago:</span>
-                        <span>- {formatCurrency(store.amountPaid)}</span>
+                    {/* Total em Destaque */}
+                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+                      <div>
+                        <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                          {isPaid ? 'Total Quitado' : 'Valor Total a Pagar'}
+                        </div>
+                        <div className={`text-xl font-black tracking-tight ${
+                          isPaid ? 'text-emerald-700' : isOverdue ? 'text-rose-700' : 'text-slate-900'
+                        }`}>
+                          {formatCurrency(store.balanceDue > 0 ? store.balanceDue : store.totalDue)}
+                        </div>
                       </div>
-                    )}
-                  </div>
 
-                  {/* Total em Destaque */}
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
-                    <div>
-                      <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                        {isPaid ? 'Total Quitado' : 'Valor Total a Pagar'}
-                      </div>
-                      <div className={`text-xl font-black tracking-tight ${
-                        isPaid ? 'text-emerald-700' : isOverdue ? 'text-rose-700' : 'text-slate-900'
-                      }`}>
-                        {formatCurrency(store.balanceDue > 0 ? store.balanceDue : store.totalDue)}
-                      </div>
+                      {store.invoiceNumber && (
+                        <span className="text-[10px] font-mono font-bold text-slate-400 bg-white px-2 py-1 rounded-lg border border-slate-200">
+                          #{store.invoiceNumber}
+                        </span>
+                      )}
                     </div>
 
-                    {store.invoiceNumber && (
-                      <span className="text-[10px] font-mono font-bold text-slate-400 bg-white px-2 py-1 rounded-lg border border-slate-200">
-                        #{store.invoiceNumber}
-                      </span>
-                    )}
+                    {/* Mensagem Contextual Inteligente */}
+                    <div className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                      {isOpen && (
+                        <p className="flex items-center gap-1.5 text-blue-700">
+                          <Info className="w-3.5 h-3.5 shrink-0" />
+                          <span>Novos clientes do simulador acumulam nesta fatura até o dia do fechamento.</span>
+                        </p>
+                      )}
+                      {isClosed && (
+                        <p className="flex items-center gap-1.5 text-amber-700">
+                          <Clock className="w-3.5 h-3.5 shrink-0" />
+                          <span>Ciclo fechado. Próximos leads cairão no mês seguinte. Aguardando Pix.</span>
+                        </p>
+                      )}
+                      {isPaid && (
+                        <p className="flex items-center gap-1.5 text-emerald-700">
+                          <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                          <span>Fatura 100% quitada no banco de dados. Tudo certo!</span>
+                        </p>
+                      )}
+                      {isOverdue && (
+                        <p className="flex items-center gap-1.5 text-rose-700 font-bold">
+                          <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                          <span>Vencimento expirado em {dueDateFormatted}. Envie cobrança no WhatsApp.</span>
+                        </p>
+                      )}
+                    </div>
                   </div>
-
-                  {/* Mensagem Contextual Inteligente */}
-                  <div className="text-[11px] text-slate-500 font-medium leading-relaxed">
-                    {isOpen && (
-                      <p className="flex items-center gap-1.5 text-blue-700">
-                        <Info className="w-3.5 h-3.5 shrink-0" />
-                        <span>Novos clientes do simulador acumulam nesta fatura até o dia do fechamento.</span>
-                      </p>
-                    )}
-                    {isClosed && (
-                      <p className="flex items-center gap-1.5 text-amber-700">
-                        <Clock className="w-3.5 h-3.5 shrink-0" />
-                        <span>Ciclo fechado. Próximos leads cairão no mês seguinte. Aguardando Pix.</span>
-                      </p>
-                    )}
-                    {isPaid && (
-                      <p className="flex items-center gap-1.5 text-emerald-700">
-                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                        <span>Fatura 100% quitada no banco de dados. Tudo certo!</span>
-                      </p>
-                    )}
-                    {isOverdue && (
-                      <p className="flex items-center gap-1.5 text-rose-700 font-bold">
-                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                        <span>Vencimento expirado em {dueDateFormatted}. Envie cobrança no WhatsApp.</span>
-                      </p>
-                    )}
-                  </div>
-                </div>
+                )}
 
                 {/* Rodapé de Ações */}
-                <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2">
-                  {/* Botão Ver Leads do Ciclo */}
-                  <button
-                    onClick={() => setSelectedStoreForLeads(store)}
-                    title="Ver clientes entregues nesta fatura"
-                    className="p-2.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
-                  >
-                    <Eye className="w-4 h-4 text-slate-500" />
-                    <span className="hidden sm:inline">Leads ({store.leadsCount})</span>
-                  </button>
-
-                  <div className="flex items-center gap-2">
-                    {/* Botão Copiar WhatsApp */}
+                {isNotEnrolled ? (
+                  <div className="p-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-center text-center">
+                    <span className="text-[11px] font-bold text-slate-400">
+                      Nenhuma cobrança devida nesta competência
+                    </span>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2">
+                    {/* Botão Ver Leads do Ciclo */}
                     <button
-                      onClick={() => handleCopyWhatsApp(store)}
-                      title="Copiar mensagem pronta de cobrança para WhatsApp"
-                      className="px-3 py-2 bg-white hover:bg-slate-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm hover:border-emerald-300"
+                      onClick={() => setSelectedStoreForLeads(store)}
+                      title="Ver clientes entregues nesta fatura"
+                      className="p-2.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
                     >
-                      {copiedStoreId === store.storeId ? (
-                        <>
-                          <Check className="w-4 h-4 text-emerald-600" />
-                          <span className="text-emerald-800 font-black">Copiado!</span>
-                        </>
-                      ) : (
-                        <>
-                          <MessageCircle className="w-4 h-4 text-emerald-600" />
-                          <span className="font-extrabold">WhatsApp</span>
-                        </>
-                      )}
+                      <Eye className="w-4 h-4 text-slate-500" />
+                      <span className="hidden sm:inline">Leads ({store.leadsCount})</span>
                     </button>
 
-                    {/* Botão Quitar / Dar Baixa no Pix */}
-                    {!isPaid ? (
+                    <div className="flex items-center gap-2">
+                      {/* Botão Copiar WhatsApp */}
                       <button
-                        onClick={() => handleOpenPaymentModal(store)}
-                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer shadow-sm hover:shadow"
+                        onClick={() => handleCopyWhatsApp(store)}
+                        title="Copiar mensagem pronta de cobrança para WhatsApp"
+                        className="px-3 py-2 bg-white hover:bg-slate-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm hover:border-emerald-300"
                       >
-                        <DollarSign className="w-4 h-4" />
-                        <span>Quitar Pix</span>
+                        {copiedStoreId === store.storeId ? (
+                          <>
+                            <Check className="w-4 h-4 text-emerald-600" />
+                            <span className="text-emerald-800 font-black">Copiado!</span>
+                          </>
+                        ) : (
+                          <>
+                            <MessageCircle className="w-4 h-4 text-emerald-600" />
+                            <span className="font-extrabold">WhatsApp</span>
+                          </>
+                        )}
                       </button>
-                    ) : (
-                      <span className="px-3 py-2 bg-emerald-100/80 text-emerald-800 rounded-xl text-xs font-extrabold flex items-center gap-1">
-                        <Check className="w-3.5 h-3.5" />
-                        Pago
-                      </span>
-                    )}
+
+                      {/* Botão Quitar / Dar Baixa no Pix */}
+                      {!isPaid ? (
+                        <button
+                          onClick={() => handleOpenPaymentModal(store)}
+                          className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer shadow-sm hover:shadow"
+                        >
+                          <DollarSign className="w-4 h-4" />
+                          <span>Quitar Pix</span>
+                        </button>
+                      ) : (
+                        <span className="px-3 py-2 bg-emerald-100/80 text-emerald-800 rounded-xl text-xs font-extrabold flex items-center gap-1">
+                          <Check className="w-3.5 h-3.5" />
+                          Pago
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             );
           })}

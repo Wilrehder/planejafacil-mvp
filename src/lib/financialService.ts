@@ -66,6 +66,8 @@ export async function fetchAdminBillingHub(competenceMonth?: string): Promise<{
       totalDue: Number(s.total_due) || 0,
       balanceDue: Number(s.balance_due) || 0,
       cycleStatus: s.cycle_status || 'open',
+      enrolledMonth: s.enrolled_month || undefined,
+      enrolledDate: s.enrolled_date || undefined,
       lastPayment: s.last_payment ? {
         amount: Number(s.last_payment.amount) || 0,
         date: s.last_payment.date,
@@ -88,6 +90,7 @@ export async function fetchAdminBillingHub(competenceMonth?: string): Promise<{
           closedCount: Number(rawSummary.closed_count) || 0,
           paidCount: Number(rawSummary.paid_count) || 0,
           overdueCount: Number(rawSummary.overdue_count) || 0,
+          notEnrolledCount: Number(rawSummary.not_enrolled_count) || 0,
         },
         stores: mappedStores,
       },

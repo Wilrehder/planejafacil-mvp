@@ -461,7 +461,7 @@ export interface AdminFinancialMetrics {
   invoicesList?: Invoice[];
 }
 
-export type BillingCycleStatus = 'open' | 'closed' | 'paid' | 'overdue';
+export type BillingCycleStatus = 'open' | 'closed' | 'paid' | 'overdue' | 'not_enrolled';
 
 export interface StoreCycleLead {
   id: string;
@@ -499,6 +499,8 @@ export interface StoreBillingCycle {
   totalDue: number;
   balanceDue: number;
   cycleStatus: BillingCycleStatus;
+  enrolledMonth?: string;
+  enrolledDate?: string;
   lastPayment?: {
     amount: number;
     date: string;
@@ -517,6 +519,7 @@ export interface AdminBillingHubSummary {
   closedCount: number;
   paidCount: number;
   overdueCount: number;
+  notEnrolledCount?: number;
 }
 
 export interface AdminBillingHubData {
