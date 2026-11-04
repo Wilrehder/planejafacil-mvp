@@ -23,7 +23,9 @@ import {
   Phone,
   ShieldCheck,
   ShieldAlert,
-  Info
+  Info,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { 
@@ -52,6 +54,7 @@ export const FinancialView: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [statusFilter, setStatusFilter] = useState<'all' | BillingCycleStatus>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [feedbackBanner, setFeedbackBanner] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Modal de Detalhes dos Leads do Ciclo
@@ -523,20 +526,54 @@ Assim que realizar o pagamento, por gentileza nos envie o comprovante por aqui p
           )}
         </div>
 
-        {/* Input de Busca */}
-        <div className="relative min-w-[240px]">
-          <input
-            type="text"
-            placeholder="Buscar marcenaria ou cidade..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
-          />
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+        {/* Controles à Direita: Busca & Seletor de Modo */}
+        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+          {/* Input de Busca */}
+          <div className="relative min-w-[200px] flex-1 md:flex-initial">
+            <input
+              type="text"
+              placeholder="Buscar marcenaria ou cidade..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+            />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          </div>
+
+          {/* Seletor Compacto Modo Cards / Modo Lista */}
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
+            <button
+              type="button"
+              onClick={() => setViewMode('cards')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${
+                viewMode === 'cards'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
+              title="Modo Cards"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span className="text-[11px]">Cards</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setViewMode('table')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${
+                viewMode === 'table'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
+              title="Modo Lista Compacta"
+            >
+              <List className="w-3.5 h-3.5" />
+              <span className="text-[11px]">Lista</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* 4. GRID DE CARDS DAS LOJAS PARCEIRAS (O CORAÇÃO DA TELA) */}
+      {/* 4. VISUALIZAÇÃO DAS LOJAS: MODO CARDS OU MODO LISTA COMPACTA */}
       {loading ? (
         <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center">
           <RefreshCw className="w-8 h-8 text-emerald-600 animate-spin mx-auto mb-3" />
@@ -553,7 +590,193 @@ Assim que realizar o pagamento, por gentileza nos envie o comprovante por aqui p
               : 'Nenhuma loja corresponde aos critérios de busca ou status selecionados.'}
           </p>
         </div>
+      ) : viewMode === 'table' ? (
+        /* MODO LISTA COMPACTA (ALTA DENSIDADE) */
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
+                  <th className="py-4 px-5">Loja Parceira & Plano</th>
+                  <th className="py-4 px-5">Gestor / Contato</th>
+                  <th className="py-4 px-5">Ciclo / Vencimento</th>
+                  <th className="py-4 px-5">Mensalidade</th>
+                  <th className="py-4 px-5">Leads Entregues</th>
+                  <th className="py-4 px-5">Total a Pagar</th>
+                  <th className="py-4 px-5">Situação</th>
+                  <th className="py-4 px-5 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                {filteredStores.map((store) => {
+                  const isPaid = store.cycleStatus === 'paid';
+                  const isOpen = store.cycleStatus === 'open';
+                  const isClosed = store.cycleStatus === 'closed';
+                  const isOverdue = store.cycleStatus === 'overdue';
+                  const isNotEnrolled = store.cycleStatus === 'not_enrolled';
+
+                  const dueDateFormatted = store.dueDate
+                    ? new Date(store.dueDate + 'T12:00:00').toLocaleDateString('pt-BR')
+                    : `Dia ${store.billingDueDay}`;
+
+                  return (
+                    <tr 
+                      key={store.storeId} 
+                      className={`hover:bg-slate-50/80 transition-colors ${
+                        isNotEnrolled ? 'bg-slate-50/30 opacity-80' : isOverdue ? 'bg-rose-50/20' : ''
+                      }`}
+                    >
+                      {/* Loja & Plano */}
+                      <td className="py-3.5 px-5 font-bold text-slate-900">
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-sm text-slate-900">{store.storeName}</span>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                            store.planTier === 'pro' ? 'bg-purple-100 text-purple-800' : 'bg-slate-100 text-slate-700'
+                          }`}>
+                            {store.planTier.toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 font-normal">
+                          {store.cityName} - {store.stateUf}
+                        </div>
+                      </td>
+
+                      {/* Gestor / Contato */}
+                      <td className="py-3.5 px-5">
+                        <div className="font-bold text-slate-800">{store.responsibleName}</div>
+                        <div className="text-[11px] text-slate-400 font-mono">{store.phone}</div>
+                      </td>
+
+                      {/* Ciclo / Vencimento */}
+                      <td className="py-3.5 px-5 whitespace-nowrap">
+                        {isNotEnrolled ? (
+                          <span className="text-[11px] text-slate-500 font-semibold">
+                            {store.enrolledDate ? `Ingressou em ${store.enrolledDate}` : 'Mês posterior'}
+                          </span>
+                        ) : (
+                          <div>
+                            <div className="font-bold text-slate-900">{dueDateFormatted}</div>
+                            <div className="text-[10px] text-slate-400">Vencimento da Fatura</div>
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Mensalidade */}
+                      <td className="py-3.5 px-5 whitespace-nowrap font-bold text-slate-900">
+                        {formatCurrency(store.monthlyFee)}
+                      </td>
+
+                      {/* Leads Entregues */}
+                      <td className="py-3.5 px-5 whitespace-nowrap">
+                        {isNotEnrolled ? (
+                          <span className="text-slate-400 text-xs">-</span>
+                        ) : (
+                          <div>
+                            <span className="font-black text-emerald-700">{store.leadsCount} leads</span>
+                            <span className="text-[11px] text-slate-400 block">{formatCurrency(store.leadsAmount)}</span>
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Total a Pagar */}
+                      <td className="py-3.5 px-5 whitespace-nowrap">
+                        <div className={`text-sm font-black ${
+                          isPaid ? 'text-emerald-700' : isOverdue ? 'text-rose-700' : 'text-slate-900'
+                        }`}>
+                          {formatCurrency(store.balanceDue > 0 ? store.balanceDue : store.totalDue)}
+                        </div>
+                        {store.invoiceNumber && (
+                          <span className="text-[9px] font-mono text-slate-400 block">#{store.invoiceNumber}</span>
+                        )}
+                      </td>
+
+                      {/* Situação */}
+                      <td className="py-3.5 px-5 whitespace-nowrap">
+                        {isNotEnrolled && (
+                          <span className="px-2.5 py-1 rounded-xl text-[10px] font-black uppercase bg-slate-100 text-slate-600 border border-slate-200">
+                            Sem Assinatura
+                          </span>
+                        )}
+                        {isPaid && (
+                          <span className="px-2.5 py-1 rounded-xl text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 flex items-center gap-1 w-fit">
+                            <CheckCircle2 className="w-3 h-3" /> Quitada
+                          </span>
+                        )}
+                        {isOpen && (
+                          <span className="px-2.5 py-1 rounded-xl text-[10px] font-black uppercase bg-blue-100 text-blue-800 flex items-center gap-1 w-fit">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span> Aberta
+                          </span>
+                        )}
+                        {isClosed && (
+                          <span className="px-2.5 py-1 rounded-xl text-[10px] font-black uppercase bg-amber-100 text-amber-800 flex items-center gap-1 w-fit">
+                            <Clock className="w-3 h-3" /> Fechada
+                          </span>
+                        )}
+                        {isOverdue && (
+                          <span className="px-2.5 py-1 rounded-xl text-[10px] font-black uppercase bg-rose-100 text-rose-800 flex items-center gap-1 w-fit">
+                            <AlertTriangle className="w-3 h-3" /> Em Atraso
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Ações */}
+                      <td className="py-3.5 px-5 text-right whitespace-nowrap space-x-2">
+                        {isNotEnrolled ? (
+                          <span className="text-[11px] text-slate-400 italic">Sem débitos</span>
+                        ) : (
+                          <>
+                            {/* Ver Leads */}
+                            <button
+                              onClick={() => setSelectedStoreForLeads(store)}
+                              title="Ver leads deste ciclo"
+                              className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-slate-500" />
+                              <span>({store.leadsCount})</span>
+                            </button>
+
+                            {/* Copiar WhatsApp */}
+                            <button
+                              onClick={() => handleCopyWhatsApp(store)}
+                              title="Copiar mensagem para WhatsApp"
+                              className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer"
+                            >
+                              {copiedStoreId === store.storeId ? (
+                                <span className="text-emerald-800 font-black">Copiado!</span>
+                              ) : (
+                                <>
+                                  <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>Whats</span>
+                                </>
+                              )}
+                            </button>
+
+                            {/* Quitar Pix */}
+                            {!isPaid ? (
+                              <button
+                                onClick={() => handleOpenPaymentModal(store)}
+                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-extrabold transition-all inline-flex items-center gap-1 cursor-pointer shadow-xs"
+                              >
+                                <DollarSign className="w-3.5 h-3.5" />
+                                <span>Quitar</span>
+                              </button>
+                            ) : (
+                              <span className="px-2.5 py-1 text-emerald-700 text-xs font-extrabold inline-flex items-center gap-1">
+                                <Check className="w-3.5 h-3.5 text-emerald-600" /> Pago
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       ) : (
+        /* MODO CARDS */
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {filteredStores.map((store) => {
             const isPaid = store.cycleStatus === 'paid';

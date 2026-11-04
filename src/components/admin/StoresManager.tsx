@@ -48,6 +48,7 @@ export const StoresManager: React.FC = () => {
   const [feedbackBanner, setFeedbackBanner] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [modalError, setModalError] = useState<string | null>(null);
   const [isSubmittingStore, setIsSubmittingStore] = useState(false);
+  const [suspendingStoreId, setSuspendingStoreId] = useState<string | null>(null);
 
   // Modal de Gestão de Usuários da Loja
   const [selectedStoreForUsers, setSelectedStoreForUsers] = useState<{ id: string; name: string; city: string } | null>(null);
@@ -196,23 +197,34 @@ export const StoresManager: React.FC = () => {
   const handleToggleSuspension = async (store: Store) => {
     const isCurrentlySuspended = store.status === 'Inativa';
     setFeedbackBanner(null);
+    setSuspendingStoreId(store.id);
 
     try {
-      await setStoreSuspension(
+      const res = await setStoreSuspension(
         store.id,
         !isCurrentlySuspended,
         isCurrentlySuspended ? 'Reativação comercial pelo administrador' : 'Suspensão administrativa'
       );
+
+      if (!res.success) {
+        throw new Error(res.error || 'Erro ao alterar status da loja.');
+      }
+
       await refreshStores();
       setFeedbackBanner({
         type: 'success',
-        text: isCurrentlySuspended ? `Loja "${store.name}" reativada com sucesso.` : `Loja "${store.name}" suspensa do rodízio.`,
+        text: isCurrentlySuspended 
+          ? `Loja "${store.name}" reativada com sucesso! Ela voltou para o rodízio de leads.` 
+          : `Loja "${store.name}" suspensa do rodízio. Novos leads não serão encaminhados a ela.`,
       });
+      setTimeout(() => setFeedbackBanner(null), 4000);
     } catch (err: any) {
       setFeedbackBanner({
         type: 'error',
         text: err?.message || 'Erro ao atualizar status da loja no banco de dados.',
       });
+    } finally {
+      setSuspendingStoreId(null);
     }
   };
 
@@ -566,15 +578,20 @@ export const StoresManager: React.FC = () => {
 
                           {/* Status */}
                           <td className="py-4 px-6 whitespace-nowrap">
-                            <span className={`px-3 py-1 text-[10px] font-extrabold uppercase rounded-full border ${
-                              store.status === 'Ativa'
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                : store.status === 'Pendente'
-                                ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                : 'bg-rose-50 text-rose-700 border-rose-200'
-                            }`}>
-                              ● {store.status}
-                            </span>
+                            <div className="flex flex-col items-start gap-1">
+                              <span className={`px-2.5 py-0.5 text-[10px] font-extrabold uppercase rounded-full border ${
+                                store.status === 'Ativa'
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                  : store.status === 'Pendente'
+                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                  : 'bg-rose-50 text-rose-700 border-rose-200'
+                              }`}>
+                                ● {store.status}
+                              </span>
+                              <span className="text-[10px] font-semibold text-slate-500">
+                                {store.status === 'Ativa' ? '✓ Na Fila de Leads' : '⏸ Pausada do Rodízio'}
+                              </span>
+                            </div>
                           </td>
 
                           {/* Ações */}
@@ -604,15 +621,22 @@ export const StoresManager: React.FC = () => {
 
                             {/* Suspender / Reativar */}
                             <button
+                              disabled={suspendingStoreId === store.id}
                               onClick={() => handleToggleSuspension(store)}
-                              className={`px-2.5 py-1.5 rounded-xl font-bold text-xs border transition-all inline-flex items-center space-x-1 cursor-pointer ${
+                              className={`px-3 py-1.5 rounded-xl font-bold text-xs border transition-all inline-flex items-center space-x-1.5 cursor-pointer disabled:opacity-50 ${
                                 store.status === 'Inativa'
-                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 shadow-xs'
                                   : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
                               }`}
-                              title={store.status === 'Inativa' ? 'Reativar Loja' : 'Suspender Loja'}
+                              title={store.status === 'Inativa' ? 'Reativar Loja na Fila de Leads' : 'Suspender Loja da Fila de Leads'}
                             >
-                              {store.status === 'Inativa' ? <Power className="w-3.5 h-3.5" /> : <PowerOff className="w-3.5 h-3.5" />}
+                              {suspendingStoreId === store.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-500" />
+                              ) : store.status === 'Inativa' ? (
+                                <Power className="w-3.5 h-3.5 text-emerald-600" />
+                              ) : (
+                                <PowerOff className="w-3.5 h-3.5 text-rose-600" />
+                              )}
                               <span>{store.status === 'Inativa' ? 'Reativar' : 'Suspender'}</span>
                             </button>
 

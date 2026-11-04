@@ -193,3 +193,4 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION public.get_admin_billing_hub(VARCHAR) TO authenticated, service_role;
+
