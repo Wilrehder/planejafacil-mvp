@@ -210,6 +210,14 @@ export interface Store {
   contractDate?: string;
   billingDueDay?: number;
   routingEnabled?: boolean;
+  // Campos de Contrato B2B e Permanência
+  hasRetentionClause?: boolean;
+  retentionMonths?: number;
+  contractSignedAt?: string | null;
+  contractSignedByName?: string | null;
+  contractSignedByCpf?: string | null;
+  contractSignatureIp?: string | null;
+  contractTermsText?: string | null;
 }
 
 export interface PartnerStoreApplication {
@@ -546,6 +554,7 @@ export interface SaaSPlanConfig {
   monthlyPrice: number;
   leadPrice: number;
   maxUsers: number;
+  extraUserPrice?: number;
   modules: PlanModulesConfig;
   version: number;
   effectiveFrom: string;
@@ -555,6 +564,8 @@ export interface StoreUsersQuota {
   planTier: 'basic' | 'pro';
   maxUsers: number;
   activeUsersCount: number;
+  extraUsersCount?: number;
+  extraUserPrice?: number;
   users: Array<{
     id: string;
     fullName: string;
@@ -564,4 +575,26 @@ export interface StoreUsersQuota {
     mustChangePassword: boolean;
     createdAt: string;
   }>;
+}
+
+export interface StoreContractDetails {
+  tenantId: string;
+  storeName: string;
+  cnpj?: string;
+  responsibleName?: string;
+  email?: string;
+  phone?: string;
+  city?: string;
+  state?: string;
+  plan: 'Basic' | 'Pro';
+  monthlyPrice: number;
+  leadPrice: number;
+  billingDueDay: number;
+  hasRetentionClause: boolean;
+  retentionMonths: number;
+  contractSignedAt?: string | null;
+  contractSignedByName?: string | null;
+  contractSignedByCpf?: string | null;
+  contractSignatureIp?: string | null;
+  contractTermsText?: string | null;
 }

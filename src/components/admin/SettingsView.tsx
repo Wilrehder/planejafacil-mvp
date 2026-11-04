@@ -40,12 +40,14 @@ export const SettingsView: React.FC = () => {
     basicPrice: number;
     proPrice: number;
     leadPrice: number;
+    extraUserPrice: number;
     basicModules: PlanModulesConfig;
     proModules: PlanModulesConfig;
   }>({
     basicPrice: 119.90,
     proPrice: 219.90,
     leadPrice: 50.00,
+    extraUserPrice: 39.90,
     basicModules: {
       crm: true,
       simulator: true,
@@ -84,6 +86,7 @@ export const SettingsView: React.FC = () => {
             basicPrice: basic.monthlyPrice,
             proPrice: pro.monthlyPrice,
             leadPrice: basic.leadPrice || 50,
+            extraUserPrice: Number(res.extraUserPrice) || Number(basic.extraUserPrice) || 39.90,
             basicModules: basic.modules || {
               crm: true,
               simulator: true,
@@ -120,6 +123,7 @@ export const SettingsView: React.FC = () => {
       basicPrice: Number(saasPlans.basicPrice),
       proPrice: Number(saasPlans.proPrice),
       leadPrice: Number(saasPlans.leadPrice),
+      extraUserPrice: Number(saasPlans.extraUserPrice),
       basicModules: saasPlans.basicModules,
       proModules: saasPlans.proModules,
     });
@@ -403,28 +407,56 @@ export const SettingsView: React.FC = () => {
               )}
             </div>
 
-            {/* Taxa de Lead Unificada */}
-            <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-50 to-emerald-50/40 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <div className="text-xs font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-emerald-600" />
-                  <span>Taxa Padrão por Lead Enviado (R$)</span>
+            {/* Taxas Variáveis B2B: Lead e Usuário Adicional */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Taxa de Lead */}
+              <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-50 to-emerald-50/40 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="text-xs font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-emerald-600" />
+                    <span>Taxa Padrão por Lead Enviado</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5 font-medium">
+                    Cobrado na fatura mensal por lead qualificado roteado à loja.
+                  </p>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-0.5 font-medium">
-                  Valor cobrado na fatura mensal por cada lead qualificado roteado à loja credenciada.
-                </p>
+
+                <div className="relative w-36 shrink-0">
+                  <span className="absolute left-3.5 top-2.5 text-xs font-extrabold text-slate-400">R$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={saasPlans.leadPrice}
+                    onChange={(e) => setSaasPlans(prev => ({ ...prev, leadPrice: Number(e.target.value) }))}
+                    className="w-full pl-10 pr-3 py-2 rounded-xl border border-slate-300 text-sm font-extrabold text-slate-900 outline-none focus:border-brand-600 bg-white"
+                  />
+                </div>
               </div>
 
-              <div className="relative w-44 shrink-0">
-                <span className="absolute left-4 top-2.5 text-sm font-extrabold text-slate-400">R$</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="5"
-                  value={saasPlans.leadPrice}
-                  onChange={(e) => setSaasPlans(prev => ({ ...prev, leadPrice: Number(e.target.value) }))}
-                  className="w-full pl-12 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm font-extrabold text-slate-900 outline-none focus:border-brand-600 bg-white"
-                />
+              {/* Taxa de Usuário Adicional (Acesso Extra) */}
+              <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-50 to-purple-50/40 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="text-xs font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-purple-600" />
+                    <span>Valor por Acesso Extra (/mês)</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5 font-medium">
+                    Cobrado na fatura mensal por usuário criado além da cota do plano.
+                  </p>
+                </div>
+
+                <div className="relative w-36 shrink-0">
+                  <span className="absolute left-3.5 top-2.5 text-xs font-extrabold text-slate-400">R$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={saasPlans.extraUserPrice}
+                    onChange={(e) => setSaasPlans(prev => ({ ...prev, extraUserPrice: Number(e.target.value) }))}
+                    className="w-full pl-10 pr-3 py-2 rounded-xl border border-slate-300 text-sm font-extrabold text-slate-900 outline-none focus:border-purple-600 bg-white"
+                  />
+                </div>
               </div>
             </div>
 

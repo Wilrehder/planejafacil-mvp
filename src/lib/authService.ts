@@ -6,7 +6,7 @@ export interface AuthenticatedUserContext {
   email: string;
   tenantId: string | null;
   storeId: string;
-  role: 'platform_admin' | 'store_owner' | 'store_operator' | 'consumer';
+  role: 'platform_admin' | 'store_owner' | 'store_operator' | 'store_assembler' | 'consumer';
   fullName: string;
   isActive: boolean;
   mustChangePassword: boolean;
@@ -31,6 +31,8 @@ export interface ProvisionStoreUserParams {
   ownerName?: string;
   tempPassword?: string;
   mustChangePassword?: boolean;
+  hasRetentionClause?: boolean;
+  retentionMonths?: number;
 }
 
 export interface StoreUserSummary {
@@ -160,6 +162,8 @@ export async function provisionStoreAndUser(params: ProvisionStoreUserParams) {
     p_owner_name: params.ownerName || null,
     p_temp_password: params.tempPassword || 'PlanejaFacil2026!',
     p_must_change_password: params.mustChangePassword ?? true,
+    p_has_retention_clause: params.hasRetentionClause ?? false,
+    p_retention_months: params.retentionMonths ?? 6,
   });
 
   if (error) {
@@ -203,6 +207,7 @@ export async function createStoreUser(params: {
   role?: 'store_owner' | 'store_operator' | 'store_assembler';
   tempPassword?: string;
   mustChangePassword?: boolean;
+  allowExtra?: boolean;
 }) {
   const { data, error } = await supabase.rpc('admin_create_store_user', {
     p_tenant_id: params.tenantId,
@@ -211,6 +216,7 @@ export async function createStoreUser(params: {
     p_role: params.role || 'store_operator',
     p_temp_password: params.tempPassword || 'PlanejaFacil2026!',
     p_must_change_password: params.mustChangePassword ?? true,
+    p_allow_extra: params.allowExtra ?? true,
   });
 
   if (error) {

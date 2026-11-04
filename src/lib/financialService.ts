@@ -334,6 +334,8 @@ export async function saveStoreAndSubscription(params: {
   billingDueDay?: number;
   isRoutingEnabled?: boolean;
   coveredCities?: string[];
+  hasRetentionClause?: boolean;
+  retentionMonths?: number;
 }): Promise<{
   success: boolean;
   storeId?: string;
@@ -359,6 +361,8 @@ export async function saveStoreAndSubscription(params: {
       p_billing_due_day: params.billingDueDay || 10,
       p_is_routing_enabled: params.isRoutingEnabled ?? true,
       p_covered_cities: params.coveredCities || [],
+      p_has_retention_clause: params.hasRetentionClause ?? false,
+      p_retention_months: params.retentionMonths ?? 6,
     });
 
     if (error) {
@@ -679,6 +683,7 @@ export async function fetchSaaSPlansConfig() {
     return {
       success: true,
       plans: data?.plans || [],
+      extraUserPrice: Number(data?.extraUserPrice) || 39.90,
     };
   } catch (err: any) {
     return { success: false, error: err?.message || 'Erro ao consultar planos SaaS.' };
@@ -692,6 +697,7 @@ export async function saveSaaSPlansConfig(params: {
   basicPrice: number;
   proPrice: number;
   leadPrice: number;
+  extraUserPrice?: number;
   basicModules: PlanModulesConfig | Record<string, boolean>;
   proModules: PlanModulesConfig | Record<string, boolean>;
 }) {
@@ -702,6 +708,7 @@ export async function saveSaaSPlansConfig(params: {
       p_lead_price: params.leadPrice,
       p_basic_modules: params.basicModules,
       p_pro_modules: params.proModules,
+      p_extra_user_price: params.extraUserPrice ?? 39.90,
     });
 
     if (error) {

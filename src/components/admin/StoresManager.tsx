@@ -18,7 +18,8 @@ import {
   Loader2,
   Sparkles,
   Layers,
-  ShieldCheck
+  ShieldCheck,
+  FileText
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { STORE_PLANS } from '../../data/mockData';
@@ -27,6 +28,7 @@ import { saveStoreAndSubscription, setStoreSuspension } from '../../lib/financia
 import { provisionStoreAndUser } from '../../lib/authService';
 import { lookupCep } from '../../lib/cepService';
 import { StoreUsersModal } from './StoreUsersModal';
+import { StoreContractModal } from './StoreContractModal';
 
 export const StoresManager: React.FC = () => {
   const { 
@@ -53,6 +55,11 @@ export const StoresManager: React.FC = () => {
   // Modal de Gestão de Usuários da Loja
   const [selectedStoreForUsers, setSelectedStoreForUsers] = useState<{ id: string; name: string; city: string } | null>(null);
   const [isUsersModalOpen, setIsUsersModalOpen] = useState(false);
+
+  // Modal de Visualização de Contrato B2B
+  const [selectedStoreForContract, setSelectedStoreForContract] = useState<Store | null>(null);
+  const [isContractModalOpen, setIsContractModalOpen] = useState(false);
+
   const [cepSearchLoading, setCepSearchLoading] = useState(false);
   const [cepLookupSuccess, setCepLookupSuccess] = useState<string | null>(null);
 
@@ -73,6 +80,8 @@ export const StoresManager: React.FC = () => {
     contractedPrice: 219.90,
     billingDueDay: 10,
     routingEnabled: true,
+    hasRetentionClause: false,
+    retentionMonths: 6,
     ownerEmail: '',
     tempPassword: 'PlanejaFacil2026!',
     mustChangePassword: true,
@@ -134,6 +143,8 @@ export const StoresManager: React.FC = () => {
       contractedPrice: 219.90,
       billingDueDay: 10,
       routingEnabled: true,
+      hasRetentionClause: false,
+      retentionMonths: 6,
       ownerEmail: '',
       tempPassword: 'PlanejaFacil2026!',
       mustChangePassword: true,
@@ -162,6 +173,8 @@ export const StoresManager: React.FC = () => {
       contractedPrice: store.monthlyRevenue || (store.plan === 'Pro' ? 219.90 : 119.90),
       billingDueDay: store.billingDueDay || 10,
       routingEnabled: store.routingEnabled ?? (store.status === 'Ativa'),
+      hasRetentionClause: store.hasRetentionClause ?? false,
+      retentionMonths: store.retentionMonths ?? 6,
       ownerEmail: store.email || '',
       tempPassword: 'PlanejaFacil2026!',
       mustChangePassword: false,
@@ -304,6 +317,8 @@ export const StoresManager: React.FC = () => {
           email: formStore.email.trim() || formStore.ownerEmail.trim(),
           responsibleName: formStore.responsibleName.trim(),
           isRoutingEnabled: formStore.routingEnabled && formStore.status === 'Ativa',
+          hasRetentionClause: formStore.hasRetentionClause,
+          retentionMonths: formStore.retentionMonths,
         });
         await refreshStores();
         setFeedbackBanner({
@@ -329,6 +344,8 @@ export const StoresManager: React.FC = () => {
           ownerName: formStore.responsibleName.trim() || formStore.name.trim(),
           tempPassword: formStore.tempPassword.trim() || 'PlanejaFacil2026!',
           mustChangePassword: formStore.mustChangePassword ?? true,
+          hasRetentionClause: formStore.hasRetentionClause,
+          retentionMonths: formStore.retentionMonths,
         });
         await refreshStores();
         setFeedbackBanner({
@@ -607,6 +624,23 @@ export const StoresManager: React.FC = () => {
                             >
                               <Users className="w-3.5 h-3.5" />
                               <span>Acessos</span>
+                            </button>
+
+                            {/* Contrato B2B e Assinatura */}
+                            <button
+                              onClick={() => {
+                                setSelectedStoreForContract(store);
+                                setIsContractModalOpen(true);
+                              }}
+                              className={`px-3 py-1.5 rounded-xl font-bold text-xs border transition-all inline-flex items-center space-x-1.5 cursor-pointer ${
+                                store.contractSignedAt
+                                  ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300'
+                                  : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300'
+                              }`}
+                              title={store.contractSignedAt ? 'Contrato assinado digitalmente' : 'Contrato aguardando assinatura digital'}
+                            >
+                              <FileText className="w-3.5 h-3.5" />
+                              <span>{store.contractSignedAt ? 'Contrato ✓' : 'Contrato'}</span>
                             </button>
 
                             {/* Editar Loja */}
@@ -1071,6 +1105,74 @@ export const StoresManager: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Cláusula de Permanência Mínima no Contrato */}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <span className="text-xs font-black text-slate-900 block">
+                          Exigir Permanência Mínima no Contrato?
+                        </span>
+                        <span className="text-[11px] text-slate-500 block">
+                          Cláusula contratual de fidelidade com multa rescisória compensatória de 30% em rescisão antecipada.
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-slate-200 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setFormStore({ ...formStore, hasRetentionClause: false })}
+                          className={`px-3 py-1 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                            !formStore.hasRetentionClause
+                              ? 'bg-slate-900 text-white'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          Não (Livre)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormStore({ ...formStore, hasRetentionClause: true })}
+                          className={`px-3 py-1 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                            formStore.hasRetentionClause
+                              ? 'bg-emerald-600 text-white'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          Sim (Fidelidade)
+                        </button>
+                      </div>
+                    </div>
+
+                    {formStore.hasRetentionClause && (
+                      <div className="pt-2 border-t border-slate-200 flex items-center justify-between animate-in fade-in duration-150">
+                        <span className="text-xs font-bold text-slate-700">Prazo de Fidelidade Obrigatória:</span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setFormStore({ ...formStore, retentionMonths: 6 })}
+                            className={`px-3 py-1 rounded-lg text-xs font-bold border cursor-pointer transition-colors ${
+                              formStore.retentionMonths === 6
+                                ? 'bg-emerald-100 text-emerald-900 border-emerald-300 font-black'
+                                : 'bg-white text-slate-600 border-slate-200'
+                            }`}
+                          >
+                            6 Meses
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormStore({ ...formStore, retentionMonths: 12 })}
+                            className={`px-3 py-1 rounded-lg text-xs font-bold border cursor-pointer transition-colors ${
+                              formStore.retentionMonths === 12
+                                ? 'bg-emerald-100 text-emerald-900 border-emerald-300 font-black'
+                                : 'bg-white text-slate-600 border-slate-200'
+                            }`}
+                          >
+                            12 Meses
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Roteamento Automático de Leads */}
                   <label className="flex items-center space-x-2.5 cursor-pointer pt-1">
                     <input
@@ -1137,6 +1239,18 @@ export const StoresManager: React.FC = () => {
             setSelectedStoreForUsers(null);
           }}
           store={selectedStoreForUsers}
+        />
+      )}
+
+      {/* MODAL DE VISUALIZAÇÃO DO CONTRATO B2B E ASSINATURA */}
+      {selectedStoreForContract && (
+        <StoreContractModal
+          isOpen={isContractModalOpen}
+          onClose={() => {
+            setIsContractModalOpen(false);
+            setSelectedStoreForContract(null);
+          }}
+          store={selectedStoreForContract}
         />
       )}
 

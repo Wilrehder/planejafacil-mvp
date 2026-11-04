@@ -25,7 +25,10 @@ import { MerchantAnalytics } from './MerchantAnalytics';
 import { OrderFolderModal } from './OrderFolderModal';
 import { MerchantFinancialModal } from './MerchantFinancialModal';
 import { MerchantMetaIntegration } from './MerchantMetaIntegration';
-import { Wrench, Activity, Users, Package, BarChart2, CreditCard, Share2 } from 'lucide-react';
+import { AssemblerMobileView } from './AssemblerMobileView';
+import { SignContractModal } from './SignContractModal';
+import { StoreContractModal } from '../admin/StoreContractModal';
+import { Wrench, Activity, Users, Package, BarChart2, CreditCard, Share2, FileText } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { switchDevelopmentStoreSession } from '../../lib/authService';
 
@@ -49,7 +52,9 @@ export const MerchantDashboard: React.FC = () => {
     setMerchantTab,
     selectedOrderForFolder,
     setSelectedOrderForFolder,
-    currentUser
+    currentUser,
+    orders,
+    refreshStores
   } = useApp();
   const [selectedStoreId, setSelectedStoreId] = useState<string>(
     currentUser?.tenantId || currentUser?.storeId || stores[0]?.id || ''
@@ -63,6 +68,8 @@ export const MerchantDashboard: React.FC = () => {
   const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [isFinancialModalOpen, setIsFinancialModalOpen] = useState(false);
+  const [isViewContractModalOpen, setIsViewContractModalOpen] = useState(false);
+  const [isSignContractModalOpen, setIsSignContractModalOpen] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
   // New Lead Form State
@@ -120,6 +127,15 @@ export const MerchantDashboard: React.FC = () => {
   // Plano real oficial da loja (sem sobreposição manual)
   const activePlan = currentStore.plan;
   const isProPlan = activePlan === 'Pro';
+
+  const isStoreOwner = !currentUser?.role || currentUser?.role === 'store_owner' || currentUser?.role === 'platform_admin';
+  const isStoreAssembler = currentUser?.role === 'store_assembler';
+
+  useEffect(() => {
+    if (isStoreOwner && currentStore && currentStore.id && !currentStore.contractSignedAt) {
+      setIsSignContractModalOpen(true);
+    }
+  }, [currentStore?.contractSignedAt, isStoreOwner, currentStore?.id]);
 
   const [realDbLeads, setRealDbLeads] = useState<Lead[]>([]);
   const [loadingRealLeads, setLoadingRealLeads] = useState<boolean>(false);
@@ -360,6 +376,11 @@ export const MerchantDashboard: React.FC = () => {
     { id: 'perdido', label: 'Perdidos', color: 'border-slate-300 bg-slate-100/50' },
   ];
 
+  // SE FOR MONTADOR: Carregar direto a Interface 100% Mobile
+  if (isStoreAssembler) {
+    return <AssemblerMobileView orders={orders} onRefreshOrders={syncStoreAuthAndFetch} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 p-4 sm:p-8 space-y-6 font-sans">
       
@@ -430,13 +451,31 @@ export const MerchantDashboard: React.FC = () => {
             </span>
           </button>
 
-          <button
-            onClick={() => setIsFinancialModalOpen(true)}
-            className="px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200/60"
-          >
-            <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
-            Faturas & Assinatura
-          </button>
+          {/* Faturas B2B e Contrato exclusivos do Gerente / Dono da Loja */}
+          {isStoreOwner && (
+            <>
+              <button
+                onClick={() => setIsFinancialModalOpen(true)}
+                className="px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200/60"
+              >
+                <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Faturas B2B</span>
+              </button>
+
+              <button
+                onClick={() => setIsViewContractModalOpen(true)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 border ${
+                  currentStore.contractSignedAt
+                    ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300'
+                    : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300 animate-pulse'
+                }`}
+                title="Consultar termos do contrato B2B firmado com a plataforma"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>{currentStore.contractSignedAt ? 'Meu Contrato B2B ✓' : 'Assinar Contrato ⚠️'}</span>
+              </button>
+            </>
+          )}
         </div>
 
         {/* Identificação Segura da Loja Conectada e Ações */}
@@ -1006,6 +1045,33 @@ export const MerchantDashboard: React.FC = () => {
         tenantId={STORE_ID_TO_TENANT_UUID[selectedStoreId] || selectedStoreId}
         storeName={currentStore.name}
       />
+
+      {/* Modal de Consulta do Contrato B2B pelo Gerente */}
+      {currentStore && (
+        <StoreContractModal
+          isOpen={isViewContractModalOpen}
+          onClose={() => setIsViewContractModalOpen(false)}
+          store={currentStore}
+          canSign={!currentStore.contractSignedAt}
+          onSignNow={() => {
+            setIsViewContractModalOpen(false);
+            setIsSignContractModalOpen(true);
+          }}
+        />
+      )}
+
+      {/* Modal Obrigatório de Assinatura Digital no 1º Acesso */}
+      {currentStore && (
+        <SignContractModal
+          isOpen={isSignContractModalOpen}
+          store={currentStore}
+          onSignedSuccess={async () => {
+            setIsSignContractModalOpen(false);
+            await refreshStores();
+            await syncStoreAuthAndFetch();
+          }}
+        />
+      )}
 
     </div>
   );
