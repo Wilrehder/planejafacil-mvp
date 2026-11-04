@@ -86,3 +86,4 @@ export async function signStoreContractRemote(
     return { success: false, error: err.message || 'Erro ao registrar assinatura do contrato.' };
   }
 }
+

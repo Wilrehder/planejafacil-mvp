@@ -229,3 +229,4 @@ export const SignContractModal: React.FC<SignContractModalProps> = ({
     </div>
   );
 };
+

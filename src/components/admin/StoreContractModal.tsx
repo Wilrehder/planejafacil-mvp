@@ -209,3 +209,4 @@ export const StoreContractModal: React.FC<StoreContractModalProps> = ({
     </div>
   );
 };
+
