@@ -56,3 +56,4 @@ Médio│ [M05] Importador CSV Promob       [M06] Dark Mode Operacional
 - **Benefício:** Segurança jurídica ampliada para contratos com cláusula de permanência mínima de 3 meses.
 - **Prioridade:** **P3 (Baixa)** | **Complexidade:** Média.
 - **Recomendação Técnica:** Integrar botão de login com a conta Gov.br para geração de selo prata/ouro de assinatura eletrônica avançada.
+

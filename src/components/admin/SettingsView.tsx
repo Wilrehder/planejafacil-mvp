@@ -699,7 +699,7 @@ export const SettingsView: React.FC = () => {
                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1">E-mail Central do SaaS</label>
                 <input
                   type="email"
-                  defaultValue="wrehdervalle@gmail.com"
+                  defaultValue="planejafacilerp@gmail.com"
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold"
                 />
               </div>

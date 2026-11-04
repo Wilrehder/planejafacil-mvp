@@ -69,3 +69,4 @@ A auditoria cobriu 100% dos módulos do sistema Planeja Fácil:
 
 > **APTO PARA HOMOLOGAÇÃO E PRODUÇÃO.**
 > O sistema Planeja Fácil apresenta excelente consistência arquitetural, separação rigorosa de perfis e permissões, blindagem multi-tenant no PostgreSQL e alta aderência às regras comerciais do negócio de móveis planejados.
+

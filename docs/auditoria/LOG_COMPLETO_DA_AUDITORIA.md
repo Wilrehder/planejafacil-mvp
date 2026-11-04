@@ -61,3 +61,4 @@
    - Vendedores (`store_operator`) não possuem visualização do Custo de Fábrica do Promob nem do markup/custo dos móveis convencionais. Visualizam exclusivamente o Preço Final ao Cliente.
 4. **Conformidade LGPD**:
    - Todo lead gerado pelo consumidor armazena o timestamp de consentimento e a flag afirmativa de aceite aos termos de privacidade e contato comercial.
+

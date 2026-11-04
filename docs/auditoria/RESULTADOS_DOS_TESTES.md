@@ -74,3 +74,4 @@ Status Global: **100% APROVADO (38/38)**
 ### 2.5 Suíte: `promobParser.test.ts` (Parser XML Promob)
 
 - **TC-38**: 1 teste unitário validando extração de árvore XML, identificação de tags `<BUDGET>`, `<ORDER>` e `<CUSTOMERSDATA>`. **Aprovado**.
+

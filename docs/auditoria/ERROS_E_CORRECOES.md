@@ -78,3 +78,4 @@ Este documento registra todas as anomalias, bugs e inconsistências identificado
 - **Correção Implementada**: Chamada RPC padronizada com `p_suspended`.
 - **Resultado do Reteste**: Teste 5.3 de suspensão executado com sucesso e idempotência confirmada.
 - **Situação**: **RESOLVIDO**.
+
