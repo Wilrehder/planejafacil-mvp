@@ -355,3 +355,4 @@ $$;
 GRANT EXECUTE ON FUNCTION public.get_saas_plans_config() TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.admin_update_saas_plans(NUMERIC, NUMERIC, NUMERIC, JSONB, JSONB) TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.get_store_users_and_limit(UUID) TO authenticated, service_role;
+
