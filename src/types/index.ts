@@ -458,3 +458,67 @@ export interface AdminFinancialMetrics {
   invoices?: Invoice[];
   invoicesList?: Invoice[];
 }
+
+export type BillingCycleStatus = 'open' | 'closed' | 'paid' | 'overdue';
+
+export interface StoreCycleLead {
+  id: string;
+  name: string;
+  phone: string;
+  city: string;
+  environment: string;
+  deliveredAt: string;
+  cost: number;
+}
+
+export interface StoreBillingCycle {
+  storeId: string;
+  storeName: string;
+  cityName: string;
+  stateUf: string;
+  planTier: 'basic' | 'pro';
+  responsibleName: string;
+  phone: string;
+  whatsapp: string;
+  storeEmail: string;
+  storeStatus: string;
+  billingDueDay: number;
+  monthlyFee: number;
+  dueDate: string;
+  cutoffDate: string;
+  invoiceId: string | null;
+  invoiceNumber: string | null;
+  amountPaid: number;
+  paidAt: string | null;
+  paymentMethod: string | null;
+  leadsCount: number;
+  leadsAmount: number;
+  leadsList: StoreCycleLead[];
+  totalDue: number;
+  balanceDue: number;
+  cycleStatus: BillingCycleStatus;
+  lastPayment?: {
+    amount: number;
+    date: string;
+    reference?: string;
+    method?: string;
+  };
+}
+
+export interface AdminBillingHubSummary {
+  totalProjected: number;
+  totalCollected: number;
+  totalPending: number;
+  totalOverdue: number;
+  activeStores: number;
+  openCount: number;
+  closedCount: number;
+  paidCount: number;
+  overdueCount: number;
+}
+
+export interface AdminBillingHubData {
+  competenceMonth: string;
+  summary: AdminBillingHubSummary;
+  stores: StoreBillingCycle[];
+}

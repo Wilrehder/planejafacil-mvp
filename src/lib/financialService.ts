@@ -1,5 +1,139 @@
 import { supabase } from './supabase';
-import { AdminFinancialMetrics, StoreFinancialOverview, Invoice } from '../types';
+import { 
+  AdminFinancialMetrics, 
+  StoreFinancialOverview, 
+  Invoice,
+  AdminBillingHubData,
+  StoreBillingCycle
+} from '../types';
+
+/**
+ * Consulta o Hub de Cobranças por Competência e Ciclo de cada loja parceira
+ */
+export async function fetchAdminBillingHub(competenceMonth?: string): Promise<{
+  success: boolean;
+  data?: AdminBillingHubData;
+  error?: string;
+}> {
+  try {
+    const { data, error } = await supabase.rpc('get_admin_billing_hub', {
+      p_competence_month: competenceMonth || null,
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    if (!data?.success) {
+      return { success: false, error: data?.error || 'Erro ao carregar faturamento do mês.' };
+    }
+
+    const rawSummary = data.summary || {};
+    const rawStores = data.stores || [];
+
+    const mappedStores: StoreBillingCycle[] = rawStores.map((s: any) => ({
+      storeId: s.store_id,
+      storeName: s.store_name,
+      cityName: s.city_name,
+      stateUf: s.state_uf,
+      planTier: s.plan_tier || 'pro',
+      responsibleName: s.responsible_name || 'Responsável',
+      phone: s.phone || '',
+      whatsapp: s.whatsapp || s.phone || '',
+      storeEmail: s.store_email || '',
+      storeStatus: s.store_status || 'Ativa',
+      billingDueDay: Number(s.billing_due_day) || 10,
+      monthlyFee: Number(s.monthly_fee) || 219.90,
+      dueDate: s.due_date,
+      cutoffDate: s.cutoff_date,
+      invoiceId: s.invoice_id || null,
+      invoiceNumber: s.invoice_number || null,
+      amountPaid: Number(s.amount_paid) || 0,
+      paidAt: s.paid_at || null,
+      paymentMethod: s.payment_method || null,
+      leadsCount: Number(s.leads_count) || 0,
+      leadsAmount: Number(s.leads_amount) || 0,
+      leadsList: (s.leads_list || []).map((l: any) => ({
+        id: l.id,
+        name: l.name,
+        phone: l.phone,
+        city: l.city,
+        environment: l.environment,
+        deliveredAt: l.deliveredAt,
+        cost: Number(l.cost) || 50,
+      })),
+      totalDue: Number(s.total_due) || 0,
+      balanceDue: Number(s.balance_due) || 0,
+      cycleStatus: s.cycle_status || 'open',
+      lastPayment: s.last_payment ? {
+        amount: Number(s.last_payment.amount) || 0,
+        date: s.last_payment.date,
+        reference: s.last_payment.reference,
+        method: s.last_payment.method,
+      } : undefined,
+    }));
+
+    return {
+      success: true,
+      data: {
+        competenceMonth: data.competence_month,
+        summary: {
+          totalProjected: Number(rawSummary.total_projected) || 0,
+          totalCollected: Number(rawSummary.total_collected) || 0,
+          totalPending: Number(rawSummary.total_pending) || 0,
+          totalOverdue: Number(rawSummary.total_overdue) || 0,
+          activeStores: Number(rawSummary.active_stores) || 0,
+          openCount: Number(rawSummary.open_count) || 0,
+          closedCount: Number(rawSummary.closed_count) || 0,
+          paidCount: Number(rawSummary.paid_count) || 0,
+          overdueCount: Number(rawSummary.overdue_count) || 0,
+        },
+        stores: mappedStores,
+      },
+    };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Falha ao consultar faturamento do mês.' };
+  }
+}
+
+/**
+ * Liquidação Rápida via Pix/Transferência para a Loja Parceira no mês especificado
+ */
+export async function adminQuickPayStore(params: {
+  storeId: string;
+  competenceMonth: string;
+  amount: number;
+  method?: string;
+  reference?: string;
+  notes?: string;
+}): Promise<{
+  success: boolean;
+  message?: string;
+  error?: string;
+}> {
+  try {
+    const { data, error } = await supabase.rpc('admin_quick_pay_store', {
+      p_tenant_id: params.storeId,
+      p_competence_month: params.competenceMonth,
+      p_amount: params.amount,
+      p_method: params.method || 'pix',
+      p_reference: params.reference || null,
+      p_notes: params.notes || null,
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return {
+      success: data?.success || false,
+      message: data?.message || 'Pagamento registrado com sucesso!',
+      error: data?.error,
+    };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Erro ao registrar pagamento.' };
+  }
+}
 
 /**
  * Consulta de Indicadores Financeiros do Administrador (MRR, ARR, Inadimplência, Lojas)

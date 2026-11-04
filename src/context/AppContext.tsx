@@ -641,16 +641,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteStore = async (id: string) => {
+    // 1. Tentar procedure oficial de exclusão segura em cascata
+    const { data: rpcData, error: rpcError } = await supabase.rpc('admin_delete_store', {
+      p_tenant_id: id,
+    });
+
+    if (!rpcError && rpcData?.success) {
+      setStores((prev) => prev.filter((s) => s.id !== id));
+      await refreshStores();
+      await refreshLeads();
+      return;
+    }
+
+    // 2. Fallback: exclusão direta via REST na tabela tenants
     const { error } = await supabase
       .from('tenants')
       .delete()
       .eq('id', id);
 
     if (error) {
+      if (error.message?.includes('violates foreign key constraint')) {
+        throw new Error(
+          'Esta loja possui leads, assinaturas ou pedidos vinculados. ' +
+          'Execute a migração SQL "20261103000017_fix_tenant_deletion_and_cascade.sql" no painel do Supabase para habilitar a exclusão automática em cascata.'
+        );
+      }
       throw error;
     }
 
     setStores((prev) => prev.filter((s) => s.id !== id));
+    await refreshStores();
+    await refreshLeads();
   };
 
   const triggerConfetti = () => {
