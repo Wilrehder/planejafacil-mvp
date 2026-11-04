@@ -75,3 +75,4 @@ END $$;
 
 GRANT ALL ON public.store_conventional_furniture TO authenticated, anon, service_role;
 GRANT ALL ON public.store_financial_partners TO authenticated, anon, service_role;
+

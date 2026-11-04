@@ -753,3 +753,4 @@ export const ConventionalFurnitureView: React.FC<ConventionalFurnitureViewProps>
     </div>
   );
 };
+
