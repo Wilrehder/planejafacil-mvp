@@ -15,7 +15,8 @@ import {
   Lock,
   X,
   DollarSign,
-  RefreshCw
+  RefreshCw,
+  Armchair
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { LeadStatus, Lead } from '../../types';
@@ -28,6 +29,7 @@ import { MerchantMetaIntegration } from './MerchantMetaIntegration';
 import { AssemblerMobileView } from './AssemblerMobileView';
 import { SignContractModal } from './SignContractModal';
 import { StoreContractModal } from '../admin/StoreContractModal';
+import { ConventionalFurnitureView } from './ConventionalFurnitureView';
 import { Wrench, Activity, Users, Package, BarChart2, CreditCard, Share2, FileText } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { switchDevelopmentStoreSession } from '../../lib/authService';
@@ -199,7 +201,8 @@ export const MerchantDashboard: React.FC = () => {
 
   const handleStageChange = async (lead: Lead, targetStatus: LeadStatus) => {
     setServerError(null);
-    if ((targetStatus === 'convertido' || targetStatus === 'perdido') && !lead.attachmentName) {
+    if ((targetStatus === 'orcado' || targetStatus === 'convertido' || targetStatus === 'perdido') && !lead.attachmentName) {
+      setServerError(`⚠️ Ação Obrigatória: Para mover para "${targetStatus === 'orcado' ? 'Orçado' : targetStatus}", anexe o projeto ou arquivo do Promob.`);
       setSelectedLeadForDetail(lead);
       return;
     }
@@ -393,13 +396,25 @@ export const MerchantDashboard: React.FC = () => {
           <button
             onClick={() => setMerchantTab('dashboard')}
             className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-              merchantTab !== 'erp' && merchantTab !== 'analytics'
+              merchantTab === 'dashboard' || (!['erp', 'analytics', 'meta', 'moveis_convencionais'].includes(merchantTab))
                 ? 'bg-[#1B2B48] text-white shadow-md'
                 : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
             }`}
           >
-            <Users className={`w-3.5 h-3.5 ${merchantTab !== 'erp' && merchantTab !== 'analytics' ? 'text-blue-400' : ''}`} />
+            <Users className={`w-3.5 h-3.5 ${merchantTab === 'dashboard' || (!['erp', 'analytics', 'meta', 'moveis_convencionais'].includes(merchantTab)) ? 'text-blue-400' : ''}`} />
             CRM
+          </button>
+          
+          <button
+            onClick={() => setMerchantTab('moveis_convencionais')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+              merchantTab === 'moveis_convencionais'
+                ? 'bg-[#1B2B48] text-white shadow-md'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+            }`}
+          >
+            <Armchair className={`w-3.5 h-3.5 ${merchantTab === 'moveis_convencionais' ? 'text-amber-400' : ''}`} />
+            Móveis Convencionais
           </button>
           
           <button
@@ -530,6 +545,14 @@ export const MerchantDashboard: React.FC = () => {
           storeId={selectedStoreId}
           storeName={currentStore.name}
           storePlan={activePlan}
+        />
+      ) : merchantTab === 'moveis_convencionais' ? (
+        <ConventionalFurnitureView
+          tenantId={
+            selectedStoreId === 'all'
+              ? (currentUser?.tenantId || currentStore.id)
+              : (STORE_ID_TO_TENANT_UUID[selectedStoreId] || selectedStoreId || currentStore.id)
+          }
         />
       ) : merchantTab === 'erp' ? (
         <MerchantERP merchantPlan={activePlan} storeId={selectedStoreId} />

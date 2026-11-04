@@ -58,7 +58,7 @@ export interface SimulatorState {
 }
 
 export type AdminTab = 'finance' | 'routing' | 'stores' | 'radar' | 'settings';
-export type MerchantTab = 'dashboard' | 'leads' | 'erp' | 'analytics' | 'settings' | 'meta';
+export type MerchantTab = 'dashboard' | 'leads' | 'erp' | 'analytics' | 'settings' | 'meta' | 'moveis_convencionais';
 export type LeadStatus = 'novo' | 'em_atendimento' | 'orcado' | 'convertido' | 'perdido';
 
 export type OrderStage = 'medicao' | 'projeto_aprovacao' | 'producao' | 'montagem' | 'entrega_aceite' | 'concluido';
@@ -170,6 +170,9 @@ export interface Lead {
   notesList?: { id: string; author: string; text: string; createdAt: string }[];
   attachmentName?: string;
   attachmentUrl?: string;
+  conventionalItems?: Array<{ id: string; name: string; quantity: number; salePrice: number; total: number; unitPrice?: number; category?: string }>;
+  acceptedPrivacyTerms?: boolean;
+  privacyTermsTimestamp?: string;
   finalDecision?: 'convertido' | 'perdido';
   lossReason?: string;
   orderId?: string;

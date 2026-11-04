@@ -130,3 +130,4 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.admin_set_store_suspension(UUID, BOOLEAN, TEXT) TO authenticated, service_role;
+

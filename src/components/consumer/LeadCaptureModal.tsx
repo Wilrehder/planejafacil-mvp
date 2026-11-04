@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, Phone, Mail, MapPin, User, X, ArrowRight, ShieldCheck, Loader2 } from 'lucide-react';
+import { CheckCircle2, Phone, Mail, MapPin, User, X, ArrowRight, ShieldCheck, Loader2, Lock, Check } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ENVIRONMENTS, FINISHES, HARDWARE_OPTIONS, LAYOUT_OPTIONS, DOOR_TYPE_OPTIONS, FURNITURE_MODULES } from '../../data/mockData';
 import { supabase } from '../../lib/supabase';
@@ -31,6 +31,8 @@ export const LeadCaptureModal: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [oauthLoading, setOauthLoading] = useState<'google' | 'apple' | null>(null);
   const [socialNotice, setSocialNotice] = useState<string | null>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -79,6 +81,12 @@ export const LeadCaptureModal: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!acceptedTerms) {
+      setErrorMessage('É obrigatório concordar com os Termos de Privacidade e Contato para prosseguir.');
+      return;
+    }
+
     setIsSubmitting(true);
     setErrorMessage(null);
 
@@ -129,6 +137,17 @@ export const LeadCaptureModal: React.FC = () => {
         assignedStoreId: res.assignedStoreId,
       });
 
+      if (res.leadId) {
+        supabase
+          .from('leads')
+          .update({
+            accepted_privacy_terms: true,
+            privacy_terms_timestamp: new Date().toISOString()
+          })
+          .eq('id', res.leadId)
+          .then();
+      }
+
       setCreatedLeadId(newLead.id);
       setIsSuccess(true);
       triggerConfetti();
@@ -147,6 +166,7 @@ export const LeadCaptureModal: React.FC = () => {
         estimatedMin: simulator.calculatedRange.min,
         estimatedMax: simulator.calculatedRange.max,
       });
+
       setCreatedLeadId(newLead.id);
       setIsSuccess(true);
       triggerConfetti();
@@ -323,13 +343,38 @@ export const LeadCaptureModal: React.FC = () => {
                 </div>
               </div>
 
+              {/* Checkbox de Aceite dos Termos de Privacidade e Contato (LGPD) */}
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-left">
+                <label className="flex items-start space-x-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    required
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded text-[#439346] border-slate-300 focus:ring-[#439346] cursor-pointer shrink-0"
+                  />
+                  <span className="text-xs text-slate-700 font-medium leading-relaxed">
+                    Declaro que li e concordo com os{' '}
+                    <button
+                      type="button"
+                      onClick={() => setIsPrivacyModalOpen(true)}
+                      className="text-[#439346] font-extrabold underline hover:text-[#387F3B] cursor-pointer"
+                    >
+                      Termos de Privacidade & Contato
+                    </button>
+                    , autorizando que uma loja credenciada da minha região entre em contato comigo via WhatsApp ou ligação para apresentar este orçamento.
+                  </span>
+                </label>
+              </div>
+
               {/* Main Green Action Button */}
-              <div className="pt-3">
+              <div className="pt-2">
                 <button
                   type="submit"
-                  className="w-full py-4 rounded-xl bg-[#439346] hover:bg-[#387F3B] text-white font-extrabold text-sm uppercase tracking-wider transition-all duration-300 shadow-md flex items-center justify-center space-x-2"
+                  disabled={isSubmitting || !acceptedTerms}
+                  className="w-full py-4 rounded-xl bg-[#439346] hover:bg-[#387F3B] disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold text-sm uppercase tracking-wider transition-all duration-300 shadow-md flex items-center justify-center space-x-2 cursor-pointer"
                 >
-                  <span>QUERO RECEBER MEU ORÇAMENTO</span>
+                  <span>{isSubmitting ? 'ENVIANDO...' : 'QUERO RECEBER MEU ORÇAMENTO'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
@@ -379,6 +424,88 @@ export const LeadCaptureModal: React.FC = () => {
         )}
 
       </div>
+
+      {/* Modal de Termos de Privacidade e Contato (LGPD) */}
+      {isPrivacyModalOpen && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in text-left">
+          <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 p-6 sm:p-7 space-y-5 animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center space-x-2">
+                <ShieldCheck className="w-5 h-5 text-[#439346]" />
+                <h3 className="text-base font-extrabold text-[#1B2B48]">
+                  Termos de Privacidade & Contato (LGPD)
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPrivacyModalOpen(false)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs text-slate-600 leading-relaxed max-h-[60vh] overflow-y-auto pr-1">
+              <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 text-emerald-900 font-semibold flex items-start gap-2">
+                <Lock className="w-4 h-4 text-[#439346] shrink-0 mt-0.5" />
+                <span>
+                  Seus dados estão protegidos conforme a Lei Geral de Proteção de Dados (Lei 13.709/2018).
+                </span>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-[#1B2B48] text-xs uppercase tracking-wider mb-1">
+                  1. Finalidade do Cadastro
+                </h4>
+                <p>
+                  As informações fornecidas (Nome, Telefone/WhatsApp, E-mail e Cidade) serão utilizadas <strong>exclusivamente</strong> para encaminhar o seu projeto de móveis a uma loja parceira credenciada e homologada da sua região.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-[#1B2B48] text-xs uppercase tracking-wider mb-1">
+                  2. Autorização de Contato Comercial
+                </h4>
+                <p>
+                  Ao prosseguir, você autoriza que a loja de móveis planejados credenciada entre em contato via WhatsApp ou telefone para apresentar a proposta técnica oficial, tirar dúvidas e, se você desejar, realizar a medição no local.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-[#1B2B48] text-xs uppercase tracking-wider mb-1">
+                  3. Segurança e Sigilo
+                </h4>
+                <p>
+                  Não vendemos, não alugamos e não compartilhamos seus dados com terceiros não autorizados ou empresas de telemarketing.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-[#1B2B48] text-xs uppercase tracking-wider mb-1">
+                  4. Seus Direitos
+                </h4>
+                <p>
+                  Você pode, a qualquer momento, solicitar a atualização, retificação ou exclusão definitiva dos seus dados dos nossos registros.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setAcceptedTerms(true);
+                  setIsPrivacyModalOpen(false);
+                }}
+                className="w-full py-3.5 px-4 rounded-xl bg-[#439346] hover:bg-[#387F3B] text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-1.5"
+              >
+                <Check className="w-4 h-4" />
+                <span>Entendi e Concordo</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -27,7 +27,7 @@ import { EnvironmentTypeId } from '../../types';
 import { ProposalPdfModal } from './ProposalPdfModal';
 import { lookupCep } from '../../lib/cepService';
 import { submitSimulationAndLead, SimulationSubmissionResult } from '../../lib/simulationService';
-import { AlertCircle, MapPin, Mail } from 'lucide-react';
+import { AlertCircle, MapPin, Mail, ShieldCheck, X, Lock } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 const ENV_IMAGE_MAP: Record<string, string> = {
@@ -83,6 +83,8 @@ export const SimulatorWizard: React.FC = () => {
   const [submissionResult, setSubmissionResult] = useState<SimulationSubmissionResult | null>(null);
   const [oauthLoading, setOauthLoading] = useState<'google' | 'apple' | null>(null);
   const [socialNotice, setSocialNotice] = useState<string | null>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
 
   // Preenchimento automático caso o usuário já esteja autenticado via Google/Apple
   useEffect(() => {
@@ -235,6 +237,11 @@ export const SimulatorWizard: React.FC = () => {
     e.preventDefault();
     setSubmitError(null);
 
+    if (!acceptedTerms) {
+      setSubmitError('É obrigatório concordar com os Termos de Privacidade e Contato para prosseguir.');
+      return;
+    }
+
     const cleanCep = simulator.clientInfo.cep.replace(/\D/g, '');
     if (cleanCep.length !== 8) {
       setSubmitError('Por favor, informe um CEP válido com 8 dígitos.');
@@ -276,6 +283,18 @@ export const SimulatorWizard: React.FC = () => {
       }
 
       setSubmissionResult(result);
+
+      if (result.leadId) {
+        supabase
+          .from('leads')
+          .update({
+            accepted_privacy_terms: true,
+            privacy_terms_timestamp: new Date().toISOString()
+          })
+          .eq('id', result.leadId)
+          .then();
+      }
+
       updateSimulator({
         calculatedRange: {
           min: result.budgetMin,
@@ -848,16 +867,36 @@ export const SimulatorWizard: React.FC = () => {
               </div>
             </div>
 
-            <p className="text-[11px] text-slate-400 font-medium text-center leading-relaxed">
-              Ao avançar, seus dados são protegidos e compartilhados com até 1 loja parceira credenciada para elaboração do seu projeto detalhado.
-            </p>
+            {/* Checkbox de Aceite dos Termos de Privacidade e Contato (LGPD) */}
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/90 text-left space-y-2">
+              <label className="flex items-start space-x-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  required
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded text-[#439346] border-slate-300 focus:ring-[#439346] cursor-pointer shrink-0"
+                />
+                <span className="text-xs text-slate-700 font-medium leading-relaxed">
+                  Declaro que li e concordo com os{' '}
+                  <button
+                    type="button"
+                    onClick={() => setIsPrivacyModalOpen(true)}
+                    className="text-[#439346] font-extrabold underline hover:text-[#387F3B] cursor-pointer"
+                  >
+                    Termos de Privacidade & Contato
+                  </button>
+                  , e autorizo expressamente que uma loja credenciada da minha região entre em contato comigo via WhatsApp ou ligação para apresentar este orçamento detalhado.
+                </span>
+              </label>
+            </div>
 
             <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-40 sm:relative sm:border-0 sm:shadow-none sm:p-0 sm:bg-transparent">
               <div className="max-w-xl mx-auto">
                 <button
                   type="submit"
-                  disabled={isLoading}
-                  className="w-full py-4 rounded-xl bg-[#439346] hover:bg-[#387F3B] disabled:opacity-60 active:scale-95 text-white font-extrabold text-sm sm:text-base uppercase tracking-wider transition-all flex items-center justify-center space-x-2 shadow-lg shadow-[#439346]/25"
+                  disabled={isLoading || !acceptedTerms}
+                  className="w-full py-4 rounded-xl bg-[#439346] hover:bg-[#387F3B] disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 text-white font-extrabold text-sm sm:text-base uppercase tracking-wider transition-all flex items-center justify-center space-x-2 shadow-lg shadow-[#439346]/25"
                 >
                   <span>{isLoading ? 'Calculando Orçamento...' : 'Ver Orçamento Estimado'}</span>
                   <ArrowRight className="w-5 h-5 shrink-0" />
@@ -970,6 +1009,88 @@ export const SimulatorWizard: React.FC = () => {
       {/* PDF Modal */}
       {isPdfModalOpen && (
         <ProposalPdfModal onClose={() => setIsPdfModalOpen(false)} />
+      )}
+
+      {/* Modal de Termos de Privacidade e Contato (LGPD) */}
+      {isPrivacyModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 p-6 sm:p-7 space-y-5 animate-in zoom-in-95 text-left">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center space-x-2">
+                <ShieldCheck className="w-5 h-5 text-[#439346]" />
+                <h3 className="text-base font-extrabold text-[#1B2B48]">
+                  Termos de Privacidade & Contato (LGPD)
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPrivacyModalOpen(false)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs text-slate-600 leading-relaxed max-h-[60vh] overflow-y-auto pr-1">
+              <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 text-emerald-900 font-semibold flex items-start gap-2">
+                <Lock className="w-4 h-4 text-[#439346] shrink-0 mt-0.5" />
+                <span>
+                  Seus dados estão protegidos conforme a Lei Geral de Proteção de Dados (Lei 13.709/2018).
+                </span>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-[#1B2B48] text-xs uppercase tracking-wider mb-1">
+                  1. Finalidade do Cadastro
+                </h4>
+                <p>
+                  As informações fornecidas (Nome, Telefone/WhatsApp, E-mail e CEP) serão utilizadas <strong>exclusivamente</strong> para calcular a estimativa do seu projeto 3D e conectar você a uma loja parceira credenciada e homologada da sua região.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-[#1B2B48] text-xs uppercase tracking-wider mb-1">
+                  2. Autorização de Contato Comercial
+                </h4>
+                <p>
+                  Ao prosseguir, você autoriza que a loja de móveis planejados credenciada entre em contato via WhatsApp ou telefone para apresentar a proposta técnica oficial, tirar dúvidas e, se você desejar, realizar a medição no local.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-[#1B2B48] text-xs uppercase tracking-wider mb-1">
+                  3. Segurança e Sigilo
+                </h4>
+                <p>
+                  Não vendemos, não alugamos e não compartilhamos seus dados com terceiros não autorizados ou empresas de telemarketing. Seus dados são enviados apenas para a loja parceira responsável pelo atendimento da sua localidade.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-[#1B2B48] text-xs uppercase tracking-wider mb-1">
+                  4. Seus Direitos
+                </h4>
+                <p>
+                  Você pode, a qualquer momento, solicitar a atualização, retificação ou exclusão definitiva dos seus dados de contato dos nossos registros.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setAcceptedTerms(true);
+                  setIsPrivacyModalOpen(false);
+                }}
+                className="w-full py-3.5 px-4 rounded-xl bg-[#439346] hover:bg-[#387F3B] text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-1.5"
+              >
+                <Check className="w-4 h-4" />
+                <span>Entendi e Concordo</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

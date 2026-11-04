@@ -12,10 +12,13 @@ import {
   Calendar,
   Lock,
   ArrowRight,
-  Loader2
+  Loader2,
+  Landmark
 } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
 import { PromobProjectData } from '../../lib/promobParser';
 import { fetchStoreCommercialSettings, StoreCommercialSettings } from '../../lib/expenseService';
+import { fetchFinancialPartners, FinancialPartner } from '../../lib/conventionalFurnitureService';
 
 interface PromobNegotiationModalProps {
   isOpen: boolean;
@@ -46,25 +49,38 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
   clientName,
   environmentName,
 }) => {
+  const { currentUser } = useApp();
+  const isOwner = !currentUser?.role || currentUser?.role === 'store_owner' || currentUser?.role === 'platform_admin';
+
   const [commercialSettings, setCommercialSettings] = useState<StoreCommercialSettings>({
     tenant_id: tenantId,
     max_discount_percentage: 15.0,
     card_tax_percentage: 3.5,
     installment_tax_percentage: 8.0,
   });
+  const [financialPartners, setFinancialPartners] = useState<FinancialPartner[]>([]);
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string>('');
+  const [passFeeToClient, setPassFeeToClient] = useState<boolean>(false);
   const [loadingSettings, setLoadingSettings] = useState(true);
 
   // Estados de Negociação Comercial
   const [discountPct, setDiscountPct] = useState<number>(0);
-  const [paymentMethod, setPaymentMethod] = useState<'pix' | 'cartao_vista' | 'cartao_parcelado'>('pix');
+  const [paymentMethod, setPaymentMethod] = useState<'pix' | 'cartao_vista' | 'cartao_parcelado' | 'financeira'>('pix');
   const [installments, setInstallments] = useState<number>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen && tenantId) {
       setLoadingSettings(true);
-      fetchStoreCommercialSettings(tenantId).then((settings: StoreCommercialSettings) => {
+      Promise.all([
+        fetchStoreCommercialSettings(tenantId),
+        fetchFinancialPartners(tenantId)
+      ]).then(([settings, partners]) => {
         setCommercialSettings(settings);
+        setFinancialPartners(partners);
+        if (partners.length > 0) {
+          setSelectedPartnerId(partners[0].id);
+        }
         setLoadingSettings(false);
       });
     }
@@ -83,23 +99,27 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
   const discountAmount = (baseBudget * Math.min(Math.max(discountPct, 0), 100)) / 100;
   const priceAfterDiscount = Math.max(baseBudget - discountAmount, 0);
 
-  // 2. Taxas de Meio de Pagamento & Parcelamento da Loja
+  // 2. Taxas de Meio de Pagamento & Parcelamento da Loja ou Financeira
   let transactionFeePct = 0;
+  const currentPartner = financialPartners.find(p => p.id === selectedPartnerId);
+
   if (paymentMethod === 'cartao_vista') {
     transactionFeePct = commercialSettings.card_tax_percentage || 3.5;
   } else if (paymentMethod === 'cartao_parcelado') {
-    // Aplica a taxa base do cartão + proporcional de parcelamento
     const baseFee = commercialSettings.card_tax_percentage || 3.5;
     const installmentTax = commercialSettings.installment_tax_percentage || 8.0;
-    // Se parcelado em mais de 1x, aplica a taxa progressiva
     transactionFeePct = installments > 1 
       ? baseFee + (installmentTax * (installments / 12))
       : baseFee;
+  } else if (paymentMethod === 'financeira') {
+    transactionFeePct = currentPartner?.retentionPercentage || 10.0;
   }
 
-  const transactionFeeAmount = (priceAfterDiscount * transactionFeePct) / 100;
-  const finalPriceToClient = priceAfterDiscount; // Valor cobrado do cliente
-  const netStoreReceives = priceAfterDiscount - transactionFeeAmount; // Valor líquido recebido pela loja
+  // Se a taxa for repassada ao cliente:
+  const feeAddedToClient = passFeeToClient ? (priceAfterDiscount * transactionFeePct) / 100 : 0;
+  const finalPriceToClient = Math.round(priceAfterDiscount + feeAddedToClient);
+  const transactionFeeAmount = (finalPriceToClient * transactionFeePct) / 100;
+  const netStoreReceives = finalPriceToClient - transactionFeeAmount;
   const netProfit = netStoreReceives - factoryCost;
   const profitMarginPct = finalPriceToClient > 0 ? (netProfit / finalPriceToClient) * 100 : 0;
   const installmentValue = installments > 0 ? finalPriceToClient / installments : finalPriceToClient;
@@ -112,22 +132,27 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
     if (isDiscountOverCeiling) return;
     setIsSubmitting(true);
     try {
-      const paymentMethodLabel = 
-        paymentMethod === 'pix' 
-          ? 'Pix / À Vista' 
-          : paymentMethod === 'cartao_vista' 
-          ? 'Cartão à Vista' 
-          : `Cartão ${installments}x de ${formatBRL(installmentValue)}`;
+      let paymentMethodLabel = 'Pix / À Vista';
+      if (paymentMethod === 'cartao_vista') {
+        paymentMethodLabel = 'Cartão à Vista';
+      } else if (paymentMethod === 'cartao_parcelado') {
+        paymentMethodLabel = `Cartão ${installments}x de ${formatBRL(installmentValue)}`;
+      } else if (paymentMethod === 'financeira') {
+        paymentMethodLabel = `Financiamento ${currentPartner?.name || 'Bancário'} (${installments}x de ${formatBRL(installmentValue)})`;
+      }
 
-      const note = `📐 Orçamento Promob Negociado: Venda ${formatBRL(finalPriceToClient)} (${discountPct > 0 ? `Desconto de ${discountPct}% | ` : ''}${paymentMethodLabel}) | Custo Fábrica: ${formatBRL(factoryCost)} | Lucro Líquido: ${formatBRL(netProfit)} (${profitMarginPct.toFixed(1)}%) | Arquivo: ${fileName}`;
+      // Se for o vendedor (store_operator), oculta custo de fábrica e lucro líquido da nota!
+      const note = isOwner
+        ? `📐 Orçamento Promob Negociado: Venda ${formatBRL(finalPriceToClient)} (${discountPct > 0 ? `Desconto de ${discountPct}% | ` : ''}${paymentMethodLabel}) | Custo Fábrica: ${formatBRL(factoryCost)} | Lucro Líquido: ${formatBRL(netProfit)} (${profitMarginPct.toFixed(1)}%) | Arquivo: ${fileName}`
+        : `📐 Orçamento Promob Aprovado: Venda ${formatBRL(finalPriceToClient)} (${discountPct > 0 ? `Desconto de ${discountPct}% | ` : ''}${paymentMethodLabel}) | Arquivo: ${fileName}`;
 
       await onConfirm({
         finalPrice: finalPriceToClient,
-        factoryCost,
+        factoryCost: isOwner ? factoryCost : 0,
         discountPct,
         paymentMethod: paymentMethodLabel,
         installments,
-        netProfit,
+        netProfit: isOwner ? netProfit : 0,
         summaryNote: note,
       });
       onClose();
@@ -169,28 +194,42 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
         {/* Content Body */}
         <div className="p-6 overflow-y-auto space-y-6">
           
-          {/* Card Resumo Inicial Promob */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
-              <span className="text-[10px] uppercase font-bold text-slate-400">Tabela de Venda Promob</span>
-              <div className="text-xl font-black text-slate-900">{formatBRL(baseBudget)}</div>
-              <span className="text-[10px] text-slate-500 font-medium">Orçamento sugerido</span>
-            </div>
+          {/* Card Resumo Inicial Promob (Custo de fábrica estritamente restrito ao Gerente/Dono) */}
+          {isOwner ? (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-slate-400">Tabela de Venda Promob</span>
+                <div className="text-xl font-black text-slate-900">{formatBRL(baseBudget)}</div>
+                <span className="text-[10px] text-slate-500 font-medium">Orçamento sugerido</span>
+              </div>
 
-            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200/80 space-y-1">
-              <span className="text-[10px] uppercase font-bold text-amber-600">Custo de Fábrica (Order)</span>
-              <div className="text-xl font-black text-amber-900">{formatBRL(factoryCost)}</div>
-              <span className="text-[10px] text-amber-700 font-medium">Pedido com fornecedor</span>
-            </div>
+              <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200/80 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-amber-600">Custo de Fábrica (Order)</span>
+                <div className="text-xl font-black text-amber-900">{formatBRL(factoryCost)}</div>
+                <span className="text-[10px] text-amber-700 font-medium">Pedido com fornecedor</span>
+              </div>
 
-            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200/80 space-y-1">
-              <span className="text-[10px] uppercase font-bold text-emerald-600">Margem Bruta Inicial</span>
-              <div className="text-xl font-black text-emerald-900">{formatBRL(baseBudget - factoryCost)}</div>
-              <span className="text-[10px] text-emerald-700 font-bold">
-                {baseBudget > 0 ? (((baseBudget - factoryCost) / baseBudget) * 100).toFixed(1) : 0}% de margem
-              </span>
+              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200/80 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-emerald-600">Margem Bruta Inicial</span>
+                <div className="text-xl font-black text-emerald-900">{formatBRL(baseBudget - factoryCost)}</div>
+                <span className="text-[10px] text-emerald-700 font-bold">
+                  {baseBudget > 0 ? (((baseBudget - factoryCost) / baseBudget) * 100).toFixed(1) : 0}% de margem
+                </span>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-50 to-emerald-50/30 border border-slate-200 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Tabela de Venda do Projeto Promob</span>
+                <div className="text-2xl font-black text-slate-900">{formatBRL(baseBudget)}</div>
+                <span className="text-[11px] text-slate-500">Valor oficial do projeto para orçamentação ao cliente</span>
+              </div>
+              <div className="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-800 text-xs font-black uppercase flex items-center gap-1.5 border border-emerald-200">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span>Projeto Validado</span>
+              </div>
+            </div>
+          )}
 
           {/* Seção 1: Ajuste de Desconto Comercial */}
           <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200 space-y-3">
@@ -259,36 +298,49 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
             )}
           </div>
 
-          {/* Seção 2: Forma de Pagamento e Taxa de Cartão */}
+          {/* Seção 2: Forma de Pagamento, Maquininha e Financeiras */}
           <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200 space-y-4">
-            <div>
-              <label className="text-xs font-black uppercase text-[#1B2B48] flex items-center space-x-1.5">
-                <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Forma de Pagamento & Maquininha</span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <label className="text-xs font-black uppercase text-[#1B2B48] flex items-center space-x-1.5">
+                  <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Forma de Pagamento, Maquininha & Financeiras</span>
+                </label>
+                <p className="text-[11px] text-slate-500">
+                  Taxas configuradas: Débito/Crédito ({commercialSettings.card_tax_percentage || 3.5}%) • Parcelamento ({commercialSettings.installment_tax_percentage || 8.0}%)
+                </p>
+              </div>
+
+              {/* Toggle Repasse de Taxa */}
+              <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={passFeeToClient}
+                  onChange={(e) => setPassFeeToClient(e.target.checked)}
+                  className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
+                />
+                <span>Repassar taxa no valor final do cliente</span>
               </label>
-              <p className="text-[11px] text-slate-500">
-                Taxas configuradas para sua loja: Débito/Crédito à vista ({commercialSettings.card_tax_percentage || 3.5}%) • Juros parcelamento ({commercialSettings.installment_tax_percentage || 8.0}%)
-              </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               <button
                 type="button"
                 onClick={() => { setPaymentMethod('pix'); setInstallments(1); }}
-                className={`p-3 rounded-xl border text-left transition-all ${
+                className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                   paymentMethod === 'pix' 
                     ? 'border-[#439346] bg-emerald-50 text-emerald-950 shadow-sm' 
                     : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
                 }`}
               >
                 <div className="font-extrabold text-xs">Pix / À Vista</div>
-                <div className="text-[10px] text-emerald-700 font-bold mt-0.5">Sem taxa de maquininha</div>
+                <div className="text-[10px] text-emerald-700 font-bold mt-0.5">Sem taxa</div>
               </button>
 
               <button
                 type="button"
                 onClick={() => { setPaymentMethod('cartao_vista'); setInstallments(1); }}
-                className={`p-3 rounded-xl border text-left transition-all ${
+                className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                   paymentMethod === 'cartao_vista' 
                     ? 'border-[#439346] bg-emerald-50 text-emerald-950 shadow-sm' 
                     : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
@@ -301,28 +353,92 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
               <button
                 type="button"
                 onClick={() => { setPaymentMethod('cartao_parcelado'); if (installments <= 1) setInstallments(6); }}
-                className={`p-3 rounded-xl border text-left transition-all ${
+                className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                   paymentMethod === 'cartao_parcelado' 
                     ? 'border-[#439346] bg-emerald-50 text-emerald-950 shadow-sm' 
                     : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
                 }`}
               >
                 <div className="font-extrabold text-xs">Cartão Parcelado</div>
-                <div className="text-[10px] text-slate-500 font-medium mt-0.5">Juros da maquininha</div>
+                <div className="text-[10px] text-slate-500 font-medium mt-0.5">Taxa da Maquininha</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setPaymentMethod('financeira'); if (installments <= 1) setInstallments(24); }}
+                className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                  paymentMethod === 'financeira' 
+                    ? 'border-[#439346] bg-emerald-50 text-emerald-950 shadow-sm' 
+                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                <div className="font-extrabold text-xs flex items-center gap-1">
+                  <Landmark className="w-3.5 h-3.5 text-purple-600" />
+                  <span>Financeira</span>
+                </div>
+                <div className="text-[10px] text-purple-700 font-bold mt-0.5">Crédito / Carnê</div>
               </button>
             </div>
 
-            {/* Seletor de Parcelas */}
+            {/* Configuração de Financeira Bancária */}
+            {paymentMethod === 'financeira' && (
+              <div className="p-3.5 bg-purple-50/70 rounded-xl border border-purple-200 space-y-3 animate-in fade-in">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-purple-900 mb-1">Financeira Parceira:</label>
+                    {financialPartners.length > 0 ? (
+                      <select
+                        value={selectedPartnerId}
+                        onChange={(e) => setSelectedPartnerId(e.target.value)}
+                        className="w-full px-3 py-1.5 rounded-lg border border-purple-300 text-xs font-bold text-slate-900 bg-white outline-none"
+                      >
+                        {financialPartners.map((fp) => (
+                          <option key={fp.id} value={fp.id}>
+                            {fp.name} (Retenção {fp.retentionPercentage}% • Até {fp.maxInstallments}x)
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="text-[11px] text-purple-700 font-semibold bg-white p-2 rounded-lg border border-purple-200">
+                        Nenhuma financeira cadastrada. Usando taxa padrão de 10.0%.
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-purple-900 mb-1">Parcelas do Financiamento:</label>
+                    <select
+                      value={installments}
+                      onChange={(e) => setInstallments(Number(e.target.value))}
+                      className="w-full px-3 py-1.5 rounded-lg border border-purple-300 text-xs font-bold text-slate-900 bg-white outline-none"
+                    >
+                      {[6, 12, 18, 24, 30, 36].map((num) => (
+                        <option key={num} value={num}>
+                          {num}x de {formatBRL(finalPriceToClient / num)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="text-[11px] text-purple-800 flex justify-between pt-1 border-t border-purple-200/60 font-semibold">
+                  <span>Percentual de retenção da financeira ({currentPartner?.name || 'Parceira'}):</span>
+                  <span className="font-bold text-purple-950">{transactionFeePct}% ({formatBRL(transactionFeeAmount)})</span>
+                </div>
+              </div>
+            )}
+
+            {/* Seletor de Parcelas Cartão */}
             {paymentMethod === 'cartao_parcelado' && (
               <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-2 animate-in fade-in">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700">Número de Parcelas:</span>
+                  <span className="text-xs font-bold text-slate-700">Número de Parcelas no Cartão:</span>
                   <select
                     value={installments}
                     onChange={(e) => setInstallments(Number(e.target.value))}
                     className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-bold text-slate-800 outline-none focus:border-[#439346]"
                   >
-                    {[2, 3, 4, 5, 6, 8, 10, 12].map((num) => (
+                    {[2, 3, 4, 5, 6, 8, 10, 12, 18].map((num) => (
                       <option key={num} value={num}>
                         {num}x de {formatBRL(finalPriceToClient / num)}
                       </option>
@@ -330,42 +446,70 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
                   </select>
                 </div>
                 <div className="text-[11px] text-slate-500 flex justify-between">
-                  <span>Taxa estimada descontada pela operadora:</span>
+                  <span>Taxa estimada da operadora:</span>
                   <span className="font-bold text-red-600">-{formatBRL(transactionFeeAmount)} ({transactionFeePct.toFixed(1)}%)</span>
                 </div>
               </div>
             )}
           </div>
 
-          {/* DRE da Negociação Final */}
+          {/* DRE da Negociação Final (Visão Gerente vs Visão Vendedor) */}
           <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-[#1B2B48] text-white space-y-3">
             <div className="flex items-center justify-between border-b border-white/10 pb-2">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                Resultado Comercial da Venda
+                Resultado Comercial do Orçamento
               </span>
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase">
-                Margem Líquida: {profitMarginPct.toFixed(1)}%
-              </span>
+              {isOwner ? (
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase">
+                  Margem Líquida da Loja: {profitMarginPct.toFixed(1)}%
+                </span>
+              ) : (
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase">
+                  Proposta Pronta para o Cliente
+                </span>
+              )}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-              <div>
-                <span className="text-[10px] uppercase font-bold text-slate-400">Preço Cliente</span>
-                <div className="text-base font-black text-white">{formatBRL(finalPriceToClient)}</div>
+            {isOwner ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Preço Cliente</span>
+                  <div className="text-base font-black text-white">{formatBRL(finalPriceToClient)}</div>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Custo Fábrica</span>
+                  <div className="text-base font-black text-amber-300">-{formatBRL(factoryCost)}</div>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Taxa Pagamento</span>
+                  <div className="text-base font-black text-red-300">-{formatBRL(transactionFeeAmount)}</div>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Lucro Líquido</span>
+                  <div className="text-base font-black text-emerald-400">{formatBRL(netProfit)}</div>
+                </div>
               </div>
-              <div>
-                <span className="text-[10px] uppercase font-bold text-slate-400">Custo Fábrica</span>
-                <div className="text-base font-black text-amber-300">-{formatBRL(factoryCost)}</div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Tabela do Projeto</span>
+                  <div className="text-base font-black text-white">{formatBRL(baseBudget)}</div>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Desconto Concedido</span>
+                  <div className="text-base font-black text-blue-300">
+                    {discountPct > 0 ? `-${formatBRL(discountAmount)} (${discountPct}%)` : 'R$ 0,00'}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Total Final da Proposta</span>
+                  <div className="text-lg font-black text-emerald-400">{formatBRL(finalPriceToClient)}</div>
+                  <span className="text-[10px] text-slate-300 font-medium">
+                    {installments > 1 ? `${installments}x de ${formatBRL(installmentValue)}` : 'À Vista'}
+                  </span>
+                </div>
               </div>
-              <div>
-                <span className="text-[10px] uppercase font-bold text-slate-400">Taxa Cartão</span>
-                <div className="text-base font-black text-red-300">-{formatBRL(transactionFeeAmount)}</div>
-              </div>
-              <div>
-                <span className="text-[10px] uppercase font-bold text-slate-400">Lucro Líquido</span>
-                <div className="text-base font-black text-emerald-400">{formatBRL(netProfit)}</div>
-              </div>
-            </div>
+            )}
           </div>
 
         </div>
