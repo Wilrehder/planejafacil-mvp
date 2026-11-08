@@ -653,7 +653,7 @@ export const MerchantDashboard: React.FC = () => {
               title={isProPlan ? "Cadastrar novo lead" : "Recurso do Plano Pro"}
             >
               {isProPlan ? <Plus className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5 text-amber-500" />}
-              <span>+ Novo Lead Externo</span>
+              <span>Novo Lead Externo</span>
             </button>
 
             {/* View Switcher: Table vs Kanban (Plano Pro unlock) */}

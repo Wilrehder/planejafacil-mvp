@@ -607,7 +607,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
                   ) : (
                     <>
                       <Plus className="w-4 h-4 stroke-[3]" />
-                      <span>+ Criar Orçamento</span>
+                      <span>Criar Orçamento</span>
                     </>
                   )}
                 </button>
