@@ -15,12 +15,19 @@ import {
   Loader2,
   Landmark,
   Armchair,
-  Sparkles
+  Sparkles,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { PromobProjectData } from '../../lib/promobParser';
 import { fetchStoreCommercialSettings, StoreCommercialSettings } from '../../lib/expenseService';
-import { fetchFinancialPartners, FinancialPartner } from '../../lib/conventionalFurnitureService';
+import { 
+  fetchFinancialPartners, 
+  FinancialPartner,
+  fetchStoreFurniture,
+  ConventionalFurnitureItem 
+} from '../../lib/conventionalFurnitureService';
 import { CommercialProposal } from '../../types';
 
 interface PromobNegotiationModalProps {
@@ -35,6 +42,7 @@ interface PromobNegotiationModalProps {
     netProfit: number;
     summaryNote: string;
     commercialProposal?: CommercialProposal;
+    conventionalItems?: Array<{ id: string; name: string; quantity: number; salePrice: number; total: number; category?: string }>;
   }) => Promise<void>;
   promobData: PromobProjectData;
   fileName: string;
@@ -56,7 +64,9 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
   conventionalItems = [],
 }) => {
   const { currentUser } = useApp();
-  const isOwner = !currentUser?.role || currentUser?.role === 'store_owner' || currentUser?.role === 'platform_admin';
+  
+  // Regra Estrita de Permissão: Apenas Gerente ou Dono da Loja pode visualizar Custo de Fábrica e Margem Líquida
+  const isManagerOrOwner = currentUser?.role === 'store_owner' || currentUser?.role === 'platform_admin';
 
   const [commercialSettings, setCommercialSettings] = useState<StoreCommercialSettings>({
     tenant_id: tenantId,
@@ -69,6 +79,19 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
   const [passFeeToClient, setPassFeeToClient] = useState<boolean>(false);
   const [loadingSettings, setLoadingSettings] = useState(true);
 
+  // Estados para Móveis Convencionais Avulsos adicionados dentro da proposta
+  const [itemsList, setItemsList] = useState<Array<{
+    id: string;
+    name: string;
+    quantity: number;
+    salePrice: number;
+    total: number;
+    category?: string;
+  }>>(conventionalItems || []);
+  const [furnitureCatalog, setFurnitureCatalog] = useState<ConventionalFurnitureItem[]>([]);
+  const [selectedFurnitureId, setSelectedFurnitureId] = useState<string>('');
+  const [furnitureQty, setFurnitureQty] = useState<number>(1);
+
   // Estados de Negociação Comercial
   const [discountPct, setDiscountPct] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<'pix' | 'cartao_vista' | 'cartao_parcelado' | 'financeira'>('pix');
@@ -76,14 +99,22 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    if (isOpen) {
+      setItemsList(conventionalItems || []);
+    }
+  }, [isOpen, conventionalItems]);
+
+  useEffect(() => {
     if (isOpen && tenantId) {
       setLoadingSettings(true);
       Promise.all([
         fetchStoreCommercialSettings(tenantId),
-        fetchFinancialPartners(tenantId)
-      ]).then(([settings, partners]) => {
+        fetchFinancialPartners(tenantId),
+        fetchStoreFurniture(tenantId)
+      ]).then(([settings, partners, furniture]) => {
         setCommercialSettings(settings);
         setFinancialPartners(partners);
+        setFurnitureCatalog((furniture || []).filter(f => f.isActive));
         if (partners.length > 0) {
           setSelectedPartnerId(partners[0].id);
         }
@@ -99,7 +130,7 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
   const maxDiscountAllowed = commercialSettings.max_discount_percentage || 15.0;
 
   // Móveis Convencionais Agregados
-  const conventionalTotal = (conventionalItems || []).reduce(
+  const conventionalTotal = itemsList.reduce(
     (acc, curr) => acc + (curr.total || (curr.salePrice * curr.quantity) || 0),
     0
   );
@@ -141,6 +172,32 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 }).format(val);
   };
 
+  const handleAddFurnitureToProposal = () => {
+    if (!selectedFurnitureId) return;
+    const found = furnitureCatalog.find(f => f.id === selectedFurnitureId);
+    if (!found) return;
+
+    const qty = Math.max(1, Number(furnitureQty) || 1);
+    const itemTotal = found.salePrice * qty;
+
+    const newItem = {
+      id: found.id,
+      name: found.name,
+      category: found.category,
+      quantity: qty,
+      salePrice: found.salePrice,
+      total: itemTotal,
+    };
+
+    setItemsList(prev => [...prev, newItem]);
+    setSelectedFurnitureId('');
+    setFurnitureQty(1);
+  };
+
+  const handleRemoveFurnitureFromProposal = (indexToRemove: number) => {
+    setItemsList(prev => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
   const handleApply = async () => {
     if (isDiscountOverCeiling) return;
     setIsSubmitting(true);
@@ -154,54 +211,56 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
         paymentMethodLabel = `Financiamento ${currentPartner?.name || 'Bancário'} (${installments}x de ${formatBRL(installmentValue)})`;
       }
 
-      const conventionalSummary = conventionalTotal > 0 ? ` + Convencionais: ${formatBRL(conventionalTotal)} (${conventionalItems.length} itens)` : '';
+      const conventionalSummary = conventionalTotal > 0 ? ` + Convencionais: ${formatBRL(conventionalTotal)} (${itemsList.length} itens)` : '';
 
       // Se for o vendedor (store_operator), oculta custo de fábrica e lucro líquido da nota!
-      const note = isOwner
-        ? `📐 Proposta Consolidada: Venda ${formatBRL(finalPriceToClient)} (Promob: ${formatBRL(baseBudget)}${conventionalSummary} | ${discountPct > 0 ? `Desconto de ${discountPct}% | ` : ''}${paymentMethodLabel}) | Custo Fábrica Promob: ${formatBRL(factoryCost)} | Lucro Líquido: ${formatBRL(netProfit)} (${profitMarginPct.toFixed(1)}%) | Arquivo: ${fileName}`
-        : `📐 Proposta Comercial Aprovada: Venda ${formatBRL(finalPriceToClient)} (Promob: ${formatBRL(baseBudget)}${conventionalSummary} | ${discountPct > 0 ? `Desconto de ${discountPct}% | ` : ''}${paymentMethodLabel}) | Arquivo: ${fileName}`;
+      const note = isManagerOrOwner
+        ? `Proposta comercial Promob aprovada: ${formatBRL(finalPriceToClient)} (${paymentMethodLabel})${conventionalSummary}. Custo de Fábrica: ${formatBRL(factoryCost)}. Lucro Líquido Loja: ${formatBRL(netProfit)}.`
+        : `Proposta comercial Promob aprovada: ${formatBRL(finalPriceToClient)} (${paymentMethodLabel})${conventionalSummary}. Condições comerciais validadas.`;
 
       const commercialProposal: CommercialProposal = {
         promobValue: baseBudget,
-        promobCost: isOwner ? factoryCost : 0,
+        promobCost: isManagerOrOwner ? factoryCost : 0,
+        promobProjectName: promobData.projectName || environmentName,
         promobFileName: fileName,
-        promobProjectName: promobData.projectName || environmentName || 'Projeto Promob',
         conventionalTotal,
-        conventionalItems: (conventionalItems || []).map(i => ({
-          id: i.id,
-          name: i.name,
-          quantity: i.quantity,
-          salePrice: i.salePrice,
-          total: i.total || (i.salePrice * i.quantity),
-          category: i.category,
-        })),
+        conventionalItems: itemsList,
         subtotal: subtotalGross,
+        subtotalGross,
         discountPct,
+        discountPercentage: discountPct,
         discountAmount,
+        discountValue: discountAmount,
         subtotalAfterDiscount: priceAfterDiscount,
+        priceAfterDiscount,
         paymentMethod,
         paymentMethodLabel,
-        installments,
+        installments: paymentMethod === 'cartao_parcelado' || paymentMethod === 'financeira' ? installments : 1,
         installmentValue,
         paymentFeePct: transactionFeePct,
+        transactionFeePercentage: transactionFeePct,
         paymentFeeAmount: transactionFeeAmount,
+        transactionFeeAmount,
         passFeeToClient,
         finalOrderTotal: finalPriceToClient,
-        netStoreReceives,
-        estimatedCost: isOwner ? factoryCost : 0,
-        estimatedProfit: isOwner ? netProfit : 0,
+        partnerName: paymentMethod === 'financeira' ? currentPartner?.name : undefined,
+        netStoreReceives: isManagerOrOwner ? netStoreReceives : finalPriceToClient,
+        estimatedCost: isManagerOrOwner ? factoryCost : 0,
+        estimatedProfit: isManagerOrOwner ? netProfit : 0,
         approvedAt: new Date().toISOString(),
+        calculatedAt: new Date().toISOString(),
       };
 
       await onConfirm({
         finalPrice: finalPriceToClient,
-        factoryCost: isOwner ? factoryCost : 0,
+        factoryCost: isManagerOrOwner ? factoryCost : 0,
         discountPct,
         paymentMethod: paymentMethodLabel,
         installments,
-        netProfit: isOwner ? netProfit : 0,
+        netProfit: isManagerOrOwner ? netProfit : 0,
         summaryNote: note,
         commercialProposal,
+        conventionalItems: itemsList,
       });
       onClose();
     } finally {
@@ -210,11 +269,11 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
       <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[92vh]">
         
         {/* Header */}
-        <div className="p-6 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+        <div className="p-5 sm:p-6 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold">
               <FileSpreadsheet className="w-5 h-5" />
@@ -240,10 +299,10 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
         </div>
 
         {/* Content Body */}
-        <div className="p-6 overflow-y-auto space-y-6">
+        <div className="p-5 sm:p-6 overflow-y-auto space-y-5">
           
           {/* Card Resumo Inicial Promob (Custo de fábrica estritamente restrito ao Gerente/Dono) */}
-          {isOwner ? (
+          {isManagerOrOwner ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
                 <span className="text-[10px] uppercase font-bold text-slate-400">Tabela de Venda Promob</span>
@@ -270,7 +329,7 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
               <div>
                 <span className="text-[10px] uppercase font-bold text-slate-400 block">Tabela de Venda do Projeto Promob</span>
                 <div className="text-2xl font-black text-slate-900">{formatBRL(baseBudget)}</div>
-                <span className="text-[11px] text-slate-500">Valor oficial do projeto para orçamentação ao cliente</span>
+                <span className="text-[11px] text-slate-500">Valor oficial do projeto planejado para orçamentação ao cliente</span>
               </div>
               <div className="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-800 text-xs font-black uppercase flex items-center gap-1.5 border border-emerald-200">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -279,33 +338,109 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
             </div>
           )}
 
-          {/* Móveis Convencionais Agregados ao Pedido */}
-          {conventionalTotal > 0 && (
-            <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2 text-xs font-black uppercase text-amber-950">
+          {/* Seção Integrada: Adicionar Móveis Convencionais Avulsos Direto no Orçamento */}
+          <div className="bg-amber-50/70 p-4 sm:p-5 rounded-2xl border border-amber-200 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+              <div>
+                <label className="text-xs font-black uppercase text-amber-950 flex items-center space-x-1.5">
                   <Armchair className="w-4 h-4 text-amber-600" />
-                  <span>Móveis Convencionais Agregados ({conventionalItems.length} itens)</span>
-                </div>
-                <span className="text-sm font-black text-amber-900">+{formatBRL(conventionalTotal)}</span>
+                  <span>Adicionar Móveis Convencionais Avulsos ao Pedido</span>
+                </label>
+                <p className="text-[11px] text-amber-800">
+                  Agregue sofás, mesas e estofados que somarão automaticamente ao valor do contrato.
+                </p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
-                {conventionalItems.map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-xs px-3 py-1.5 rounded-xl bg-white border border-amber-200/80 text-slate-700 shadow-xs">
-                    <span className="truncate max-w-[170px] font-semibold">{item.quantity}x {item.name}</span>
-                    <span className="font-extrabold text-amber-900">{formatBRL(item.total || item.salePrice * item.quantity)}</span>
-                  </div>
+              {itemsList.length > 0 && (
+                <span className="text-xs font-extrabold text-amber-900 bg-amber-100/90 px-2.5 py-0.5 rounded-full border border-amber-200 self-start sm:self-auto">
+                  {itemsList.length} item(s) • +{formatBRL(conventionalTotal)}
+                </span>
+              )}
+            </div>
+
+            {/* Seletor do Catálogo da Loja */}
+            <div className="flex flex-col sm:flex-row gap-2 pt-1">
+              <select
+                value={selectedFurnitureId}
+                onChange={(e) => setSelectedFurnitureId(e.target.value)}
+                className="flex-1 px-3 py-2 rounded-xl border border-amber-300 text-xs font-bold text-slate-800 bg-white outline-none focus:ring-2 focus:ring-amber-400"
+              >
+                <option value="">Selecione um móvel do catálogo da loja...</option>
+                {furnitureCatalog.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name} ({f.category || 'Móvel'}) — {formatBRL(f.salePrice)}
+                  </option>
                 ))}
-              </div>
-              <div className="pt-2 border-t border-amber-200 flex justify-between items-center text-xs">
-                <span className="font-bold text-amber-900">Subtotal Bruto Consolidado (Promob + Convencionais):</span>
-                <span className="font-black text-slate-900 text-sm">{formatBRL(subtotalGross)}</span>
+              </select>
+
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 bg-white px-2.5 py-1.5 rounded-xl border border-amber-300">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase">Qtd:</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={furnitureQty}
+                    onChange={(e) => setFurnitureQty(Math.max(1, Number(e.target.value)))}
+                    className="w-10 text-center text-xs font-bold text-slate-800 outline-none"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleAddFurnitureToProposal}
+                  disabled={!selectedFurnitureId}
+                  className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-extrabold text-xs flex items-center gap-1 shadow-sm transition-all cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Adicionar</span>
+                </button>
               </div>
             </div>
-          )}
+
+            {/* Lista dos Móveis Adicionados */}
+            {itemsList.length > 0 ? (
+              <div className="space-y-2 pt-2 border-t border-amber-200">
+                <span className="text-[10px] uppercase font-bold text-amber-900 block">
+                  Itens Convencionais Inclusos no Orçamento:
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {itemsList.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-amber-200/90 shadow-xs text-xs"
+                    >
+                      <div className="min-w-0 pr-2">
+                        <div className="font-bold text-slate-800 truncate">{item.quantity}x {item.name}</div>
+                        <div className="text-[10px] text-slate-500">
+                          Unit: {formatBRL(item.salePrice)} • Total: <strong className="text-amber-900">{formatBRL(item.total || item.salePrice * item.quantity)}</strong>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveFurnitureFromProposal(idx)}
+                        className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                        title="Remover móvel convencional do orçamento"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-2 flex justify-between items-center text-xs font-bold text-amber-950">
+                  <span>Subtotal Consolidado (Promob + Convencionais):</span>
+                  <span className="font-mono text-sm font-black text-slate-900">{formatBRL(subtotalGross)}</span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-[11px] text-amber-800/80 italic pt-1">
+                Nenhum móvel avulso adicionado ainda. Se este cliente comprou sofás ou mesas convencionais, adicione acima para somar no pedido.
+              </p>
+            )}
+          </div>
 
           {/* Seção 1: Ajuste de Desconto Comercial */}
-          <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200 space-y-3">
+          <div className="bg-slate-50/70 p-4 sm:p-5 rounded-2xl border border-slate-200 space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <label className="text-xs font-black uppercase text-[#1B2B48] flex items-center space-x-1.5">
@@ -372,7 +507,7 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
           </div>
 
           {/* Seção 2: Forma de Pagamento, Maquininha e Financeiras */}
-          <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200 space-y-4">
+          <div className="bg-slate-50/70 p-4 sm:p-5 rounded-2xl border border-slate-200 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <label className="text-xs font-black uppercase text-[#1B2B48] flex items-center space-x-1.5">
@@ -399,83 +534,91 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               <button
                 type="button"
-                onClick={() => { setPaymentMethod('pix'); setInstallments(1); }}
-                className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                  paymentMethod === 'pix' 
-                    ? 'border-[#439346] bg-emerald-50 text-emerald-950 shadow-sm' 
-                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
+                onClick={() => {
+                  setPaymentMethod('pix');
+                  setInstallments(1);
+                }}
+                className={`p-3 rounded-2xl border text-left transition-all ${
+                  paymentMethod === 'pix'
+                    ? 'border-emerald-600 bg-emerald-50/60 ring-2 ring-emerald-500/20'
+                    : 'border-slate-200 bg-white hover:bg-slate-50'
                 }`}
               >
-                <div className="font-extrabold text-xs">Pix / À Vista</div>
-                <div className="text-[10px] text-emerald-700 font-bold mt-0.5">Sem taxa</div>
+                <div className="font-extrabold text-xs text-slate-900">Pix / À Vista</div>
+                <div className="text-[10px] text-emerald-700 font-semibold mt-0.5">Sem taxa</div>
               </button>
 
               <button
                 type="button"
-                onClick={() => { setPaymentMethod('cartao_vista'); setInstallments(1); }}
-                className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                  paymentMethod === 'cartao_vista' 
-                    ? 'border-[#439346] bg-emerald-50 text-emerald-950 shadow-sm' 
-                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
+                onClick={() => {
+                  setPaymentMethod('cartao_vista');
+                  setInstallments(1);
+                }}
+                className={`p-3 rounded-2xl border text-left transition-all ${
+                  paymentMethod === 'cartao_vista'
+                    ? 'border-blue-600 bg-blue-50/60 ring-2 ring-blue-500/20'
+                    : 'border-slate-200 bg-white hover:bg-slate-50'
                 }`}
               >
-                <div className="font-extrabold text-xs">Cartão à Vista</div>
-                <div className="text-[10px] text-slate-500 font-medium mt-0.5">Taxa de {commercialSettings.card_tax_percentage || 3.5}%</div>
+                <div className="font-extrabold text-xs text-slate-900">Cartão à Vista</div>
+                <div className="text-[10px] text-blue-700 font-semibold mt-0.5">
+                  Taxa de {commercialSettings.card_tax_percentage || 3.5}%
+                </div>
               </button>
 
               <button
                 type="button"
-                onClick={() => { setPaymentMethod('cartao_parcelado'); if (installments <= 1) setInstallments(6); }}
-                className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                  paymentMethod === 'cartao_parcelado' 
-                    ? 'border-[#439346] bg-emerald-50 text-emerald-950 shadow-sm' 
-                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
+                onClick={() => {
+                  setPaymentMethod('cartao_parcelado');
+                  if (installments <= 1) setInstallments(6);
+                }}
+                className={`p-3 rounded-2xl border text-left transition-all ${
+                  paymentMethod === 'cartao_parcelado'
+                    ? 'border-amber-600 bg-amber-50/60 ring-2 ring-amber-500/20'
+                    : 'border-slate-200 bg-white hover:bg-slate-50'
                 }`}
               >
-                <div className="font-extrabold text-xs">Cartão Parcelado</div>
-                <div className="text-[10px] text-slate-500 font-medium mt-0.5">Taxa da Maquininha</div>
+                <div className="font-extrabold text-xs text-slate-900">Cartão Parcelado</div>
+                <div className="text-[10px] text-amber-700 font-semibold mt-0.5">Taxa da Maquininha</div>
               </button>
 
               <button
                 type="button"
-                onClick={() => { setPaymentMethod('financeira'); if (installments <= 1) setInstallments(24); }}
-                className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                  paymentMethod === 'financeira' 
-                    ? 'border-[#439346] bg-emerald-50 text-emerald-950 shadow-sm' 
-                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
+                onClick={() => {
+                  setPaymentMethod('financeira');
+                  if (installments <= 1) setInstallments(24);
+                }}
+                className={`p-3 rounded-2xl border text-left transition-all ${
+                  paymentMethod === 'financeira'
+                    ? 'border-purple-600 bg-purple-50/60 ring-2 ring-purple-500/20'
+                    : 'border-slate-200 bg-white hover:bg-slate-50'
                 }`}
               >
-                <div className="font-extrabold text-xs flex items-center gap-1">
+                <div className="font-extrabold text-xs text-slate-900 flex items-center space-x-1">
                   <Landmark className="w-3.5 h-3.5 text-purple-600" />
                   <span>Financeira</span>
                 </div>
-                <div className="text-[10px] text-purple-700 font-bold mt-0.5">Crédito / Carnê</div>
+                <div className="text-[10px] text-purple-700 font-semibold mt-0.5">Crédito / Carnê</div>
               </button>
             </div>
 
-            {/* Configuração de Financeira Bancária */}
+            {/* Seletor de Financeiras Parceiras */}
             {paymentMethod === 'financeira' && (
-              <div className="p-3.5 bg-purple-50/70 rounded-xl border border-purple-200 space-y-3 animate-in fade-in">
+              <div className="p-4 bg-purple-50/60 rounded-2xl border border-purple-200 space-y-3 animate-in fade-in">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-bold text-purple-900 mb-1">Financeira Parceira:</label>
-                    {financialPartners.length > 0 ? (
-                      <select
-                        value={selectedPartnerId}
-                        onChange={(e) => setSelectedPartnerId(e.target.value)}
-                        className="w-full px-3 py-1.5 rounded-lg border border-purple-300 text-xs font-bold text-slate-900 bg-white outline-none"
-                      >
-                        {financialPartners.map((fp) => (
-                          <option key={fp.id} value={fp.id}>
-                            {fp.name} (Retenção {fp.retentionPercentage}% • Até {fp.maxInstallments}x)
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <div className="text-[11px] text-purple-700 font-semibold bg-white p-2 rounded-lg border border-purple-200">
-                        Nenhuma financeira cadastrada. Usando taxa padrão de 10.0%.
-                      </div>
-                    )}
+                    <label className="block text-[11px] font-bold text-purple-900 mb-1">Instituição Financeira:</label>
+                    <select
+                      value={selectedPartnerId}
+                      onChange={(e) => setSelectedPartnerId(e.target.value)}
+                      className="w-full px-3 py-1.5 rounded-lg border border-purple-300 text-xs font-bold text-slate-900 bg-white outline-none"
+                    >
+                      {financialPartners.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({p.retentionPercentage}% retenção - até {p.maxInstallments}x)
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>
@@ -526,13 +669,13 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
             )}
           </div>
 
-          {/* DRE da Negociação Final (Visão Gerente vs Visão Vendedor) */}
+          {/* DRE da Negociação Final (Visão Gerente vs Visão Vendedor - Rigorosamente Controlado) */}
           <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-[#1B2B48] text-white space-y-3">
             <div className="flex items-center justify-between border-b border-white/10 pb-2">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
                 Resultado Comercial do Orçamento
               </span>
-              {isOwner ? (
+              {isManagerOrOwner ? (
                 <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase">
                   Margem Líquida da Loja: {profitMarginPct.toFixed(1)}%
                 </span>
@@ -543,7 +686,7 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
               )}
             </div>
 
-            {isOwner ? (
+            {isManagerOrOwner ? (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-slate-400">Preço Cliente</span>
@@ -579,23 +722,28 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
                 <div>
                   <span className="text-[10px] uppercase font-bold text-slate-400">Total Final da Proposta</span>
                   <div className="text-lg font-black text-emerald-400">{formatBRL(finalPriceToClient)}</div>
-                  <span className="text-[10px] text-slate-300 font-medium">
-                    {installments > 1 ? `${installments}x de ${formatBRL(installmentValue)}` : 'À Vista'}
-                  </span>
                 </div>
+              </div>
+            )}
+
+            {installments > 1 && (
+              <div className="pt-2 border-t border-white/10 text-xs text-slate-300 flex justify-between items-center">
+                <span>Condição Parcelada Aprovada:</span>
+                <span className="font-extrabold text-white">
+                  {installments}x de <strong className="text-emerald-300 font-mono text-sm">{formatBRL(installmentValue)}</strong>
+                </span>
               </div>
             )}
           </div>
 
         </div>
 
-        {/* Footer Actions */}
-        <div className="p-4 sm:p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+        {/* Footer */}
+        <div className="p-4 sm:p-5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
           <button
             type="button"
             onClick={onClose}
-            disabled={isSubmitting}
-            className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-bold text-xs uppercase tracking-wider transition-colors"
+            className="px-4 py-2 rounded-xl text-slate-600 hover:text-slate-900 font-bold text-xs transition-colors"
           >
             Cancelar
           </button>
@@ -604,16 +752,16 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
             type="button"
             onClick={handleApply}
             disabled={isSubmitting || isDiscountOverCeiling}
-            className={`px-6 py-3 rounded-xl font-extrabold text-xs uppercase tracking-wider flex items-center space-x-2 transition-all shadow-md ${
+            className={`px-5 py-2.5 rounded-xl text-white font-extrabold text-xs flex items-center space-x-1.5 transition-all shadow-md ${
               isDiscountOverCeiling || isSubmitting
                 ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                : 'bg-[#439346] hover:bg-[#387F3B] text-white shadow-emerald-700/20 active:scale-95'
+                : 'bg-[#439346] hover:bg-[#387F3B] cursor-pointer'
             }`}
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Gravando Proposta...</span>
+                <span>Registrando...</span>
               </>
             ) : (
               <>

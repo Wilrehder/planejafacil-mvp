@@ -55,7 +55,8 @@ interface LeadDetailDrawerProps {
 
 export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdated }) => {
   const { currentUser, selectedLeadForDetail, setSelectedLeadForDetail, updateLead, updateLeadStatus } = useApp();
-  const isOwner = !currentUser?.role || currentUser?.role === 'store_owner' || currentUser?.role === 'platform_admin';
+  const isManagerOrOwner = currentUser?.role === 'store_owner' || currentUser?.role === 'platform_admin';
+  const isOwner = isManagerOrOwner;
   const [newCommentText, setNewCommentText] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -237,6 +238,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
       factoryCost: number; 
       summaryNote: string;
       commercialProposal?: CommercialProposal;
+      conventionalItems?: Array<{ id: string; name: string; quantity: number; salePrice: number; total: number; category?: string }>;
     }
   ) => {
     try {
@@ -265,6 +267,9 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
         }
         if (commercialOverride.commercialProposal) {
           updatedLeadData.commercialProposal = commercialOverride.commercialProposal;
+        }
+        if (commercialOverride.conventionalItems) {
+          updatedLeadData.conventionalItems = commercialOverride.conventionalItems;
         }
         await addLeadNoteOnServer(assignmentId, commercialOverride.summaryNote);
       }
@@ -324,8 +329,13 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
     netProfit: number;
     summaryNote: string;
     commercialProposal?: CommercialProposal;
+    conventionalItems?: Array<{ id: string; name: string; quantity: number; salePrice: number; total: number; category?: string }>;
   }) => {
     if (!pendingPromob) return;
+
+    if (result.conventionalItems) {
+      await updateLeadConventionalItems(assignmentId, result.conventionalItems);
+    }
 
     if (result.commercialProposal) {
       await saveLeadCommercialProposal(assignmentId, result.commercialProposal);
@@ -336,6 +346,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
       factoryCost: result.factoryCost,
       summaryNote: result.summaryNote,
       commercialProposal: result.commercialProposal,
+      conventionalItems: result.conventionalItems,
     });
     setPendingPromob(null);
   };

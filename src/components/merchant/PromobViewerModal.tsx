@@ -48,7 +48,8 @@ export const PromobViewerModal: React.FC<PromobViewerModalProps> = ({
   rawXmlContent: initialRawXmlContent,
 }) => {
   const { currentUser } = useApp();
-  const isOwner = !currentUser?.role || currentUser?.role === 'store_owner' || currentUser?.role === 'platform_admin';
+  const isManagerOrOwner = currentUser?.role === 'store_owner' || currentUser?.role === 'platform_admin';
+  const isOwner = isManagerOrOwner;
 
   const [loading, setLoading] = useState(false);
   const [rawXml, setRawXml] = useState<string>(initialRawXmlContent || '');
