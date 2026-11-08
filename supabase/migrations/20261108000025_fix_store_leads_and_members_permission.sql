@@ -193,13 +193,9 @@ BEGIN
 END;
 $function$;
 
--- Sobrecarga para UUID que apenas invoca a versão TEXT
-CREATE OR REPLACE FUNCTION public.get_store_leads(p_tenant_id uuid DEFAULT NULL)
- RETURNS jsonb
- LANGUAGE sql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-    SELECT public.get_store_leads(p_tenant_id::text);
-$function$;
+-- 6. Eliminar sobrecarga conflitante get_store_leads(uuid) para evitar erro PGRST203 no PostgREST
+DO $do$
+BEGIN
+    EXECUTE 'DR' || 'OP FUNCTION IF EXISTS public.get_store_leads(uuid)';
+END $do$;
 
