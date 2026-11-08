@@ -70,7 +70,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
   const [regBirthDate, setRegBirthDate] = useState('');
   const [regBillingAddress, setRegBillingAddress] = useState('');
   const [regInstallationAddress, setRegInstallationAddress] = useState('');
-  const [regDesiredDeadline, setRegDesiredDeadline] = useState('');
+  const [regDesiredDays, setRegDesiredDays] = useState('');
   const [isSavingRegistration, setIsSavingRegistration] = useState(false);
   const [registrationMessage, setRegistrationMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -92,7 +92,9 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
       setRegBirthDate(selectedLeadForDetail.birthDate || '');
       setRegBillingAddress(selectedLeadForDetail.billingAddress || '');
       setRegInstallationAddress(selectedLeadForDetail.installationAddress || '');
-      setRegDesiredDeadline(selectedLeadForDetail.desiredDeadline || '');
+      const rawDeadline = selectedLeadForDetail.desiredDeadline || '';
+      const extractedDays = rawDeadline.replace(/\D/g, '');
+      setRegDesiredDays(extractedDays || rawDeadline);
       setIsEditingRegistration(false);
       setRegistrationMessage(null);
     }
@@ -116,7 +118,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
     lead.birthDate?.trim() &&
     lead.billingAddress?.trim() &&
     lead.installationAddress?.trim() &&
-    lead.desiredDeadline?.trim()
+    (regDesiredDays.trim() || lead.desiredDeadline?.trim())
   );
 
   const handleSaveRegistration = async (e: React.FormEvent) => {
@@ -124,13 +126,15 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
     setIsSavingRegistration(true);
     setRegistrationMessage(null);
 
+    const formattedDeadline = regDesiredDays.trim() ? `${regDesiredDays.trim()} dias` : '';
+
     try {
       const res = await updateLeadRegistrationData(assignmentId, {
         cpf: regCpf.trim(),
         birthDate: regBirthDate.trim(),
         billingAddress: regBillingAddress.trim(),
         installationAddress: regInstallationAddress.trim(),
-        desiredDeadline: regDesiredDeadline.trim(),
+        desiredDeadline: formattedDeadline,
       });
 
       if (!res.success) {
@@ -144,7 +148,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
         birthDate: regBirthDate.trim(),
         billingAddress: regBillingAddress.trim(),
         installationAddress: regInstallationAddress.trim(),
-        desiredDeadline: regDesiredDeadline.trim(),
+        desiredDeadline: formattedDeadline,
       };
 
       updateLead(lead.id, updatedFields);
@@ -544,36 +548,43 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
                 </div>
               </div>
 
-              {/* Orçamento e Cômodos da Plataforma */}
-              {isPlatformLead && (
-                <div className="bg-slate-900 text-white p-5 rounded-2xl space-y-3 shadow-sm">
-                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center space-x-1.5">
+              {/* Pré-Orçamento e Cômodos da Plataforma (Padronizado para Novo e Em Atendimento) */}
+              <div className="bg-slate-900 text-white p-5 rounded-2xl space-y-3.5 shadow-sm border border-slate-800">
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                  <div className="flex items-center space-x-1.5">
                     <Building2 className="w-4 h-4 text-[#439346]" />
                     <span>Simulação de Móveis no App</span>
                   </div>
-
-                  <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                    <span className="text-xs text-slate-400">Estimativa Calculada:</span>
-                    <span className="text-base font-black text-[#439346]">{formatCurrency(lead.estimatedMin)} ~ {formatCurrency(lead.estimatedMax)}</span>
-                  </div>
-
-                  <div className="text-xs">
-                    <span className="text-slate-400 block font-medium">Ambientes Solicitados:</span>
-                    <strong className="text-white text-sm">{lead.environment}</strong>
-                  </div>
-
-                  {lead.environmentsData && lead.environmentsData.length > 0 && (
-                    <div className="pt-2 border-t border-slate-800 space-y-1.5">
-                      {lead.environmentsData.map((env, idx) => (
-                        <div key={idx} className="bg-slate-800 p-2 rounded-xl text-[11px] flex justify-between font-semibold">
-                          <span>{env.name}</span>
-                          <span className="text-emerald-400">{env.areaM2}m² • {env.wallCount} Paredes</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-800 text-emerald-400 border border-slate-700">
+                    Pré-Orçamento
+                  </span>
                 </div>
-              )}
+
+                <div className="flex justify-between items-center border-b border-slate-800 pb-2.5">
+                  <span className="text-xs text-slate-400">Estimativa Calculada:</span>
+                  <span className="text-base font-black text-[#439346]">
+                    {lead.estimatedMin > 0 || lead.estimatedMax > 0
+                      ? `${formatCurrency(lead.estimatedMin || 15000)} ~ ${formatCurrency(lead.estimatedMax || 25000)}`
+                      : 'Sob Consulta'}
+                  </span>
+                </div>
+
+                <div className="text-xs">
+                  <span className="text-slate-400 block font-medium mb-1">Ambientes Solicitados:</span>
+                  <strong className="text-white text-sm block">{lead.environment || 'Móveis Planejados Sob Medida'}</strong>
+                </div>
+
+                {lead.environmentsData && lead.environmentsData.length > 0 && (
+                  <div className="pt-2 border-t border-slate-800 space-y-1.5">
+                    {lead.environmentsData.map((env, idx) => (
+                      <div key={idx} className="bg-slate-800/90 p-2 rounded-xl text-[11px] flex justify-between font-semibold border border-slate-700/60">
+                        <span>{env.name}</span>
+                        <span className="text-emerald-400">{env.areaM2}m² • {env.wallCount} Paredes</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
             </div>
 
@@ -1013,14 +1024,23 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
               </div>
 
               <div>
-                <label className="text-[10px] uppercase font-bold text-slate-500 block mb-1">Prazo Desejado de Entrega / Instalação</label>
-                <input
-                  type="text"
-                  value={regDesiredDeadline}
-                  onChange={(e) => setRegDesiredDeadline(e.target.value)}
-                  placeholder="Ex: 30 a 45 dias, Imediato, Até Dezembro"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-[#439346] outline-none"
-                />
+                <label className="text-[10px] uppercase font-bold text-slate-500 block mb-1">
+                  Prazo Desejado (Quantidade de dias)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="1"
+                    max="365"
+                    value={regDesiredDays}
+                    onChange={(e) => setRegDesiredDays(e.target.value)}
+                    placeholder="Ex: 45"
+                    className="w-full pl-3 pr-14 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-[#439346] outline-none"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
+                    dias
+                  </span>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
