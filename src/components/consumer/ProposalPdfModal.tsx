@@ -7,9 +7,10 @@ import { Logo } from '../common/Logo';
 interface ProposalPdfModalProps {
   isOpen?: boolean;
   onClose: () => void;
+  proposalRef?: string;
 }
 
-export const ProposalPdfModal: React.FC<ProposalPdfModalProps> = ({ isOpen = true, onClose }) => {
+export const ProposalPdfModal: React.FC<ProposalPdfModalProps> = ({ isOpen = true, onClose, proposalRef }) => {
   const { simulator } = useApp();
 
   if (!isOpen) return null;
@@ -76,7 +77,7 @@ export const ProposalPdfModal: React.FC<ProposalPdfModalProps> = ({ isOpen = tru
                 Especificação de Projeto
               </div>
               <div className="text-xs text-slate-500 font-medium">Data: {proposalDate}</div>
-              <div className="text-[10px] text-slate-400 font-mono">Ref: #{Date.now().toString().slice(-6)}</div>
+              <div className="text-[10px] text-slate-400 font-mono">Ref: #{proposalRef || Date.now().toString().slice(-6)}</div>
             </div>
           </div>
 
