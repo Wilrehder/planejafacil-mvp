@@ -41,6 +41,7 @@ interface PromobNegotiationModalProps {
     installments: number;
     netProfit: number;
     summaryNote: string;
+    environmentTitle?: string;
     commercialProposal?: CommercialProposal;
     conventionalItems?: Array<{ id: string; name: string; quantity: number; salePrice: number; total: number; category?: string }>;
   }) => Promise<void>;
@@ -65,8 +66,15 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
 }) => {
   const { currentUser } = useApp();
   
-  // Regra Estrita de Permissão: Apenas Gerente ou Dono da Loja pode visualizar Custo de Fábrica e Margem Líquida
+  // Regra Estrita de Permissão
   const isManagerOrOwner = currentUser?.role === 'store_owner' || currentUser?.role === 'platform_admin';
+
+  // Etapas do Modal: 1º Detalhes do Ambiente Planejado -> 2º Proposta Comercial
+  const [modalStep, setModalStep] = useState<'detalhes' | 'proposta'>('detalhes');
+  const [environmentTitleInput, setEnvironmentTitleInput] = useState<string>(environmentName || promobData.projectName || 'Cozinha');
+
+  // Preço Cheio do Promob Editável pelo Usuário
+  const [customPromobPrice, setCustomPromobPrice] = useState<number>(promobData.budgetValue || 0);
 
   const [commercialSettings, setCommercialSettings] = useState<StoreCommercialSettings>({
     tenant_id: tenantId,
@@ -101,8 +109,11 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setItemsList(conventionalItems || []);
+      setModalStep('detalhes');
+      setEnvironmentTitleInput(environmentName || promobData.projectName || 'Cozinha');
+      setCustomPromobPrice(promobData.budgetValue || 0);
     }
-  }, [isOpen, conventionalItems]);
+  }, [isOpen, conventionalItems, environmentName, promobData.projectName, promobData.budgetValue]);
 
   useEffect(() => {
     if (isOpen && tenantId) {
@@ -125,7 +136,9 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
 
   if (!isOpen) return null;
 
-  const baseBudget = promobData.budgetValue || 0;
+  // Valor Cheio editável do Promob
+  const baseBudget = customPromobPrice > 0 ? customPromobPrice : (promobData.budgetValue || 0);
+  // Custo de fábrica mantido internamente para cálculos de Analytics / DRE
   const factoryCost = promobData.factoryOrderCost || 0;
   const maxDiscountAllowed = commercialSettings.max_discount_percentage || 15.0;
 
@@ -213,15 +226,12 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
 
       const conventionalSummary = conventionalTotal > 0 ? ` + Convencionais: ${formatBRL(conventionalTotal)} (${itemsList.length} itens)` : '';
 
-      // Se for o vendedor (store_operator), oculta custo de fábrica e lucro líquido da nota!
-      const note = isManagerOrOwner
-        ? `Proposta comercial Promob aprovada: ${formatBRL(finalPriceToClient)} (${paymentMethodLabel})${conventionalSummary}. Custo de Fábrica: ${formatBRL(factoryCost)}. Lucro Líquido Loja: ${formatBRL(netProfit)}.`
-        : `Proposta comercial Promob aprovada: ${formatBRL(finalPriceToClient)} (${paymentMethodLabel})${conventionalSummary}. Condições comerciais validadas.`;
+      const note = `Proposta comercial Promob aprovada: ${formatBRL(finalPriceToClient)} (${paymentMethodLabel})${conventionalSummary}. Condições comerciais validadas.`;
 
       const commercialProposal: CommercialProposal = {
         promobValue: baseBudget,
-        promobCost: isManagerOrOwner ? factoryCost : 0,
-        promobProjectName: promobData.projectName || environmentName,
+        promobCost: factoryCost,
+        promobProjectName: environmentTitleInput.trim() || promobData.projectName || environmentName,
         promobFileName: fileName,
         conventionalTotal,
         conventionalItems: itemsList,
@@ -244,21 +254,22 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
         passFeeToClient,
         finalOrderTotal: finalPriceToClient,
         partnerName: paymentMethod === 'financeira' ? currentPartner?.name : undefined,
-        netStoreReceives: isManagerOrOwner ? netStoreReceives : finalPriceToClient,
-        estimatedCost: isManagerOrOwner ? factoryCost : 0,
-        estimatedProfit: isManagerOrOwner ? netProfit : 0,
+        netStoreReceives,
+        estimatedCost: factoryCost,
+        estimatedProfit: netProfit,
         approvedAt: new Date().toISOString(),
         calculatedAt: new Date().toISOString(),
       };
 
       await onConfirm({
         finalPrice: finalPriceToClient,
-        factoryCost: isManagerOrOwner ? factoryCost : 0,
+        factoryCost,
         discountPct,
         paymentMethod: paymentMethodLabel,
         installments,
-        netProfit: isManagerOrOwner ? netProfit : 0,
+        netProfit,
         summaryNote: note,
+        environmentTitle: environmentTitleInput.trim() || promobData.projectName || environmentName || 'Cozinha',
         commercialProposal,
         conventionalItems: itemsList,
       });
@@ -268,6 +279,97 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
     }
   };
 
+  // PASSO 1: Informar Detalhes do Ambiente Planejado
+  if (modalStep === 'detalhes') {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+        <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+          {/* Header */}
+          <div className="p-5 sm:p-6 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold">
+                <Building2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-base text-white">Detalhes do Planejado</h3>
+                <p className="text-xs text-slate-400 truncate max-w-xs">{clientName} • Arquivo Importado</p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Form */}
+          <div className="p-6 space-y-4 text-xs text-slate-800">
+            <div>
+              <label className="text-xs font-black uppercase text-[#1B2B48] block mb-1.5">
+                Nome do Ambiente Planejado *
+              </label>
+              <input
+                type="text"
+                value={environmentTitleInput}
+                onChange={(e) => setEnvironmentTitleInput(e.target.value)}
+                placeholder="Ex: Cozinha, Quarto Casal, Cozinha e Sala"
+                className="w-full px-4 py-3 rounded-2xl border border-slate-300 font-bold text-sm text-slate-900 outline-none focus:border-[#439346] focus:ring-2 focus:ring-[#439346]/20"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (!environmentTitleInput.trim()) {
+                      setEnvironmentTitleInput(promobData.projectName || environmentName || 'Cozinha');
+                    }
+                    setModalStep('proposta');
+                  }
+                }}
+              />
+              <p className="text-[11px] text-slate-400 mt-1">
+                Este título identificará os móveis deste projeto no orçamento e no pedido.
+              </p>
+            </div>
+
+            {/* Identificação encontrada no XML */}
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Identificação no Arquivo Promob:</span>
+              <div className="font-mono text-xs font-bold text-slate-800 flex items-center justify-between">
+                <span>Projeto: {promobData.projectName || 'Identificado no XML'}</span>
+                {promobData.itemsCount > 0 && <span className="text-emerald-600 font-bold">{promobData.itemsCount} módulos</span>}
+              </div>
+              <div className="text-[10px] text-slate-500 font-mono truncate">{fileName}</div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl text-slate-600 hover:text-slate-900 font-bold text-xs transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!environmentTitleInput.trim()) {
+                    setEnvironmentTitleInput(promobData.projectName || environmentName || 'Cozinha');
+                  }
+                  setModalStep('proposta');
+                }}
+                className="px-5 py-2.5 rounded-xl bg-[#439346] hover:bg-[#387F3B] text-white font-extrabold text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+              >
+                <span>Avançar para Orçamento Comercial</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // PASSO 2: Orçamento Comercial e Negociação
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
       <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[92vh]">
@@ -280,19 +382,19 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h3 className="font-extrabold text-base text-white">Proposta Técnica Promob Importada</h3>
+                <h3 className="font-extrabold text-base text-white">Proposta Comercial: {environmentTitleInput}</h3>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase tracking-wider border border-emerald-500/30">
                   XML Validado
                 </span>
               </div>
               <p className="text-xs text-slate-400 font-mono mt-0.5 truncate max-w-md">
-                {fileName} • {promobData.projectName || environmentName || 'Projeto Sob Medida'}
+                {fileName} • Projeto Promob: {promobData.projectName || environmentTitleInput}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -301,42 +403,31 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
         {/* Content Body */}
         <div className="p-5 sm:p-6 overflow-y-auto space-y-5">
           
-          {/* Card Resumo Inicial Promob (Custo de fábrica estritamente restrito ao Gerente/Dono) */}
-          {isManagerOrOwner ? (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
-                <span className="text-[10px] uppercase font-bold text-slate-400">Tabela de Venda Promob</span>
-                <div className="text-xl font-black text-slate-900">{formatBRL(baseBudget)}</div>
-                <span className="text-[10px] text-slate-500 font-medium">Orçamento sugerido</span>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200/80 space-y-1">
-                <span className="text-[10px] uppercase font-bold text-amber-600">Custo de Fábrica (Order)</span>
-                <div className="text-xl font-black text-amber-900">{formatBRL(factoryCost)}</div>
-                <span className="text-[10px] text-amber-700 font-medium">Pedido com fornecedor</span>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200/80 space-y-1">
-                <span className="text-[10px] uppercase font-bold text-emerald-600">Margem Bruta Inicial</span>
-                <div className="text-xl font-black text-emerald-900">{formatBRL(baseBudget - factoryCost)}</div>
-                <span className="text-[10px] text-emerald-700 font-bold">
-                  {baseBudget > 0 ? (((baseBudget - factoryCost) / baseBudget) * 100).toFixed(1) : 0}% de margem
-                </span>
-              </div>
+          {/* Card do Preço Cheio do Promob (Editável livremente, sem exibição de custos ou margens) */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-black uppercase text-[#1B2B48] flex items-center space-x-1.5">
+                <DollarSign className="w-4 h-4 text-emerald-600" />
+                <span>Preço Cheio do Projeto Promob (R$)</span>
+              </label>
+              <span className="text-[11px] text-slate-500 font-semibold">Valor do XML editável</span>
             </div>
-          ) : (
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-50 to-emerald-50/30 border border-slate-200 flex items-center justify-between">
-              <div>
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Tabela de Venda do Projeto Promob</span>
-                <div className="text-2xl font-black text-slate-900">{formatBRL(baseBudget)}</div>
-                <span className="text-[11px] text-slate-500">Valor oficial do projeto planejado para orçamentação ao cliente</span>
-              </div>
-              <div className="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-800 text-xs font-black uppercase flex items-center gap-1.5 border border-emerald-200">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span>Projeto Validado</span>
-              </div>
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">R$</span>
+              <input
+                type="number"
+                min="0"
+                step="10"
+                value={customPromobPrice}
+                onChange={(e) => setCustomPromobPrice(Number(e.target.value) || 0)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 font-black text-lg text-slate-900 bg-white focus:border-[#439346] outline-none"
+                placeholder="0,00"
+              />
             </div>
-          )}
+            <p className="text-[10px] text-slate-400">
+              Valor base sugerido pelo Promob XML. Você pode alterar este valor livremente para ajustar a tabela.
+            </p>
+          </div>
 
           {/* Seção Integrada: Adicionar Móveis Convencionais Avulsos Direto no Orçamento */}
           <div className="bg-amber-50/70 p-4 sm:p-5 rounded-2xl border border-amber-200 space-y-3">
@@ -439,7 +530,7 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
             )}
           </div>
 
-          {/* Seção 1: Ajuste de Desconto Comercial */}
+          {/* Seção 1: Ajuste de Desconto Comercial (Apenas Digitado) */}
           <div className="bg-slate-50/70 p-4 sm:p-5 rounded-2xl border border-slate-200 space-y-3">
             <div className="flex items-center justify-between">
               <div>
@@ -452,48 +543,28 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
                 </p>
               </div>
 
-              {/* Botões rápidos de atalho */}
-              <div className="flex items-center space-x-1">
-                {[0, 5, 10, maxDiscountAllowed].map((pct) => (
-                  <button
-                    key={pct}
-                    type="button"
-                    onClick={() => setDiscountPct(pct)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                      discountPct === pct 
-                        ? 'bg-[#1B2B48] text-white' 
-                        : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
-                    }`}
-                  >
-                    {pct}%
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-3">
-              <div className="relative flex-1">
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.5"
-                  value={discountPct}
-                  onChange={(e) => setDiscountPct(Number(e.target.value))}
-                  className={`w-full px-4 py-2.5 rounded-xl border font-bold text-sm outline-none transition-all ${
-                    isDiscountOverCeiling 
-                      ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-2 focus:ring-red-400' 
-                      : 'border-slate-300 bg-white text-slate-900 focus:border-[#439346] focus:ring-2 focus:ring-[#439346]/20'
-                  }`}
-                  placeholder="0"
-                />
-                <span className="absolute right-4 top-2.5 font-bold text-slate-400 text-sm">%</span>
-              </div>
-
               <div className="text-right">
                 <div className="text-xs font-bold text-slate-500">Valor com Desconto:</div>
                 <div className="text-base font-black text-[#1B2B48]">{formatBRL(priceAfterDiscount)}</div>
               </div>
+            </div>
+
+            <div className="relative">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.5"
+                value={discountPct}
+                onChange={(e) => setDiscountPct(Number(e.target.value))}
+                className={`w-full px-4 py-2.5 rounded-xl border font-bold text-sm outline-none transition-all ${
+                  isDiscountOverCeiling 
+                    ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-2 focus:ring-red-400' 
+                    : 'border-slate-300 bg-white text-slate-900 focus:border-[#439346] focus:ring-2 focus:ring-[#439346]/20'
+                }`}
+                placeholder="Digite a % de desconto (ex: 8)"
+              />
+              <span className="absolute right-4 top-2.5 font-bold text-slate-400 text-sm">%</span>
             </div>
 
             {isDiscountOverCeiling && (
@@ -669,62 +740,35 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
             )}
           </div>
 
-          {/* DRE da Negociação Final (Visão Gerente vs Visão Vendedor - Rigorosamente Controlado) */}
+          {/* Resumo Comercial do Orçamento (Limpo e Focado no Cliente - Custos e Margens Preservados para Analytics) */}
           <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-[#1B2B48] text-white space-y-3">
             <div className="flex items-center justify-between border-b border-white/10 pb-2">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                Resultado Comercial do Orçamento
+                Resumo Comercial da Proposta
               </span>
-              {isManagerOrOwner ? (
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase">
-                  Margem Líquida da Loja: {profitMarginPct.toFixed(1)}%
-                </span>
-              ) : (
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase">
-                  Proposta Pronta para o Cliente
-                </span>
-              )}
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase">
+                Proposta Pronta para o Cliente
+              </span>
             </div>
 
-            {isManagerOrOwner ? (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Preço Cliente</span>
-                  <div className="text-base font-black text-white">{formatBRL(finalPriceToClient)}</div>
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Custo Fábrica</span>
-                  <div className="text-base font-black text-amber-300">-{formatBRL(factoryCost)}</div>
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Taxa Pagamento</span>
-                  <div className="text-base font-black text-red-300">-{formatBRL(transactionFeeAmount)}</div>
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Lucro Líquido</span>
-                  <div className="text-base font-black text-emerald-400">{formatBRL(netProfit)}</div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400">
+                  {conventionalTotal > 0 ? 'Subtotal Consolidado' : 'Tabela do Projeto'}
+                </span>
+                <div className="text-base font-black text-white">{formatBRL(subtotalGross)}</div>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400">Desconto Comercial</span>
+                <div className="text-base font-black text-blue-300">
+                  {discountPct > 0 ? `-${formatBRL(discountAmount)} (${discountPct}%)` : 'R$ 0,00'}
                 </div>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400">
-                    {conventionalTotal > 0 ? 'Subtotal Consolidado' : 'Tabela do Projeto'}
-                  </span>
-                  <div className="text-base font-black text-white">{formatBRL(subtotalGross)}</div>
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Desconto Concedido</span>
-                  <div className="text-base font-black text-blue-300">
-                    {discountPct > 0 ? `-${formatBRL(discountAmount)} (${discountPct}%)` : 'R$ 0,00'}
-                  </div>
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Total Final da Proposta</span>
-                  <div className="text-lg font-black text-emerald-400">{formatBRL(finalPriceToClient)}</div>
-                </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400">Total Final da Proposta</span>
+                <div className="text-lg font-black text-emerald-400">{formatBRL(finalPriceToClient)}</div>
               </div>
-            )}
+            </div>
 
             {installments > 1 && (
               <div className="pt-2 border-t border-white/10 text-xs text-slate-300 flex justify-between items-center">

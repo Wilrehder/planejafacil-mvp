@@ -404,3 +404,28 @@ export async function updateLeadRegistrationData(
     return { success: false, error: err?.message || 'Erro inesperado ao salvar dados cadastrais.' };
   }
 }
+
+/**
+ * Atualiza o ambiente planejado principal do lead (ex: 'Cozinha', 'Cozinha e Quarto')
+ */
+export async function updateLeadEnvironment(
+  leadId: string,
+  environmentSummary: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await supabase
+      .from('leads')
+      .update({ 
+        environment_summary: environmentSummary,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', leadId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Erro ao atualizar ambiente do lead.' };
+  }
+}

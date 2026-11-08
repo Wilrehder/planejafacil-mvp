@@ -43,6 +43,7 @@ import {
   convertLeadToOrderOnServer,
   saveLeadCommercialProposal,
   updateLeadRegistrationData,
+  updateLeadEnvironment,
   STORE_ID_TO_TENANT_UUID 
 } from '../../lib/crmService';
 import { getOrderDocumentSignedUrl } from '../../lib/erpService';
@@ -220,6 +221,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
       finalPrice: number; 
       factoryCost: number; 
       summaryNote: string;
+      environmentTitle?: string;
       commercialProposal?: CommercialProposal;
       conventionalItems?: Array<{ id: string; name: string; quantity: number; salePrice: number; total: number; category?: string }>;
     }
@@ -247,6 +249,10 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
         updatedLeadData.estimatedMax = commercialOverride.finalPrice;
         if (commercialOverride.factoryCost > 0) {
           updatedLeadData.estimatedMin = commercialOverride.factoryCost;
+        }
+        if (commercialOverride.environmentTitle) {
+          updatedLeadData.environment = commercialOverride.environmentTitle;
+          await updateLeadEnvironment(lead.id, commercialOverride.environmentTitle);
         }
         if (commercialOverride.commercialProposal) {
           updatedLeadData.commercialProposal = commercialOverride.commercialProposal;
@@ -311,6 +317,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
     installments: number;
     netProfit: number;
     summaryNote: string;
+    environmentTitle?: string;
     commercialProposal?: CommercialProposal;
     conventionalItems?: Array<{ id: string; name: string; quantity: number; salePrice: number; total: number; category?: string }>;
   }) => {
@@ -328,6 +335,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
       finalPrice: result.finalPrice,
       factoryCost: result.factoryCost,
       summaryNote: result.summaryNote,
+      environmentTitle: result.environmentTitle,
       commercialProposal: result.commercialProposal,
       conventionalItems: result.conventionalItems,
     });
