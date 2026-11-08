@@ -18,19 +18,29 @@ import {
   Armchair,
   Plus,
   Trash2,
-  ShoppingBag
+  ShoppingBag,
+  Eye,
+  FileSpreadsheet,
+  Download,
+  Sparkles,
+  DollarSign,
+  CreditCard,
+  Layers,
+  FolderOpen
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { LeadStatus } from '../../types';
+import { LeadStatus, CommercialProposal } from '../../types';
 import { 
   uploadAndAttachProposal, 
   addLeadNoteOnServer, 
   updateLeadStageOnServer, 
   convertLeadToOrderOnServer,
+  saveLeadCommercialProposal,
   STORE_ID_TO_TENANT_UUID 
 } from '../../lib/crmService';
 import { parsePromobXML, PromobProjectData } from '../../lib/promobParser';
 import { PromobNegotiationModal } from './PromobNegotiationModal';
+import { PromobViewerModal } from './PromobViewerModal';
 import { 
   fetchStoreFurniture, 
   updateLeadConventionalItems, 
@@ -42,7 +52,8 @@ interface LeadDetailDrawerProps {
 }
 
 export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdated }) => {
-  const { selectedLeadForDetail, setSelectedLeadForDetail, updateLead, updateLeadStatus } = useApp();
+  const { currentUser, selectedLeadForDetail, setSelectedLeadForDetail, updateLead, updateLeadStatus } = useApp();
+  const isOwner = !currentUser?.role || currentUser?.role === 'store_owner' || currentUser?.role === 'platform_admin';
   const [newCommentText, setNewCommentText] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -54,6 +65,9 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
     promobInfo: PromobProjectData;
     tenantUuid: string;
   } | null>(null);
+
+  // Estado do Visualizador Estruturado Promob
+  const [isPromobViewerOpen, setIsPromobViewerOpen] = useState(false);
 
   // Móveis Convencionais
   const [storeFurnitureCatalog, setStoreFurnitureCatalog] = useState<ConventionalFurnitureItem[]>([]);
@@ -161,7 +175,12 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
   const executeUploadAndAttach = async (
     file: File, 
     tenantUuid: string, 
-    commercialOverride?: { finalPrice: number; factoryCost: number; summaryNote: string }
+    commercialOverride?: { 
+      finalPrice: number; 
+      factoryCost: number; 
+      summaryNote: string;
+      commercialProposal?: CommercialProposal;
+    }
   ) => {
     try {
       setIsUploading(true);
@@ -186,6 +205,9 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
         updatedLeadData.estimatedMax = commercialOverride.finalPrice;
         if (commercialOverride.factoryCost > 0) {
           updatedLeadData.estimatedMin = commercialOverride.factoryCost;
+        }
+        if (commercialOverride.commercialProposal) {
+          updatedLeadData.commercialProposal = commercialOverride.commercialProposal;
         }
         await addLeadNoteOnServer(assignmentId, commercialOverride.summaryNote);
       }
@@ -244,12 +266,19 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
     installments: number;
     netProfit: number;
     summaryNote: string;
+    commercialProposal?: CommercialProposal;
   }) => {
     if (!pendingPromob) return;
+
+    if (result.commercialProposal) {
+      await saveLeadCommercialProposal(assignmentId, result.commercialProposal);
+    }
+
     await executeUploadAndAttach(pendingPromob.file, pendingPromob.tenantUuid, {
       finalPrice: result.finalPrice,
       factoryCost: result.factoryCost,
       summaryNote: result.summaryNote,
+      commercialProposal: result.commercialProposal,
     });
     setPendingPromob(null);
   };
@@ -272,8 +301,8 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
       }
 
       if (targetStatus === 'convertido') {
-        const estValue = Math.round(((lead.estimatedMin || 15000) + (lead.estimatedMax || 25000)) / 2);
-        await convertLeadToOrderOnServer(assignmentId, estValue);
+        const orderFinalValue = lead.commercialProposal?.finalOrderTotal || lead.estimatedMax || Math.round(((lead.estimatedMin || 15000) + (lead.estimatedMax || 25000)) / 2);
+        await convertLeadToOrderOnServer(assignmentId, orderFinalValue);
       }
 
       updateLeadStatus(lead.id, targetStatus);
@@ -303,8 +332,8 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
       }
 
       if (decision === 'convertido') {
-        const estValue = Math.round(((lead.estimatedMin || 15000) + (lead.estimatedMax || 25000)) / 2);
-        await convertLeadToOrderOnServer(assignmentId, estValue);
+        const orderFinalValue = lead.commercialProposal?.finalOrderTotal || lead.estimatedMax || Math.round(((lead.estimatedMin || 15000) + (lead.estimatedMax || 25000)) / 2);
+        await convertLeadToOrderOnServer(assignmentId, orderFinalValue);
       }
 
       const updates = {
@@ -505,33 +534,169 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
             {/* COLUNA DIREITA */}
             <div className="space-y-5">
               
-              {/* Anexo de Orçamento Obrigatório com Storage Real */}
+              {/* Composição Consolidada do Pedido (Promob + Móveis Convencionais + Taxa de Pagamento) */}
+              {lead.commercialProposal && (
+                <div className="bg-gradient-to-br from-slate-900 to-[#1B2B48] text-white p-4 sm:p-5 rounded-2xl shadow-md space-y-3.5 border border-slate-800 animate-in fade-in">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+                    <div className="flex items-center space-x-2">
+                      <Sparkles className="w-4 h-4 text-emerald-400" />
+                      <span className="text-xs font-black uppercase tracking-wider text-white">
+                        Composição do Pedido Consolidado
+                      </span>
+                    </div>
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase border border-emerald-500/30">
+                      {lead.commercialProposal.paymentMethodLabel}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between items-center text-slate-300">
+                      <span className="flex items-center gap-1.5">
+                        <FileSpreadsheet className="w-3.5 h-3.5 text-blue-400" />
+                        <span>Promob Sob Medida:</span>
+                      </span>
+                      <strong className="text-white font-mono">{formatCurrency(lead.commercialProposal.promobValue)}</strong>
+                    </div>
+
+                    {lead.commercialProposal.conventionalTotal > 0 && (
+                      <div className="flex justify-between items-center text-amber-300">
+                        <span className="flex items-center gap-1.5">
+                          <Armchair className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Móveis Convencionais ({lead.commercialProposal.conventionalItems?.length || 0} itens):</span>
+                        </span>
+                        <strong className="font-mono">+{formatCurrency(lead.commercialProposal.conventionalTotal)}</strong>
+                      </div>
+                    )}
+
+                    {lead.commercialProposal.discountAmount > 0 && (
+                      <div className="flex justify-between items-center text-blue-300">
+                        <span>Desconto Comercial ({lead.commercialProposal.discountPct}%):</span>
+                        <strong className="font-mono">-{formatCurrency(lead.commercialProposal.discountAmount)}</strong>
+                      </div>
+                    )}
+
+                    {lead.commercialProposal.paymentFeePct > 0 && (
+                      <div className="flex justify-between items-center text-slate-400 text-[11px]">
+                        <span>Taxa de Pagamento ({lead.commercialProposal.paymentFeePct}%):</span>
+                        <span className="font-mono">
+                          {lead.commercialProposal.passFeeToClient 
+                            ? `+${formatCurrency(lead.commercialProposal.paymentFeeAmount)} (repassada)` 
+                            : `${formatCurrency(lead.commercialProposal.paymentFeeAmount)} (absorvida)`}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="pt-2 border-t border-white/10 flex justify-between items-center">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Final do Pedido</span>
+                        <span className="text-[11px] text-slate-300">
+                          {lead.commercialProposal.installments > 1
+                            ? `${lead.commercialProposal.installments}x de ${formatCurrency(lead.commercialProposal.installmentValue)}`
+                            : 'Pagamento à Vista'}
+                        </span>
+                      </div>
+                      <div className="text-lg font-black text-emerald-400 font-mono">
+                        {formatCurrency(lead.commercialProposal.finalOrderTotal)}
+                      </div>
+                    </div>
+
+                    {isOwner && lead.commercialProposal.estimatedProfit !== undefined && (
+                      <div className="pt-2 border-t border-white/10 flex justify-between items-center text-[11px] text-slate-400">
+                        <span>Custo Fábrica Promob: <strong className="text-amber-300">{formatCurrency(lead.commercialProposal.promobCost || 0)}</strong></span>
+                        <span>Lucro Líquido Loja: <strong className="text-emerald-300">{formatCurrency(lead.commercialProposal.estimatedProfit)}</strong></span>
+                      </div>
+                    )}
+                  </div>
+
+                  {lead.attachmentName?.toLowerCase().endsWith('.xml') && (
+                    <button
+                      type="button"
+                      onClick={() => setIsPromobViewerOpen(true)}
+                      className="w-full py-2 px-3 rounded-xl bg-slate-800/90 hover:bg-slate-800 text-slate-200 border border-slate-700 font-bold text-xs flex items-center justify-center space-x-1.5 transition-colors cursor-pointer"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Visualizar Engenharia Promob</span>
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Anexo de Orçamento Obrigatório & Central de Documentos */}
               <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-3 text-xs">
                 <div className="text-xs font-black text-[#1B2B48] uppercase tracking-wider flex items-center space-x-1.5">
                   <Paperclip className="w-4 h-4 text-[#439346]" />
-                  <span>Anexo do Orçamento Técnico *</span>
+                  <span>Documentos & Anexos do Cliente</span>
                 </div>
 
                 {lead.attachmentName ? (
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50 border border-emerald-200">
-                    <div className="flex items-center space-x-2 text-[#439346] font-extrabold">
-                      <FileText className="w-4 h-4" />
-                      <span className="truncate max-w-[180px]">{lead.attachmentName}</span>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                      <div 
+                        onClick={() => {
+                          if (lead.attachmentName?.toLowerCase().endsWith('.xml')) {
+                            setIsPromobViewerOpen(true);
+                          } else if (lead.attachmentUrl) {
+                            window.open(lead.attachmentUrl, '_blank');
+                          }
+                        }}
+                        className="flex items-center space-x-2 text-[#439346] font-extrabold cursor-pointer hover:underline"
+                        title={lead.attachmentName?.toLowerCase().endsWith('.xml') ? 'Clique para abrir o visualizador Promob' : 'Abrir anexo'}
+                      >
+                        {lead.attachmentName?.toLowerCase().endsWith('.xml') ? (
+                          <FileSpreadsheet className="w-4 h-4 shrink-0 text-emerald-600" />
+                        ) : (
+                          <FileText className="w-4 h-4 shrink-0 text-emerald-600" />
+                        )}
+                        <span className="truncate max-w-[170px] sm:max-w-[200px]">{lead.attachmentName}</span>
+                      </div>
+
+                      <div className="flex items-center space-x-1.5 shrink-0">
+                        {lead.attachmentName?.toLowerCase().endsWith('.xml') ? (
+                          <button
+                            type="button"
+                            onClick={() => setIsPromobViewerOpen(true)}
+                            className="px-2 py-1 rounded bg-white text-emerald-800 hover:bg-emerald-100 border border-emerald-200 font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
+                            title="Visualizar Proposta Promob Estruturada"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Abrir</span>
+                          </button>
+                        ) : lead.attachmentUrl ? (
+                          <a 
+                            href={lead.attachmentUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="p-1 rounded bg-white text-emerald-700 hover:text-emerald-900 border border-emerald-200"
+                            title="Visualizar documento em nova aba"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        ) : null}
+
+                        {lead.attachmentUrl && (
+                          <a
+                            href={lead.attachmentUrl}
+                            download={lead.attachmentName}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1 rounded bg-white text-emerald-700 hover:text-emerald-900 border border-emerald-200"
+                            title="Baixar arquivo original"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+
+                        <span className="text-[10px] font-black bg-[#439346] text-white px-2 py-0.5 rounded-md">
+                          Anexado
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-1.5">
-                      {lead.attachmentUrl && (
-                        <a 
-                          href={lead.attachmentUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="p-1 rounded bg-white text-emerald-700 hover:text-emerald-900 border border-emerald-200"
-                          title="Visualizar documento"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
-                      )}
-                      <span className="text-[10px] font-black bg-[#439346] text-white px-2 py-0.5 rounded-md">Anexado</span>
-                    </div>
+
+                    {/* Botão para atualizar ou enviar nova versão */}
+                    <label className="block text-center py-1.5 text-[11px] font-bold text-slate-500 hover:text-emerald-700 cursor-pointer transition-colors">
+                      <span>Substituir ou anexar nova versão do documento</span>
+                      <input type="file" accept=".pdf,.xml,.png,.jpg,.jpeg" onChange={handleRealFileUpload} disabled={isUploading} className="hidden" />
+                    </label>
                   </div>
                 ) : (
                   <label className="border-2 border-dashed border-slate-300 hover:border-[#439346] rounded-xl p-3.5 flex flex-col items-center justify-center cursor-pointer transition-colors space-y-1 bg-slate-50 text-center">
@@ -647,6 +812,22 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
           fileName={pendingPromob.file.name}
           tenantId={pendingPromob.tenantUuid}
           clientName={lead.name}
+          environmentName={lead.environment}
+          conventionalItems={lead.conventionalItems || []}
+        />
+      )}
+
+      {/* Visualizador Estruturado Promob XML */}
+      {isPromobViewerOpen && lead.attachmentName && (
+        <PromobViewerModal
+          isOpen={isPromobViewerOpen}
+          onClose={() => setIsPromobViewerOpen(false)}
+          attachmentName={lead.attachmentName}
+          attachmentUrl={lead.attachmentUrl}
+          commercialProposal={lead.commercialProposal}
+          clientName={lead.name}
+          clientPhone={lead.phone}
+          clientEmail={lead.email}
           environmentName={lead.environment}
         />
       )}

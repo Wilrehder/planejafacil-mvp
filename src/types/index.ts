@@ -139,6 +139,38 @@ export interface StoreOrder {
   timeline: OrderAuditLog[];
 }
 
+export interface CommercialProposal {
+  promobValue: number;
+  promobCost?: number;
+  promobFileName?: string;
+  promobProjectName?: string;
+  conventionalTotal: number;
+  conventionalItems?: Array<{
+    id: string;
+    name: string;
+    quantity: number;
+    salePrice: number;
+    total: number;
+    category?: string;
+  }>;
+  subtotal: number;
+  discountPct: number;
+  discountAmount: number;
+  subtotalAfterDiscount: number;
+  paymentMethod: 'pix' | 'cartao_vista' | 'cartao_parcelado' | 'financeira' | string;
+  paymentMethodLabel: string;
+  installments: number;
+  installmentValue: number;
+  paymentFeePct: number;
+  paymentFeeAmount: number;
+  passFeeToClient: boolean;
+  finalOrderTotal: number;
+  netStoreReceives: number;
+  estimatedCost: number;
+  estimatedProfit: number;
+  approvedAt?: string;
+}
+
 export interface Lead {
   id: string;
   name: string;
@@ -171,6 +203,7 @@ export interface Lead {
   attachmentName?: string;
   attachmentUrl?: string;
   conventionalItems?: Array<{ id: string; name: string; quantity: number; salePrice: number; total: number; unitPrice?: number; category?: string }>;
+  commercialProposal?: CommercialProposal;
   acceptedPrivacyTerms?: boolean;
   privacyTermsTimestamp?: string;
   finalDecision?: 'convertido' | 'perdido';

@@ -239,6 +239,32 @@ export async function uploadAndAttachProposal(
 }
 
 /**
+ * Salva a proposta comercial consolidada (Promob + Convencionais + Taxas de Cartão/Pagamento)
+ */
+export async function saveLeadCommercialProposal(
+  assignmentId: string,
+  proposal: any
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { data, error } = await supabase.rpc('save_lead_commercial_proposal', {
+      p_assignment_id: assignmentId,
+      p_proposal: proposal,
+      p_final_price: proposal.finalOrderTotal,
+      p_factory_cost: proposal.estimatedCost || null,
+    });
+
+    if (error) {
+      console.error('[crmService] Erro ao gravar proposta comercial consolidada:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Falha ao salvar proposta comercial.' };
+  }
+}
+
+/**
  * Cadastra um lead externo manualmente no CRM (Exclusivo Plano Pro).
  * Valida o plano no servidor e impede cobranças de Pay-Per-Lead da plataforma.
  */

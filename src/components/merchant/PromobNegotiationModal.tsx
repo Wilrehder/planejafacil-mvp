@@ -13,12 +13,15 @@ import {
   Lock,
   ArrowRight,
   Loader2,
-  Landmark
+  Landmark,
+  Armchair,
+  Sparkles
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { PromobProjectData } from '../../lib/promobParser';
 import { fetchStoreCommercialSettings, StoreCommercialSettings } from '../../lib/expenseService';
 import { fetchFinancialPartners, FinancialPartner } from '../../lib/conventionalFurnitureService';
+import { CommercialProposal } from '../../types';
 
 interface PromobNegotiationModalProps {
   isOpen: boolean;
@@ -31,12 +34,14 @@ interface PromobNegotiationModalProps {
     installments: number;
     netProfit: number;
     summaryNote: string;
+    commercialProposal?: CommercialProposal;
   }) => Promise<void>;
   promobData: PromobProjectData;
   fileName: string;
   tenantId: string;
   clientName: string;
   environmentName: string;
+  conventionalItems?: Array<{ id: string; name: string; quantity: number; salePrice: number; total: number; category?: string }>;
 }
 
 export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
@@ -48,6 +53,7 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
   tenantId,
   clientName,
   environmentName,
+  conventionalItems = [],
 }) => {
   const { currentUser } = useApp();
   const isOwner = !currentUser?.role || currentUser?.role === 'store_owner' || currentUser?.role === 'platform_admin';
@@ -92,12 +98,19 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
   const factoryCost = promobData.factoryOrderCost || 0;
   const maxDiscountAllowed = commercialSettings.max_discount_percentage || 15.0;
 
+  // Móveis Convencionais Agregados
+  const conventionalTotal = (conventionalItems || []).reduce(
+    (acc, curr) => acc + (curr.total || (curr.salePrice * curr.quantity) || 0),
+    0
+  );
+  const subtotalGross = baseBudget + conventionalTotal;
+
   // Validação de Teto de Desconto
   const isDiscountOverCeiling = discountPct > maxDiscountAllowed;
 
-  // 1. Cálculo de Desconto Comercial
-  const discountAmount = (baseBudget * Math.min(Math.max(discountPct, 0), 100)) / 100;
-  const priceAfterDiscount = Math.max(baseBudget - discountAmount, 0);
+  // 1. Cálculo de Desconto Comercial sobre o Subtotal Consolidado (Promob + Convencionais)
+  const discountAmount = (subtotalGross * Math.min(Math.max(discountPct, 0), 100)) / 100;
+  const priceAfterDiscount = Math.max(subtotalGross - discountAmount, 0);
 
   // 2. Taxas de Meio de Pagamento & Parcelamento da Loja ou Financeira
   let transactionFeePct = 0;
@@ -141,10 +154,44 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
         paymentMethodLabel = `Financiamento ${currentPartner?.name || 'Bancário'} (${installments}x de ${formatBRL(installmentValue)})`;
       }
 
+      const conventionalSummary = conventionalTotal > 0 ? ` + Convencionais: ${formatBRL(conventionalTotal)} (${conventionalItems.length} itens)` : '';
+
       // Se for o vendedor (store_operator), oculta custo de fábrica e lucro líquido da nota!
       const note = isOwner
-        ? `📐 Orçamento Promob Negociado: Venda ${formatBRL(finalPriceToClient)} (${discountPct > 0 ? `Desconto de ${discountPct}% | ` : ''}${paymentMethodLabel}) | Custo Fábrica: ${formatBRL(factoryCost)} | Lucro Líquido: ${formatBRL(netProfit)} (${profitMarginPct.toFixed(1)}%) | Arquivo: ${fileName}`
-        : `📐 Orçamento Promob Aprovado: Venda ${formatBRL(finalPriceToClient)} (${discountPct > 0 ? `Desconto de ${discountPct}% | ` : ''}${paymentMethodLabel}) | Arquivo: ${fileName}`;
+        ? `📐 Proposta Consolidada: Venda ${formatBRL(finalPriceToClient)} (Promob: ${formatBRL(baseBudget)}${conventionalSummary} | ${discountPct > 0 ? `Desconto de ${discountPct}% | ` : ''}${paymentMethodLabel}) | Custo Fábrica Promob: ${formatBRL(factoryCost)} | Lucro Líquido: ${formatBRL(netProfit)} (${profitMarginPct.toFixed(1)}%) | Arquivo: ${fileName}`
+        : `📐 Proposta Comercial Aprovada: Venda ${formatBRL(finalPriceToClient)} (Promob: ${formatBRL(baseBudget)}${conventionalSummary} | ${discountPct > 0 ? `Desconto de ${discountPct}% | ` : ''}${paymentMethodLabel}) | Arquivo: ${fileName}`;
+
+      const commercialProposal: CommercialProposal = {
+        promobValue: baseBudget,
+        promobCost: isOwner ? factoryCost : 0,
+        promobFileName: fileName,
+        promobProjectName: promobData.projectName || environmentName || 'Projeto Promob',
+        conventionalTotal,
+        conventionalItems: (conventionalItems || []).map(i => ({
+          id: i.id,
+          name: i.name,
+          quantity: i.quantity,
+          salePrice: i.salePrice,
+          total: i.total || (i.salePrice * i.quantity),
+          category: i.category,
+        })),
+        subtotal: subtotalGross,
+        discountPct,
+        discountAmount,
+        subtotalAfterDiscount: priceAfterDiscount,
+        paymentMethod,
+        paymentMethodLabel,
+        installments,
+        installmentValue,
+        paymentFeePct: transactionFeePct,
+        paymentFeeAmount: transactionFeeAmount,
+        passFeeToClient,
+        finalOrderTotal: finalPriceToClient,
+        netStoreReceives,
+        estimatedCost: isOwner ? factoryCost : 0,
+        estimatedProfit: isOwner ? netProfit : 0,
+        approvedAt: new Date().toISOString(),
+      };
 
       await onConfirm({
         finalPrice: finalPriceToClient,
@@ -154,6 +201,7 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
         installments,
         netProfit: isOwner ? netProfit : 0,
         summaryNote: note,
+        commercialProposal,
       });
       onClose();
     } finally {
@@ -227,6 +275,31 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
               <div className="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-800 text-xs font-black uppercase flex items-center gap-1.5 border border-emerald-200">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                 <span>Projeto Validado</span>
+              </div>
+            </div>
+          )}
+
+          {/* Móveis Convencionais Agregados ao Pedido */}
+          {conventionalTotal > 0 && (
+            <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2 text-xs font-black uppercase text-amber-950">
+                  <Armchair className="w-4 h-4 text-amber-600" />
+                  <span>Móveis Convencionais Agregados ({conventionalItems.length} itens)</span>
+                </div>
+                <span className="text-sm font-black text-amber-900">+{formatBRL(conventionalTotal)}</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
+                {conventionalItems.map((item, idx) => (
+                  <div key={idx} className="flex justify-between items-center text-xs px-3 py-1.5 rounded-xl bg-white border border-amber-200/80 text-slate-700 shadow-xs">
+                    <span className="truncate max-w-[170px] font-semibold">{item.quantity}x {item.name}</span>
+                    <span className="font-extrabold text-amber-900">{formatBRL(item.total || item.salePrice * item.quantity)}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="pt-2 border-t border-amber-200 flex justify-between items-center text-xs">
+                <span className="font-bold text-amber-900">Subtotal Bruto Consolidado (Promob + Convencionais):</span>
+                <span className="font-black text-slate-900 text-sm">{formatBRL(subtotalGross)}</span>
               </div>
             </div>
           )}
@@ -492,8 +565,10 @@ export const PromobNegotiationModal: React.FC<PromobNegotiationModalProps> = ({
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Tabela do Projeto</span>
-                  <div className="text-base font-black text-white">{formatBRL(baseBudget)}</div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">
+                    {conventionalTotal > 0 ? 'Subtotal Consolidado' : 'Tabela do Projeto'}
+                  </span>
+                  <div className="text-base font-black text-white">{formatBRL(subtotalGross)}</div>
                 </div>
                 <div>
                   <span className="text-[10px] uppercase font-bold text-slate-400">Desconto Concedido</span>
