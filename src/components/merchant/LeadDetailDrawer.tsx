@@ -481,199 +481,67 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
             className="hidden" 
           />
 
-          {/* Grid Principal: Coluna Esquerda (Dados & Orçamento) | Coluna Direita (Anexos, Decisão & Comentários) */}
+          {/* Grid Principal: Coluna Esquerda (Dados do Cliente) | Coluna Direita (Orçamento, Anexos, Decisão & Comentários) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             {/* COLUNA ESQUERDA */}
             <div className="space-y-5">
               
-              {/* Contato Inicial */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-2.5 text-xs shadow-xs">
-                <div className="text-xs font-black text-[#1B2B48] uppercase tracking-wider mb-2 flex items-center space-x-1.5">
-                  <User className="w-4 h-4 text-[#439346]" />
-                  <span>Contato do Cliente</span>
-                </div>
-                <div className="flex justify-between"><span className="text-slate-500 font-medium">WhatsApp:</span> <strong className="text-[#439346]">{lead.phone}</strong></div>
-                <div className="flex justify-between"><span className="text-slate-500 font-medium">E-mail:</span> <strong className="text-slate-800">{lead.email}</strong></div>
-                <div className="flex justify-between"><span className="text-slate-500 font-medium">Cidade/UF:</span> <strong className="text-slate-800">{lead.city} - {lead.state}</strong></div>
-              </div>
-
-              {/* Ficha de Dados Cadastrais do Cliente */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-3 text-xs shadow-xs">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                  <div className="flex items-center space-x-1.5 font-black text-[#1B2B48] uppercase tracking-wider">
-                    <FileSignature className="w-4 h-4 text-[#439346]" />
-                    <span>Dados Cadastrais do Cliente</span>
+              {/* Card Único e Minimalista: Dados do Cliente */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-3.5 text-xs shadow-xs">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="text-xs font-black text-[#1B2B48] uppercase tracking-wider flex items-center space-x-1.5">
+                    <User className="w-4 h-4 text-[#439346]" />
+                    <span>Dados do Cliente</span>
                   </div>
 
-                  {hasAllRegistrationData ? (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                      <span>Dados Cadastrais Completos</span>
-                    </span>
-                  ) : (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-red-100 text-red-800 border border-red-300 flex items-center gap-1 animate-pulse">
-                      <AlertCircle className="w-3 h-3 text-red-600" />
-                      <span>Dados Cadastrais Incompletos</span>
-                    </span>
-                  )}
+                  {/* Ícone / Indicador Sutil e Clicável dos Dados Cadastrais */}
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingRegistration(true)}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                      hasAllRegistrationData
+                        ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+                        : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+                    }`}
+                    title={hasAllRegistrationData ? 'Cadastro completo. Clique para visualizar ou editar.' : 'Faltam dados cadastrais. Clique para preencher.'}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${hasAllRegistrationData ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse'}`} />
+                    <span>{hasAllRegistrationData ? 'Cadastro Completo' : 'Faltam Dados'}</span>
+                    <Edit3 className="w-3 h-3 ml-0.5 opacity-60" />
+                  </button>
                 </div>
 
-                {registrationMessage && (
-                  <div className={`p-2 rounded-xl text-xs font-semibold ${
-                    registrationMessage.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'
-                  }`}>
-                    {registrationMessage.text}
+                <div className="space-y-2.5 pt-0.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500 font-medium">Nome:</span> 
+                    <strong className="text-slate-900 font-bold">{lead.name}</strong>
                   </div>
-                )}
-
-                {isEditingRegistration ? (
-                  <form onSubmit={handleSaveRegistration} className="space-y-3 pt-1">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      <div>
-                        <label className="text-[10px] uppercase font-bold text-slate-500 block mb-1">CPF do Cliente *</label>
-                        <input
-                          type="text"
-                          value={regCpf}
-                          onChange={(e) => setRegCpf(e.target.value)}
-                          placeholder="000.000.000-00"
-                          className="w-full px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-[#439346] outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] uppercase font-bold text-slate-500 block mb-1">Data de Nascimento *</label>
-                        <input
-                          type="date"
-                          value={regBirthDate}
-                          onChange={(e) => setRegBirthDate(e.target.value)}
-                          className="w-full px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-[#439346] outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] uppercase font-bold text-slate-500 block mb-1">Endereço de Cobrança / Moradia *</label>
-                      <input
-                        type="text"
-                        value={regBillingAddress}
-                        onChange={(e) => setRegBillingAddress(e.target.value)}
-                        placeholder="Rua, número, complemento, bairro, cidade - UF"
-                        className="w-full px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-[#439346] outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <label className="text-[10px] uppercase font-bold text-slate-500">Endereço de Instalação *</label>
-                        {regBillingAddress && (
-                          <button
-                            type="button"
-                            onClick={() => setRegInstallationAddress(regBillingAddress)}
-                            className="text-[10px] text-blue-600 hover:text-blue-800 font-bold underline cursor-pointer"
-                          >
-                            Copiar da cobrança
-                          </button>
-                        )}
-                      </div>
-                      <input
-                        type="text"
-                        value={regInstallationAddress}
-                        onChange={(e) => setRegInstallationAddress(e.target.value)}
-                        placeholder="Local onde os móveis serão montados"
-                        className="w-full px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-[#439346] outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] uppercase font-bold text-slate-500 block mb-1">Prazo Desejado pelo Cliente *</label>
-                      <input
-                        type="text"
-                        value={regDesiredDeadline}
-                        onChange={(e) => setRegDesiredDeadline(e.target.value)}
-                        placeholder="Ex: 30 a 45 dias, Imediato, Até Dezembro"
-                        className="w-full px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-[#439346] outline-none"
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsEditingRegistration(false);
-                          setRegistrationMessage(null);
-                        }}
-                        disabled={isSavingRegistration}
-                        className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={isSavingRegistration}
-                        className="px-4 py-1.5 rounded-xl text-xs font-bold bg-[#439346] hover:bg-[#387F3B] text-white flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
-                      >
-                        {isSavingRegistration ? (
-                          <>
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            <span>Salvando...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Save className="w-3.5 h-3.5" />
-                            <span>Salvar Dados</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </form>
-                ) : (
-                  <div className="space-y-2 pt-1">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block">CPF:</span>
-                        <span className={`font-semibold ${lead.cpf ? 'text-slate-800' : 'text-red-500 italic'}`}>
-                          {lead.cpf || 'Não informado'}
-                        </span>
-                      </div>
-                      <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Data de Nascimento:</span>
-                        <span className={`font-semibold ${lead.birthDate ? 'text-slate-800' : 'text-red-500 italic'}`}>
-                          {lead.birthDate ? new Date(lead.birthDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'Não informada'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Endereço de Cobrança / Moradia:</span>
-                      <span className={`font-semibold ${lead.billingAddress ? 'text-slate-800' : 'text-red-500 italic'}`}>
-                        {lead.billingAddress || 'Não informado'}
-                      </span>
-                    </div>
-
-                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Endereço da Instalação:</span>
-                      <span className={`font-semibold ${lead.installationAddress ? 'text-slate-800' : 'text-red-500 italic'}`}>
-                        {lead.installationAddress || 'Não informado'}
-                      </span>
-                    </div>
-
-                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Prazo Desejado:</span>
-                      <span className={`font-semibold ${lead.desiredDeadline ? 'text-emerald-700' : 'text-red-500 italic'}`}>
-                        {lead.desiredDeadline || 'Não informado'}
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingRegistration(true)}
-                      className="w-full py-2 px-3 mt-1 rounded-xl border border-slate-200 hover:border-[#439346] hover:bg-emerald-50/40 text-slate-700 hover:text-[#439346] font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                      <span>{hasAllRegistrationData ? 'Editar Dados Cadastrais' : 'Preencher Dados Cadastrais'}</span>
-                    </button>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500 font-medium">WhatsApp:</span> 
+                    <strong className="text-[#439346] font-bold">{lead.phone}</strong>
                   </div>
-                )}
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500 font-medium">E-mail:</span> 
+                    <strong className="text-slate-800 font-semibold">{lead.email}</strong>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500 font-medium">Cidade/UF:</span> 
+                    <strong className="text-slate-800 font-semibold">{lead.city} - {lead.state}</strong>
+                  </div>
+                </div>
+
+                <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-400">CPF, endereços e prazos</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingRegistration(true)}
+                    className="text-[11px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <Edit3 className="w-3 h-3" />
+                    <span>{hasAllRegistrationData ? 'Ver / Editar Cadastro' : 'Preencher Cadastro'}</span>
+                  </button>
+                </div>
               </div>
 
               {/* Orçamento e Cômodos da Plataforma */}
@@ -712,43 +580,26 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
             {/* COLUNA DIREITA */}
             <div className="space-y-5">
               
-              {/* Se o lead AINDA NÃO tem proposta nem arquivo anexo: Exibir Layout CLEAN com o Botão "+ Criar Orçamento" */}
+              {/* Se o lead AINDA NÃO tem proposta: APENAS o Botão Verde Minimalista de Criar Orçamento */}
               {!lead.commercialProposal && !lead.attachmentName ? (
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4 text-center">
-                  <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mx-auto text-[#439346]">
-                    <Sparkles className="w-7 h-7" />
-                  </div>
-
-                  <div>
-                    <h3 className="text-base font-black text-[#1B2B48]">Orçamento Comercial</h3>
-                    <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                      Inicie o orçamento do cliente importando a engenharia Promob XML (.xml) ou proposta técnica em PDF.
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading}
-                    className="w-full py-3.5 px-4 rounded-xl bg-[#439346] hover:bg-[#387F3B] text-white font-black text-sm flex items-center justify-center space-x-2 shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50"
-                  >
-                    {isUploading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Processando Proposta...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="w-4 h-4 stroke-[3]" />
-                        <span>+ Criar Orçamento</span>
-                      </>
-                    )}
-                  </button>
-
-                  <p className="text-[11px] text-slate-400">
-                    O Promob XML calcula automaticamente os custos de fábrica, tabela e margens da loja.
-                  </p>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="w-full py-4 px-6 rounded-2xl bg-[#439346] hover:bg-[#387F3B] text-white font-black text-sm flex items-center justify-center space-x-2 shadow-sm hover:shadow-md transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Processando Arquivo...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 stroke-[3]" />
+                      <span>+ Criar Orçamento</span>
+                    </>
+                  )}
+                </button>
               ) : (
                 <>
                   {/* Composição Consolidada do Pedido (Promob + Móveis Convencionais + Taxa de Pagamento) */}
@@ -1071,6 +922,140 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
           environmentName={lead.environment}
           conventionalItems={lead.conventionalItems || []}
         />
+      )}
+
+      {/* Modal Popover de Edição Cadastral do Cliente */}
+      {isEditingRegistration && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-150 flex flex-col">
+            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+              <div className="flex items-center space-x-2">
+                <FileSignature className="w-4 h-4 text-[#439346]" />
+                <div>
+                  <h3 className="text-sm font-black text-white">Dados Cadastrais do Cliente</h3>
+                  <p className="text-[11px] text-slate-400">{lead.name}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditingRegistration(false);
+                  setRegistrationMessage(null);
+                }}
+                className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveRegistration} className="p-6 space-y-4 text-xs text-slate-800">
+              {registrationMessage && (
+                <div className={`p-2.5 rounded-xl text-xs font-semibold ${
+                  registrationMessage.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'
+                }`}>
+                  {registrationMessage.text}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-slate-500 block mb-1">CPF do Cliente</label>
+                  <input
+                    type="text"
+                    value={regCpf}
+                    onChange={(e) => setRegCpf(e.target.value)}
+                    placeholder="000.000.000-00"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-[#439346] outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-slate-500 block mb-1">Data de Nascimento</label>
+                  <input
+                    type="date"
+                    value={regBirthDate}
+                    onChange={(e) => setRegBirthDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-[#439346] outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase font-bold text-slate-500 block mb-1">Endereço de Cobrança / Moradia</label>
+                <input
+                  type="text"
+                  value={regBillingAddress}
+                  onChange={(e) => setRegBillingAddress(e.target.value)}
+                  placeholder="Rua, número, complemento, bairro, cidade - UF"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-[#439346] outline-none"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-[10px] uppercase font-bold text-slate-500">Endereço de Instalação</label>
+                  {regBillingAddress && (
+                    <button
+                      type="button"
+                      onClick={() => setRegInstallationAddress(regBillingAddress)}
+                      className="text-[10px] text-blue-600 hover:text-blue-800 font-bold underline cursor-pointer"
+                    >
+                      Copiar da cobrança
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={regInstallationAddress}
+                  onChange={(e) => setRegInstallationAddress(e.target.value)}
+                  placeholder="Endereço onde os móveis serão montados"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-[#439346] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase font-bold text-slate-500 block mb-1">Prazo Desejado de Entrega / Instalação</label>
+                <input
+                  type="text"
+                  value={regDesiredDeadline}
+                  onChange={(e) => setRegDesiredDeadline(e.target.value)}
+                  placeholder="Ex: 30 a 45 dias, Imediato, Até Dezembro"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-[#439346] outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditingRegistration(false);
+                    setRegistrationMessage(null);
+                  }}
+                  disabled={isSavingRegistration}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingRegistration}
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-[#439346] hover:bg-[#387F3B] text-white flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                >
+                  {isSavingRegistration ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Salvando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Salvar Dados Cadastrais</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* Visualizador Estruturado Promob XML */}
