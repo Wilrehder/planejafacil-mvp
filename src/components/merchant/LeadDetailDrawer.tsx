@@ -38,6 +38,8 @@ import {
   saveLeadCommercialProposal,
   STORE_ID_TO_TENANT_UUID 
 } from '../../lib/crmService';
+import { recalculateCommercialProposal } from '../../lib/commercialProposalHelper';
+import { getOrderDocumentSignedUrl, updateOrderContractedValueOnServer } from '../../lib/erpService';
 import { parsePromobXML, PromobProjectData } from '../../lib/promobParser';
 import { PromobNegotiationModal } from './PromobNegotiationModal';
 import { PromobViewerModal } from './PromobViewerModal';
@@ -91,6 +93,19 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
   const isPlatformLead = !lead.isExternal && lead.source !== 'instagram' && lead.source !== 'google' && lead.source !== 'indicacao' && lead.source !== 'balcao';
   const assignmentId = lead.assignmentId || lead.id;
 
+  const handleOpenOrderDocument = async (doc: any) => {
+    if (!doc?.filePath) {
+      alert('Documento registrado sem arquivo no Storage.');
+      return;
+    }
+    const signedUrl = await getOrderDocumentSignedUrl(doc.filePath);
+    if (signedUrl) {
+      window.open(signedUrl, '_blank');
+    } else {
+      alert('Não foi possível gerar link seguro para o documento.');
+    }
+  };
+
   const handleAddFurnitureItem = async () => {
     if (!selectedFurnitureToAdd) return;
     const found = storeFurnitureCatalog.find(f => f.id === selectedFurnitureToAdd);
@@ -113,11 +128,31 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
     const updatedItems = [...existing, newItem];
     await updateLeadConventionalItems(assignmentId, updatedItems);
     
+    let updatedProposal = lead.commercialProposal;
+    let newFinalValue = lead.estimatedMax;
+
+    if (lead.commercialProposal) {
+      updatedProposal = recalculateCommercialProposal(lead.commercialProposal, updatedItems);
+      await saveLeadCommercialProposal(assignmentId, updatedProposal);
+      newFinalValue = updatedProposal.finalOrderTotal;
+      if (lead.orderId) {
+        await updateOrderContractedValueOnServer(lead.orderId, updatedProposal.finalOrderTotal);
+      }
+    } else {
+      newFinalValue = (lead.estimatedMax || 0) + itemTotal;
+    }
+
     const updatedLead = {
       ...lead,
       conventionalItems: updatedItems,
+      commercialProposal: updatedProposal,
+      estimatedMax: newFinalValue,
     };
-    updateLead(lead.id, { conventionalItems: updatedItems });
+    updateLead(lead.id, { 
+      conventionalItems: updatedItems,
+      commercialProposal: updatedProposal,
+      estimatedMax: newFinalValue,
+    });
     setSelectedLeadForDetail(updatedLead);
     setIsFurniturePickerOpen(false);
     setSelectedFurnitureToAdd('');
@@ -128,13 +163,35 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
 
   const handleRemoveFurnitureItem = async (indexToRemove: number) => {
     const existing = lead.conventionalItems || [];
+    const removedItem = existing[indexToRemove];
     const updatedItems = existing.filter((_, idx) => idx !== indexToRemove);
     await updateLeadConventionalItems(assignmentId, updatedItems);
+
+    let updatedProposal = lead.commercialProposal;
+    let newFinalValue = lead.estimatedMax;
+
+    if (lead.commercialProposal) {
+      updatedProposal = recalculateCommercialProposal(lead.commercialProposal, updatedItems);
+      await saveLeadCommercialProposal(assignmentId, updatedProposal);
+      newFinalValue = updatedProposal.finalOrderTotal;
+      if (lead.orderId) {
+        await updateOrderContractedValueOnServer(lead.orderId, updatedProposal.finalOrderTotal);
+      }
+    } else if (removedItem) {
+      newFinalValue = Math.max(0, (lead.estimatedMax || 0) - (removedItem.total || (removedItem.salePrice * removedItem.quantity) || 0));
+    }
+
     const updatedLead = {
       ...lead,
       conventionalItems: updatedItems,
+      commercialProposal: updatedProposal,
+      estimatedMax: newFinalValue,
     };
-    updateLead(lead.id, { conventionalItems: updatedItems });
+    updateLead(lead.id, { 
+      conventionalItems: updatedItems,
+      commercialProposal: updatedProposal,
+      estimatedMax: newFinalValue,
+    });
     setSelectedLeadForDetail(updatedLead);
     onLeadUpdated?.();
   };
@@ -608,16 +665,39 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
                     )}
                   </div>
 
-                  {lead.attachmentName?.toLowerCase().endsWith('.xml') && (
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    {lead.attachmentName?.toLowerCase().endsWith('.xml') && (
+                      <button
+                        type="button"
+                        onClick={() => setIsPromobViewerOpen(true)}
+                        className="flex-1 py-2 px-3 rounded-xl bg-slate-800/90 hover:bg-slate-800 text-slate-200 border border-slate-700 font-bold text-xs flex items-center justify-center space-x-1.5 transition-colors cursor-pointer"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Visualizar Engenharia Promob</span>
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={() => setIsPromobViewerOpen(true)}
-                      className="w-full py-2 px-3 rounded-xl bg-slate-800/90 hover:bg-slate-800 text-slate-200 border border-slate-700 font-bold text-xs flex items-center justify-center space-x-1.5 transition-colors cursor-pointer"
+                      onClick={() => {
+                        setPendingPromob({
+                          file: new File([], lead.attachmentName || 'proposta.xml'),
+                          promobInfo: {
+                            projectName: lead.environment || 'Projeto Promob',
+                            clientName: lead.name,
+                            budgetValue: lead.commercialProposal?.promobValue || lead.estimatedMax,
+                            factoryOrderCost: lead.commercialProposal?.promobCost || 0,
+                            tablePrice: lead.commercialProposal?.promobValue || lead.estimatedMax,
+                            itemsCount: 0,
+                          },
+                          tenantUuid: STORE_ID_TO_TENANT_UUID[lead.assignedStoreId] || lead.assignedStoreId || '',
+                        });
+                      }}
+                      className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center space-x-1.5 transition-colors cursor-pointer"
                     >
-                      <Eye className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Visualizar Engenharia Promob</span>
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Ajustar Condições / Desconto</span>
                     </button>
-                  )}
+                  </div>
                 </div>
               )}
 
@@ -640,7 +720,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
                           }
                         }}
                         className="flex items-center space-x-2 text-[#439346] font-extrabold cursor-pointer hover:underline"
-                        title={lead.attachmentName?.toLowerCase().endsWith('.xml') ? 'Clique para abrir o visualizador Promob' : 'Abrir anexo'}
+                        title={lead.attachmentName?.toLowerCase().endsWith('.xml') ? 'Clique para abrir o visualizador estruturado Promob' : 'Abrir anexo'}
                       >
                         {lead.attachmentName?.toLowerCase().endsWith('.xml') ? (
                           <FileSpreadsheet className="w-4 h-4 shrink-0 text-emerald-600" />
@@ -655,10 +735,10 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
                           <button
                             type="button"
                             onClick={() => setIsPromobViewerOpen(true)}
-                            className="px-2 py-1 rounded bg-white text-emerald-800 hover:bg-emerald-100 border border-emerald-200 font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
+                            className="px-2.5 py-1 rounded bg-[#439346] hover:bg-[#387F3B] text-white text-[11px] font-bold flex items-center space-x-1 shadow-xs cursor-pointer transition-colors"
                             title="Visualizar Proposta Promob Estruturada"
                           >
-                            <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                            <Eye className="w-3.5 h-3.5 text-white" />
                             <span>Abrir</span>
                           </button>
                         ) : lead.attachmentUrl ? (
@@ -714,6 +794,40 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
                       </>
                     )}
                   </label>
+                )}
+
+                {/* Documentos da Pasta de Execução do Pedido (ERP) */}
+                {lead.orderDocuments && lead.orderDocuments.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
+                    <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                      <FolderOpen className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Documentos da Pasta do Pedido ({lead.orderNumber || 'ERP'})</span>
+                    </div>
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                      {lead.orderDocuments.map((doc: any) => (
+                        <div key={doc.id} className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-200">
+                          <div className="min-w-0 flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-blue-600 shrink-0" />
+                            <div className="min-w-0">
+                              <p className="font-bold text-slate-800 text-[11px] truncate">{doc.fileName}</p>
+                              <p className="text-[9px] text-slate-500">
+                                Etapa: <strong className="uppercase text-blue-700">{doc.stage}</strong> • {new Date(doc.createdAt).toLocaleDateString('pt-BR')}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenOrderDocument(doc)}
+                            className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                            title="Abrir documento com link seguro"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            <span>Abrir</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
 

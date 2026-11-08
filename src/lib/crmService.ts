@@ -85,9 +85,12 @@ export async function fetchStoreLeads(storeIdOrTenantUuid: string): Promise<{
       createdAt: raw.createdAt,
       attachmentName: raw.attachmentName || undefined,
       attachmentUrl: raw.attachmentUrl || undefined,
+      conventionalItems: raw.conventionalItems || [],
+      commercialProposal: raw.commercialProposal || undefined,
       lossReason: raw.lossReason || undefined,
       orderId: raw.orderId || undefined,
       orderNumber: raw.orderNumber || undefined,
+      orderDocuments: raw.orderDocuments || [],
       environmentsData: raw.environmentsData || [],
       notesList: raw.notesList || [],
     }));

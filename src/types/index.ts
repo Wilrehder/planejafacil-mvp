@@ -169,6 +169,14 @@ export interface CommercialProposal {
   estimatedCost: number;
   estimatedProfit: number;
   approvedAt?: string;
+  subtotalGross?: number;
+  discountPercentage?: number;
+  discountValue?: number;
+  priceAfterDiscount?: number;
+  transactionFeePercentage?: number;
+  transactionFeeAmount?: number;
+  partnerName?: string;
+  calculatedAt?: string;
 }
 
 export interface Lead {
@@ -210,6 +218,7 @@ export interface Lead {
   lossReason?: string;
   orderId?: string;
   orderNumber?: string;
+  orderDocuments?: OrderDocumentItem[];
   estimatedMin: number;
   estimatedMax: number;
   assignedStoreId: string;
