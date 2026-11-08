@@ -108,3 +108,4 @@ export const isValidCpfOrCnpj = (val: string): boolean => {
   const d = sanitizeDigits(val);
   return d.length === 11 || d.length === 14;
 };
+

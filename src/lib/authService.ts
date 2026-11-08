@@ -110,8 +110,8 @@ export async function signOutUser(): Promise<void> {
  * Envia e-mail de recuperação de senha oficial
  */
 export async function sendPasswordResetEmail(email: string): Promise<void> {
-  const redirectTo = typeof window !== 'undefined' 
-    ? `${window.location.origin}` 
+  const redirectTo = typeof window !== 'undefined'
+    ? `${window.location.origin}`
     : undefined;
 
   const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
@@ -229,6 +229,33 @@ export async function createStoreUser(params: {
 /**
  * Consulta a lista de usuários da loja e o limite de acessos por plano
  */
+export interface AvailableUser {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+  tenantId: string | null;
+  isActive: boolean;
+}
+
+/**
+ * Lista todos os usuários cadastrados no SaaS para permitir vinculação rápida
+ */
+export async function fetchAllAvailableUsers(): Promise<AvailableUser[]> {
+  const { data, error } = await supabase.rpc('admin_list_all_available_users');
+  if (error) {
+    throw error;
+  }
+  return (data || []).map((u: any) => ({
+    id: u.id,
+    fullName: u.full_name || '',
+    email: u.email || '',
+    role: u.role || '',
+    tenantId: u.tenant_id,
+    isActive: u.is_active ?? true,
+  }));
+}
+
 export async function fetchStoreUsersAndLimit(tenantId: string) {
   const { data, error } = await supabase.rpc('get_store_users_and_limit', {
     p_tenant_id: tenantId,

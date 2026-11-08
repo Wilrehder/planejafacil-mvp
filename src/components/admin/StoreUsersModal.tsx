@@ -25,6 +25,8 @@ import {
   toggleUserStatus, 
   resetUserPassword, 
   fetchStoreUsersAndLimit,
+  fetchAllAvailableUsers,
+  AvailableUser,
   StoreUserSummary 
 } from '../../lib/authService';
 import { STORE_ID_TO_TENANT_UUID } from '../../lib/crmService';
@@ -54,6 +56,9 @@ export const StoreUsersModal: React.FC<StoreUsersModalProps> = ({ isOpen, onClos
 
   // New user form state
   const [isAddingUser, setIsAddingUser] = useState(false);
+  const [addMode, setAddMode] = useState<'new' | 'existing'>('new');
+  const [availableUsers, setAvailableUsers] = useState<AvailableUser[]>([]);
+  const [selectedExistingUserId, setSelectedExistingUserId] = useState<string>('');
   const [newEmail, setNewEmail] = useState('');
   const [newName, setNewName] = useState('');
   const [newRole, setNewRole] = useState<StoreUserRole>('store_operator');
@@ -78,6 +83,14 @@ export const StoreUsersModal: React.FC<StoreUsersModalProps> = ({ isOpen, onClos
         setActiveUsersCount(Number(res.activeUsersCount) || 0);
         setExtraUsersCount(Number(res.extraUsersCount) || 0);
         setExtraUserPrice(Number(res.extraUserPrice) || 39.90);
+      }
+
+      // Carrega usuários gerais disponíveis para vinculação
+      try {
+        const available = await fetchAllAvailableUsers();
+        setAvailableUsers(available);
+      } catch (aErr) {
+        console.warn('[StoreUsersModal] Falha silenciosa ao carregar usuários disponíveis:', aErr);
       }
     } catch (err: any) {
       console.error('[StoreUsersModal] Erro ao carregar usuários:', err);
@@ -332,13 +345,43 @@ export const StoreUsersModal: React.FC<StoreUsersModalProps> = ({ isOpen, onClos
                   Preencha os dados abaixo para conceder o acesso e credenciais de login ao colaborador.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsAddingUser(false)}
-                className="text-xs font-bold text-slate-400 hover:text-slate-700 cursor-pointer px-3 py-1 bg-white rounded-lg border border-slate-200"
-              >
-                Cancelar
-              </button>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-emerald-200">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAddMode('new');
+                      setSelectedExistingUserId('');
+                    }}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      addMode === 'new'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    + Novo Usuário
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAddMode('existing')}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      addMode === 'existing'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    🔍 Vincular Existente
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsAddingUser(false)}
+                  className="text-xs font-bold text-slate-400 hover:text-slate-700 cursor-pointer px-3 py-1.5 bg-white rounded-xl border border-slate-200"
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
 
             {willBeExtra && (
@@ -353,56 +396,115 @@ export const StoreUsersModal: React.FC<StoreUsersModalProps> = ({ isOpen, onClos
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div>
-                <label className="block font-bold text-slate-800 mb-1">Nome Completo do Colaborador *</label>
-                <input
-                  type="text"
-                  required
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
+            {addMode === 'existing' ? (
+              <div className="space-y-3">
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1 text-xs uppercase">
+                    Selecione o Usuário Cadastrado no SaaS *
+                  </label>
+                  <select
+                    value={selectedExistingUserId}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      setSelectedExistingUserId(id);
+                      const found = availableUsers.find((u) => u.id === id);
+                      if (found) {
+                        setNewName(found.fullName);
+                        setNewEmail(found.email);
+                      } else {
+                        setNewName('');
+                        setNewEmail('');
+                      }
+                    }}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="">-- Selecione um usuário cadastrado --</option>
+                    {availableUsers.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.fullName} ({u.email}) — Papel: {u.role === 'platform_admin' ? '🛡️ Dono do SaaS' : u.role}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div>
-                <label className="block font-bold text-slate-800 mb-1">E-mail de Login *</label>
-                <input
-                  type="email"
-                  required
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-            </div>
+                {selectedExistingUserId && (
+                  <div className="p-3 rounded-xl bg-emerald-100/70 border border-emerald-300 text-emerald-950 text-xs font-bold flex items-center gap-2">
+                    <Check className="w-4 h-4 text-emerald-700 shrink-0" />
+                    <span>
+                      🔒 Usuário selecionado! A senha e os privilégios existentes de <strong>{newEmail}</strong> serão 100% mantidos.
+                    </span>
+                  </div>
+                )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div>
-                <label className="block font-bold text-slate-800 mb-1">Função / Perfil de Acesso *</label>
-                <select
-                  value={newRole}
-                  onChange={(e) => setNewRole(e.target.value as StoreUserRole)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="store_owner">👑 Gerente / Dono da Loja (Acesso Total irrestrito)</option>
-                  <option value="store_operator">💼 Vendedor (CRM de Leads, Propostas e Clientes)</option>
-                  <option value="store_assembler">🛠️ Montador (Interface Mobile ERP, Fotos & Waze)</option>
-                </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs pt-1">
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1">Função nesta Loja *</label>
+                    <select
+                      value={newRole}
+                      onChange={(e) => setNewRole(e.target.value as StoreUserRole)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    >
+                      <option value="store_owner">👑 Gerente / Dono da Loja (Acesso Total)</option>
+                      <option value="store_operator">💼 Vendedor (CRM de Leads e Propostas)</option>
+                      <option value="store_assembler">🛠️ Montador (Interface Mobile ERP)</option>
+                    </select>
+                  </div>
+                </div>
               </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1">Nome Completo do Colaborador *</label>
+                    <input
+                      type="text"
+                      required
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
 
-              <div>
-                <label className="block font-bold text-slate-800 mb-1">Senha Provisória Inicial *</label>
-                <input
-                  type="text"
-                  required
-                  value={newTempPassword}
-                  onChange={(e) => setNewTempPassword(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white font-mono text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                <span className="text-[10px] text-slate-500 block mt-1">O usuário deverá trocar a senha no primeiro acesso.</span>
-              </div>
-            </div>
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1">E-mail de Login *</label>
+                    <input
+                      type="email"
+                      required
+                      value={newEmail}
+                      onChange={(e) => setNewEmail(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1">Função / Perfil de Acesso *</label>
+                    <select
+                      value={newRole}
+                      onChange={(e) => setNewRole(e.target.value as StoreUserRole)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    >
+                      <option value="store_owner">👑 Gerente / Dono da Loja (Acesso Total irrestrito)</option>
+                      <option value="store_operator">💼 Vendedor (CRM de Leads, Propostas e Clientes)</option>
+                      <option value="store_assembler">🛠️ Montador (Interface Mobile ERP, Fotos & Waze)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1">Senha Provisória Inicial *</label>
+                    <input
+                      type="text"
+                      required
+                      value={newTempPassword}
+                      onChange={(e) => setNewTempPassword(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white font-mono text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                    <span className="text-[10px] text-slate-500 block mt-1">O usuário deverá trocar a senha no primeiro acesso.</span>
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
