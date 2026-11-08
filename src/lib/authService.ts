@@ -62,15 +62,62 @@ export async function getCurrentUserContext(): Promise<AuthenticatedUserContext 
     .eq('id', user.id)
     .single();
 
-  const tenantId = profile?.tenant_id || user.app_metadata?.store_id || null;
-  const storeId = tenantId ? (TENANT_UUID_TO_STORE_ID[tenantId] || tenantId) : 'store-suzano';
+  let tenantId = profile?.tenant_id || user.app_metadata?.store_id || null;
+
+  // Fallback 1: Verificar se o usuário é membro vinculado via store_members
+  if (!tenantId) {
+    const { data: member } = await supabase
+      .from('store_members')
+      .select('tenant_id')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .limit(1)
+      .maybeSingle();
+
+    if (member?.tenant_id) {
+      tenantId = member.tenant_id;
+    }
+  }
+
+  // Fallback 2: Verificar se é dono registrado em tenants por email
+  if (!tenantId && user.email) {
+    const cleanEmail = user.email.trim().toLowerCase();
+    const { data: tenant } = await supabase
+      .from('tenants')
+      .select('id')
+      .or(`owner_email.ilike.${cleanEmail},email.ilike.${cleanEmail}`)
+      .limit(1)
+      .maybeSingle();
+
+    if (tenant?.id) {
+      tenantId = tenant.id;
+    }
+  }
+
+  // Fallback 3: Se for lojista e ainda não tem tenant_id, vincula à primeira loja ativa
+  const resolvedRole = (profile?.role || user.app_metadata?.role || 'store_operator') as any;
+  if (!tenantId && (resolvedRole === 'store_owner' || resolvedRole === 'store_operator')) {
+    const { data: firstStore } = await supabase
+      .from('tenants')
+      .select('id')
+      .eq('status', 'ativa')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (firstStore?.id) {
+      tenantId = firstStore.id;
+    }
+  }
+
+  const storeId = tenantId ? (TENANT_UUID_TO_STORE_ID[tenantId] || tenantId) : '';
 
   return {
     userId: user.id,
     email: user.email || '',
     tenantId,
     storeId,
-    role: (profile?.role || user.app_metadata?.role || 'store_operator') as any,
+    role: resolvedRole,
     fullName: profile?.full_name || user.user_metadata?.name || user.user_metadata?.full_name || 'Usuário',
     isActive: profile?.is_active ?? true,
     mustChangePassword: profile?.must_change_password ?? (user.app_metadata?.must_change_password || false),
@@ -306,13 +353,32 @@ export async function resetUserPassword(userId: string, tempPassword: string) {
 export async function switchDevelopmentStoreSession(storeId: string): Promise<boolean> {
   const tenantUuid = STORE_ID_TO_TENANT_UUID[storeId] || storeId;
   const emailByStore: Record<string, string> = {
-    'store-suzano': 'dono.suzano@loja.com',
+    'store-suzano': 'smarthousesuzano@gmail.com',
     'store-mogi': 'dono.mogi@loja.com',
-    'b1020000-0000-0000-0000-000000000002': 'dono.suzano@loja.com',
+    'b1020000-0000-0000-0000-000000000002': 'smarthousesuzano@gmail.com',
     'b1010000-0000-0000-0000-000000000001': 'dono.mogi@loja.com',
+    '202bb2d5-00d4-426b-a72a-aacfe776977a': 'smarthousesuzano@gmail.com',
   };
 
-  const targetEmail = emailByStore[storeId] || emailByStore[tenantUuid];
+  let targetEmail = emailByStore[storeId] || emailByStore[tenantUuid];
+
+  // Se não estiver no mapa fixo, busca o e-mail cadastrado da loja no banco
+  if (!targetEmail && tenantUuid) {
+    try {
+      const { data: tenant } = await supabase
+        .from('tenants')
+        .select('owner_email, email')
+        .eq('id', tenantUuid)
+        .maybeSingle();
+
+      if (tenant?.owner_email || tenant?.email) {
+        targetEmail = tenant.owner_email || tenant.email;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   if (!targetEmail) return false;
 
   const testPassword = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_TEST_USER_PASSWORD) || 'PlanejaFacil2026!';

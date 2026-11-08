@@ -92,3 +92,4 @@ describe('Unificação Comercial Promob XML + Móveis Convencionais', () => {
     expect(proposal.estimatedProfit).toBeGreaterThan(0);
   });
 });
+

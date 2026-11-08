@@ -3,7 +3,7 @@ import { Lead, LeadStatus, StoreOrder } from '../types';
 
 export const STORE_ID_TO_TENANT_UUID: Record<string, string> = {
   'store-mogi': 'b1010000-0000-0000-0000-000000000001',
-  'store-suzano': 'b1020000-0000-0000-0000-000000000002',
+  'store-suzano': '202bb2d5-00d4-426b-a72a-aacfe776977a',
   'store-guarulhos': 'b1030000-0000-0000-0000-000000000003',
   'store-sjc': 'b1040000-0000-0000-0000-000000000004',
   'store-arujah': 'b1050000-0000-0000-0000-000000000005',
