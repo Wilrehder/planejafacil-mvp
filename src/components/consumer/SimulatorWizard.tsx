@@ -22,11 +22,6 @@ import {
   CheckCircle2,
   Copy,
   Clock,
-  CreditCard,
-  Layers,
-  Ruler,
-  Truck,
-  CheckCircle,
   ShieldCheck,
   Calendar,
   AlertCircle,
@@ -930,28 +925,22 @@ export const SimulatorWizard: React.FC = () => {
         const budgetCode = (submissionResult?.simulationId || '6908C073').slice(0, 8).toUpperCase();
         const totalAreaM2 = simulator.environments.reduce((sum, env) => sum + (Number(env.areaM2) || 0), 0);
         const totalWalls = simulator.environments.reduce((sum, env) => sum + (Number(env.wallCount) || 1), 0);
-        const monthlyMin = Math.round(simulator.calculatedRange.min / 12);
-        const monthlyMax = Math.round(simulator.calculatedRange.max / 12);
 
         return (
           <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
             
-            <div className="text-center space-y-2">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold shadow-sm">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span>Proposta Técnica Gerada com Sucesso</span>
-              </div>
+            <div className="text-center space-y-1">
               <h2 className="text-2xl sm:text-3xl font-black text-[#1B2B48] tracking-tight">
                 Orçamento Estimado do Seu Projeto
               </h2>
-              <p className="text-sm font-medium text-slate-600 max-w-lg mx-auto">
-                Calculado oficialmente com base na precificação por m² de marcenaria e móveis planejados sob medida.
+              <p className="text-sm text-slate-600 max-w-lg mx-auto">
+                Média de referência calculada com base na metragem informada.
               </p>
             </div>
 
-            <div className="bg-[#1B2B48] text-white rounded-3xl p-6 sm:p-9 space-y-6 sm:space-y-7 shadow-2xl border border-[#283D64]">
+            <div className="bg-[#1B2B48] text-white rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl border border-[#283D64]">
               
-              {/* Barra Superior: Código do Orçamento & Validade */}
+              {/* Barra Superior: Código do Orçamento */}
               <div className="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-white/10">
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
@@ -977,70 +966,60 @@ export const SimulatorWizard: React.FC = () => {
                   )}
                 </div>
 
-                <div className="flex items-center gap-1.5 text-xs text-slate-300">
-                  <Clock className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Válido por 15 dias</span>
+                <div className="text-xs text-slate-400">
+                  Referência para atendimento
                 </div>
               </div>
 
               {/* Faixa de Preço Principal */}
-              <div className="space-y-3 text-center py-2">
-                <div className="text-[11px] sm:text-xs uppercase tracking-widest font-extrabold text-emerald-400">
-                  Faixa de Investimento Estimada
+              <div className="space-y-2 text-center py-2">
+                <div className="text-[11px] uppercase tracking-wider font-bold text-slate-300">
+                  Estimativa de Valor
                 </div>
 
-                <div className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
+                <div className="text-3xl sm:text-5xl font-black tracking-tight text-white flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
                   <span>{formatCurrency(simulator.calculatedRange.min)}</span>
                   <span className="text-slate-400 font-light text-2xl sm:text-3xl">a</span>
                   <span>{formatCurrency(simulator.calculatedRange.max)}</span>
                 </div>
 
-                {/* Projeção de Parcelamento */}
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-slate-200">
-                  <CreditCard className="w-4 h-4 text-emerald-400" />
-                  <span>
-                    ou em até <strong>12x de {formatCurrency(monthlyMin)}</strong> a <strong>{formatCurrency(monthlyMax)}</strong> s/ juros
-                  </span>
-                </div>
-
-                <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
-                  Estimativa considerando padrão 100% MDF naval/premium, ferragens com amortecimento e acabamento de alto padrão.
+                <p className="text-xs text-slate-300 max-w-lg mx-auto leading-relaxed pt-2">
+                  Valor médio estimado para os ambientes informados. O valor final e as opções de pagamento são definidos diretamente com a loja parceira após a escolha de cores, acabamentos e detalhes do projeto.
                 </p>
               </div>
 
-              {/* Discriminação dos Ambientes */}
+              {/* Cômodos Incluídos no Orçamento */}
               <div className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-5 text-left space-y-3">
                 <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
-                  <span className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-                    <Layers className="w-4 h-4 text-emerald-400" />
-                    Ambientes Incluídos ({simulator.environments.length})
+                  <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                    Cômodos Incluídos no Orçamento ({simulator.environments.length})
                   </span>
-                  <span className="text-xs font-semibold text-slate-300">
-                    {totalAreaM2}m² totais • {totalWalls} {totalWalls === 1 ? 'parede projetada' : 'paredes projetadas'}
+                  <span className="text-xs font-medium text-slate-300">
+                    {totalAreaM2}m² totais • {totalWalls} {totalWalls === 1 ? 'parede' : 'paredes'}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                <div className="space-y-2">
                   {simulator.environments.map((env) => {
                     const catalogItem = ENVIRONMENT_CATALOG.find((e) => e.id === env.typeId);
                     return (
                       <div
                         key={env.id}
-                        className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 transition-all text-xs"
+                        className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10 text-xs"
                       >
                         <div className="flex items-center gap-2.5">
-                          <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
+                          <div className="p-2 rounded-lg bg-white/10 text-slate-200 shrink-0">
                             {renderEnvIcon(catalogItem?.iconName || 'Box', 'w-4 h-4')}
                           </div>
                           <div>
                             <div className="font-bold text-white text-sm">{env.name}</div>
                             <div className="text-[11px] text-slate-400">
-                              {env.wallCount} {env.wallCount === 1 ? 'parede planejada' : 'paredes planejadas'} • Pé-direito {env.ceilingHeight || 2.7}m
+                              {env.wallCount} {env.wallCount === 1 ? 'parede' : 'paredes'} • Pé-direito {env.ceilingHeight || 2.7}m
                             </div>
                           </div>
                         </div>
                         <div className="text-right shrink-0">
-                          <span className="font-extrabold text-emerald-400 text-xs px-2.5 py-1 rounded-md bg-emerald-400/10 border border-emerald-400/20">
+                          <span className="font-bold text-white text-xs px-2.5 py-1 rounded-md bg-white/10">
                             {env.areaM2}m²
                           </span>
                         </div>
@@ -1050,59 +1029,23 @@ export const SimulatorWizard: React.FC = () => {
                 </div>
               </div>
 
-              {/* Diferenciais Inclusos (Garantia, Medição, 3D, Montagem) */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-left">
-                <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-                  <div className="p-2 rounded-lg bg-white/10 w-fit text-emerald-400 mb-1">
-                    <Ruler className="w-4 h-4" />
-                  </div>
-                  <div className="font-bold text-xs text-white">Medição no Local</div>
-                  <div className="text-[11px] text-slate-400 leading-tight">Validação milimétrica presencial sem custo</div>
+              {/* Próximos Passos (Sóbrio, Realista, sem promessas indevidas) */}
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-left space-y-3">
+                <div className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                  Próximos passos do atendimento:
                 </div>
-
-                <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-                  <div className="p-2 rounded-lg bg-white/10 w-fit text-emerald-400 mb-1">
-                    <Sparkles className="w-4 h-4" />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-slate-300">
+                  <div className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-white/10 text-white font-bold flex items-center justify-center shrink-0 text-[11px]">1</span>
+                    <span>Contato da loja para entender suas preferências e detalhes dos espaços.</span>
                   </div>
-                  <div className="font-bold text-xs text-white">Projeto 3D Realista</div>
-                  <div className="text-[11px] text-slate-400 leading-tight">Visualização fotográfica dos móveis</div>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-                  <div className="p-2 rounded-lg bg-white/10 w-fit text-emerald-400 mb-1">
-                    <ShieldCheck className="w-4 h-4" />
+                  <div className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-white/10 text-white font-bold flex items-center justify-center shrink-0 text-[11px]">2</span>
+                    <span>Definição de materiais, cores e modelagem do projeto sob medida.</span>
                   </div>
-                  <div className="font-bold text-xs text-white">Garantia de 5 Anos</div>
-                  <div className="text-[11px] text-slate-400 leading-tight">MDF naval e ferragens com amortecimento</div>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-                  <div className="p-2 rounded-lg bg-white/10 w-fit text-emerald-400 mb-1">
-                    <Truck className="w-4 h-4" />
-                  </div>
-                  <div className="font-bold text-xs text-white">Entrega & Montagem</div>
-                  <div className="text-[11px] text-slate-400 leading-tight">Instalação completa por equipe própria</div>
-                </div>
-              </div>
-
-              {/* Próximos Passos */}
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/40 to-slate-900/60 border border-emerald-500/20 text-left">
-                <div className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-400 mb-2.5 flex items-center gap-1.5">
-                  <CheckCircle className="w-3.5 h-3.5" />
-                  Próximos passos do seu atendimento
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                  <div className="flex items-start gap-2">
-                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center shrink-0 text-[11px] border border-emerald-500/30">1</span>
-                    <span className="text-slate-300">Alinhamento personalizado de ideias, acabamentos e cores</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center shrink-0 text-[11px] border border-emerald-500/30">2</span>
-                    <span className="text-slate-300">Apresentação da modelagem 3D ajustada ao seu imóvel</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center shrink-0 text-[11px] border border-emerald-500/30">3</span>
-                    <span className="text-slate-300">Validação final de medidas e agendamento da produção</span>
+                  <div className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-white/10 text-white font-bold flex items-center justify-center shrink-0 text-[11px]">3</span>
+                    <span>Apresentação da proposta final e negociação direta de pagamento.</span>
                   </div>
                 </div>
               </div>
@@ -1112,7 +1055,7 @@ export const SimulatorWizard: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsPdfModalOpen(true)}
-                  className="w-full sm:w-auto px-6 py-4 rounded-xl bg-white text-[#1B2B48] hover:bg-slate-100 font-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center space-x-2.5 shadow-lg active:scale-95"
+                  className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-white text-[#1B2B48] hover:bg-slate-100 font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center space-x-2 shadow-md active:scale-95"
                 >
                   <Printer className="w-4 h-4 text-[#1B2B48]" />
                   <span>Baixar Proposta Técnica em PDF</span>
@@ -1121,9 +1064,8 @@ export const SimulatorWizard: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setConsumerTab('landing')}
-                  className="w-full sm:w-auto px-8 py-4 rounded-xl bg-[#439346] hover:bg-[#387F3B] text-white font-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center space-x-2.5 shadow-lg shadow-[#439346]/25 active:scale-95"
+                  className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-[#439346] hover:bg-[#387F3B] text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center space-x-2 shadow-md shadow-[#439346]/25 active:scale-95"
                 >
-                  <Check className="w-4 h-4" />
                   <span>Concluir</span>
                 </button>
               </div>
