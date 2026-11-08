@@ -100,6 +100,10 @@ export interface StoreOrder {
   assignmentId?: string;
   clientName: string;
   phone: string;
+  clientCpf?: string;
+  billingAddress?: string;
+  installationAddress?: string;
+  desiredDeadline?: string;
   address: string;
   city: string;
   state: string;
@@ -188,6 +192,11 @@ export interface Lead {
   city: string;
   state: string;
   cep: string;
+  cpf?: string;
+  birthDate?: string;
+  billingAddress?: string;
+  installationAddress?: string;
+  desiredDeadline?: string;
   environment: string; // ex: "Cozinha (3.5m²), Quarto Casal (12m²)"
   qualityTier?: string;
   finishPattern?: string;

@@ -510,6 +510,13 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
             <p className="text-xs text-slate-400 mt-0.5">
               {order.address} • Tel: {order.phone}
             </p>
+            {(order.clientCpf || order.installationAddress || order.desiredDeadline) && (
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-300 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700/60">
+                {order.clientCpf && <span>CPF: <strong className="text-white">{order.clientCpf}</strong></span>}
+                {order.installationAddress && <span>Instalação: <strong className="text-white">{order.installationAddress}</strong></span>}
+                {order.desiredDeadline && <span>Prazo Desejado: <strong className="text-emerald-400">{order.desiredDeadline}</strong></span>}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-6">

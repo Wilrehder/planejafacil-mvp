@@ -74,6 +74,11 @@ export async function fetchStoreLeads(storeIdOrTenantUuid: string): Promise<{
       city: raw.city,
       state: raw.state,
       cep: raw.cep,
+      cpf: raw.cpf || undefined,
+      birthDate: raw.birthDate || undefined,
+      billingAddress: raw.billingAddress || undefined,
+      installationAddress: raw.installationAddress || undefined,
+      desiredDeadline: raw.desiredDeadline || undefined,
       environment: raw.environment,
       estimatedMin: Number(raw.estimatedMin) || 0,
       estimatedMax: Number(raw.estimatedMax) || 0,
@@ -363,5 +368,39 @@ export async function getAssignmentIdForLead(leadId: string): Promise<string | n
     return data.id;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Atualiza os dados cadastrais do cliente (CPF, Nascimento, Cobrança, Instalação, Prazo)
+ * com persistência imediata em leads e propagação para o pedido em orders.
+ */
+export async function updateLeadRegistrationData(
+  assignmentId: string,
+  data: {
+    cpf?: string;
+    birthDate?: string;
+    billingAddress?: string;
+    installationAddress?: string;
+    desiredDeadline?: string;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { data: res, error } = await supabase.rpc('update_lead_registration_data', {
+      p_assignment_id: assignmentId,
+      p_cpf: data.cpf || null,
+      p_birth_date: data.birthDate || null,
+      p_billing_address: data.billingAddress || null,
+      p_installation_address: data.installationAddress || null,
+      p_desired_deadline: data.desiredDeadline || null,
+    });
+
+    if (error || !res?.success) {
+      return { success: false, error: error?.message || res?.error || 'Erro ao salvar dados cadastrais.' };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Erro inesperado ao salvar dados cadastrais.' };
   }
 }
