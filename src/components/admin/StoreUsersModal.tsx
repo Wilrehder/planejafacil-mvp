@@ -361,7 +361,6 @@ export const StoreUsersModal: React.FC<StoreUsersModalProps> = ({ isOpen, onClos
                   required
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Ex: Carlos Oliveira"
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
@@ -373,7 +372,6 @@ export const StoreUsersModal: React.FC<StoreUsersModalProps> = ({ isOpen, onClos
                   required
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="carlos@loja.com.br"
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>

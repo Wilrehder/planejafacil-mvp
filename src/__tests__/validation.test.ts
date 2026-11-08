@@ -6,6 +6,14 @@ import {
   ExternalLeadSchema,
   StoreRegistrationSchema,
 } from '../lib/validations';
+import {
+  formatPhone,
+  isValidPhone,
+  formatCep,
+  isValidCep,
+  formatCpfCnpj,
+  isValidCpfOrCnpj,
+} from '../lib/formatters';
 
 describe('Validações Zod (Input Validation & Integrity)', () => {
   describe('ClientContactSchema (Formulário de Contato)', () => {
@@ -180,6 +188,33 @@ describe('Validações Zod (Input Validation & Integrity)', () => {
         status: 'Ativa',
       };
       expect(StoreRegistrationSchema.safeParse(invalidPlan).success).toBe(false);
+    });
+  });
+
+  describe('Formatters & Masks (Formatação e Integridade de Dígitos)', () => {
+    it('deve formatar telefone fixo (10 dígitos) e celular (11 dígitos) e limitar a 11 dígitos', () => {
+      expect(formatPhone('1133334444')).toBe('(11) 3333-4444');
+      expect(formatPhone('11987654321')).toBe('(11) 98765-4321');
+      expect(formatPhone('1198765432199999')).toBe('(11) 98765-4321'); // trunca dígitos extras
+      expect(isValidPhone('(11) 98765-4321')).toBe(true);
+      expect(isValidPhone('(11) 3333-4444')).toBe(true);
+      expect(isValidPhone('119876')).toBe(false); // incompleto
+    });
+
+    it('deve formatar CEP (8 dígitos) e validar estritamente', () => {
+      expect(formatCep('08674000')).toBe('08674-000');
+      expect(formatCep('086740009999')).toBe('08674-000'); // trunca dígitos extras
+      expect(isValidCep('08674-000')).toBe(true);
+      expect(isValidCep('0867400')).toBe(false); // 7 dígitos
+      expect(isValidCep('086740001')).toBe(false); // 9 dígitos
+    });
+
+    it('deve formatar CPF e CNPJ dinamicamente e validar', () => {
+      expect(formatCpfCnpj('12345678909')).toBe('123.456.789-09');
+      expect(formatCpfCnpj('12345678000199')).toBe('12.345.678/0001-99');
+      expect(isValidCpfOrCnpj('123.456.789-09')).toBe(true);
+      expect(isValidCpfOrCnpj('12.345.678/0001-99')).toBe(true);
+      expect(isValidCpfOrCnpj('12.345.678/0001-9')).toBe(false); // incompleto
     });
   });
 });

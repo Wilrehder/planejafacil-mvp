@@ -165,7 +165,6 @@ export const SignContractModal: React.FC<SignContractModalProps> = ({
                 required
                 value={signerName}
                 onChange={(e) => setSignerName(e.target.value)}
-                placeholder="Ex: Carlos Eduardo de Oliveira"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
@@ -177,7 +176,6 @@ export const SignContractModal: React.FC<SignContractModalProps> = ({
                 required
                 value={signerCpf}
                 onChange={handleCpfChange}
-                placeholder="000.000.000-00"
                 maxLength={14}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />

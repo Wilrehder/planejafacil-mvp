@@ -37,6 +37,7 @@ import { ProposalPdfModal } from './ProposalPdfModal';
 import { lookupCep } from '../../lib/cepService';
 import { submitSimulationAndLead, SimulationSubmissionResult } from '../../lib/simulationService';
 import { supabase } from '../../lib/supabase';
+import { formatPhone, formatCep, isValidPhone, isValidCep } from '../../lib/formatters';
 
 const ENV_IMAGE_MAP: Record<string, string> = {
   cozinha: '/hero_kitchen.png',
@@ -217,8 +218,9 @@ export const SimulatorWizard: React.FC = () => {
   };
 
   const handleCepChange = async (rawVal: string) => {
-    updateSimulator({ clientInfo: { ...simulator.clientInfo, cep: rawVal } });
-    const digitsOnly = rawVal.replace(/\D/g, '');
+    const formatted = formatCep(rawVal);
+    updateSimulator({ clientInfo: { ...simulator.clientInfo, cep: formatted } });
+    const digitsOnly = formatted.replace(/\D/g, '');
     if (digitsOnly.length === 8) {
       setCepLoading(true);
       setCepStatus(null);
@@ -229,7 +231,7 @@ export const SimulatorWizard: React.FC = () => {
         updateSimulator({
           clientInfo: {
             ...simulator.clientInfo,
-            cep: rawVal,
+            cep: formatted,
             city: res.city,
             state: res.state,
           },
@@ -251,9 +253,13 @@ export const SimulatorWizard: React.FC = () => {
       return;
     }
 
-    const cleanCep = simulator.clientInfo.cep.replace(/\D/g, '');
-    if (cleanCep.length !== 8) {
-      setSubmitError('Por favor, informe um CEP válido com 8 dígitos.');
+    if (!isValidPhone(simulator.clientInfo.phone)) {
+      setSubmitError('Telefone / WhatsApp inválido. Informe DDD + número com 10 ou 11 dígitos.');
+      return;
+    }
+
+    if (!isValidCep(simulator.clientInfo.cep)) {
+      setSubmitError('Por favor, informe um CEP válido com exatamente 8 dígitos numéricos.');
       return;
     }
 
@@ -801,7 +807,6 @@ export const SimulatorWizard: React.FC = () => {
                   required
                   value={simulator.clientInfo.name}
                   onChange={(e) => updateSimulator({ clientInfo: { ...simulator.clientInfo, name: e.target.value } })}
-                  placeholder="Ex: Ana Maria Silva"
                   className="w-full px-4 py-3.5 rounded-xl border border-slate-300 text-sm font-semibold text-[#1B2B48] outline-none focus:border-[#439346]"
                 />
               </div>
@@ -813,10 +818,10 @@ export const SimulatorWizard: React.FC = () => {
                 <input
                   type="tel"
                   required
+                  maxLength={15}
                   value={simulator.clientInfo.phone}
-                  onChange={(e) => updateSimulator({ clientInfo: { ...simulator.clientInfo, phone: e.target.value } })}
-                  placeholder="Ex: (11) 98765-4321"
-                  className="w-full px-4 py-3.5 rounded-xl border border-slate-300 text-sm font-semibold text-[#1B2B48] outline-none focus:border-[#439346]"
+                  onChange={(e) => updateSimulator({ clientInfo: { ...simulator.clientInfo, phone: formatPhone(e.target.value) } })}
+                  className="w-full px-4 py-3.5 rounded-xl border border-slate-300 text-sm font-semibold font-mono text-[#1B2B48] outline-none focus:border-[#439346]"
                 />
               </div>
 
@@ -830,7 +835,6 @@ export const SimulatorWizard: React.FC = () => {
                     type="email"
                     value={simulator.clientInfo.email || ''}
                     onChange={(e) => updateSimulator({ clientInfo: { ...simulator.clientInfo, email: e.target.value } })}
-                    placeholder="Ex: seuemail@exemplo.com"
                     className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-slate-300 text-sm font-semibold text-[#1B2B48] outline-none focus:border-[#439346]"
                   />
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-4" />
@@ -848,8 +852,7 @@ export const SimulatorWizard: React.FC = () => {
                   value={simulator.clientInfo.cep}
                   onChange={(e) => handleCepChange(e.target.value)}
                   onBlur={(e) => handleCepChange(e.target.value)}
-                  placeholder="Ex: 08674-000"
-                  className="w-full px-4 py-3.5 rounded-xl border border-slate-300 text-sm font-semibold text-[#1B2B48] outline-none focus:border-[#439346]"
+                  className="w-full px-4 py-3.5 rounded-xl border border-slate-300 text-sm font-semibold font-mono text-[#1B2B48] outline-none focus:border-[#439346]"
                 />
 
                 {/* Feedback dinâmico de localização por CEP */}

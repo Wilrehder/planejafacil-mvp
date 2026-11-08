@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatPhone } from '../../lib/formatters';
 import { 
   Share2, 
   CheckCircle2, 
@@ -534,7 +535,6 @@ export const MerchantMetaIntegration: React.FC<Props> = ({ storeId, storeName, s
                   required
                   value={connectionForm.pageName}
                   onChange={(e) => setConnectionForm({ ...connectionForm, pageName: e.target.value })}
-                  placeholder="Ex: Dell Anno Suzano"
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600"
                 />
               </div>
@@ -548,7 +548,6 @@ export const MerchantMetaIntegration: React.FC<Props> = ({ storeId, storeName, s
                   required
                   value={connectionForm.instaUser}
                   onChange={(e) => setConnectionForm({ ...connectionForm, instaUser: e.target.value })}
-                  placeholder="Ex: @dellanno_suzano"
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-600"
                 />
               </div>
@@ -560,10 +559,10 @@ export const MerchantMetaIntegration: React.FC<Props> = ({ storeId, storeName, s
                 <input
                   type="text"
                   required
+                  maxLength={15}
                   value={connectionForm.whatsappNumber}
-                  onChange={(e) => setConnectionForm({ ...connectionForm, whatsappNumber: e.target.value })}
-                  placeholder="Ex: (11) 98765-4321"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                  onChange={(e) => setConnectionForm({ ...connectionForm, whatsappNumber: formatPhone(e.target.value) })}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-600"
                 />
               </div>
 

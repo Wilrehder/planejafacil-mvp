@@ -29,6 +29,7 @@ import { provisionStoreAndUser } from '../../lib/authService';
 import { lookupCep } from '../../lib/cepService';
 import { StoreUsersModal } from './StoreUsersModal';
 import { StoreContractModal } from './StoreContractModal';
+import { formatPhone, formatCep, formatCpfCnpj, isValidPhone, isValidCep, isValidCpfOrCnpj } from '../../lib/formatters';
 
 export const StoresManager: React.FC = () => {
   const { 
@@ -271,6 +272,18 @@ export const StoresManager: React.FC = () => {
     }
     if (!formStore.phone.trim()) {
       setModalError('Informe o WhatsApp Comercial para recebimento dos leads.');
+      return;
+    }
+    if (!isValidPhone(formStore.phone)) {
+      setModalError('WhatsApp Comercial inválido. Informe DDD + número completo (10 ou 11 dígitos numéricos).');
+      return;
+    }
+    if (formStore.cep && formStore.cep.trim() && !isValidCep(formStore.cep)) {
+      setModalError('CEP inválido. O CEP deve conter exatamente 8 dígitos numéricos.');
+      return;
+    }
+    if (formStore.cnpj && formStore.cnpj.trim() && !isValidCpfOrCnpj(formStore.cnpj)) {
+      setModalError('CNPJ/CPF inválido. Informe exatamente 14 dígitos para CNPJ ou 11 dígitos para CPF.');
       return;
     }
     if (!formStore.city.trim()) {
@@ -840,7 +853,6 @@ export const StoresManager: React.FC = () => {
                         required
                         value={formStore.name}
                         onChange={(e) => setFormStore({ ...formStore, name: e.target.value })}
-                        placeholder="Ex: Marcenaria Bella Arte"
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600"
                       />
                     </div>
@@ -849,10 +861,10 @@ export const StoresManager: React.FC = () => {
                       <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">CNPJ / Razão Social</label>
                       <input
                         type="text"
+                        maxLength={18}
                         value={formStore.cnpj}
-                        onChange={(e) => setFormStore({ ...formStore, cnpj: e.target.value })}
-                        placeholder="00.000.000/0001-00"
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-600"
+                        onChange={(e) => setFormStore({ ...formStore, cnpj: formatCpfCnpj(e.target.value) })}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-600 font-mono"
                       />
                     </div>
                   </div>
@@ -866,10 +878,9 @@ export const StoresManager: React.FC = () => {
                           type="text"
                           maxLength={9}
                           value={formStore.cep}
-                          onChange={(e) => setFormStore({ ...formStore, cep: e.target.value })}
+                          onChange={(e) => setFormStore({ ...formStore, cep: formatCep(e.target.value) })}
                           onBlur={(e) => handleStoreCepBlur(e.target.value)}
-                          placeholder="00000-000"
-                          className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-brand-600"
+                          className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-brand-600 font-mono"
                         />
                         {cepSearchLoading && (
                           <Loader2 className="w-3.5 h-3.5 text-brand-600 animate-spin absolute right-3 top-3" />
@@ -884,7 +895,6 @@ export const StoresManager: React.FC = () => {
                         required
                         value={formStore.city}
                         onChange={(e) => setFormStore({ ...formStore, city: e.target.value })}
-                        placeholder="Ex: São Paulo"
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600"
                       />
                     </div>
@@ -923,7 +933,6 @@ export const StoresManager: React.FC = () => {
                       required
                       value={formStore.regionServed}
                       onChange={(e) => setFormStore({ ...formStore, regionServed: e.target.value })}
-                      placeholder="Ex: São Paulo - Zona Sul, Zona Oeste e Alphaville"
                       className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600"
                     />
                   </div>
@@ -944,7 +953,6 @@ export const StoresManager: React.FC = () => {
                         required
                         value={formStore.responsibleName}
                         onChange={(e) => setFormStore({ ...formStore, responsibleName: e.target.value })}
-                        placeholder="Ex: Carlos Oliveira"
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600"
                       />
                     </div>
@@ -954,10 +962,13 @@ export const StoresManager: React.FC = () => {
                       <input
                         type="text"
                         required
+                        maxLength={15}
                         value={formStore.phone}
-                        onChange={(e) => setFormStore({ ...formStore, phone: e.target.value, whatsapp: e.target.value })}
-                        placeholder="(11) 98765-4321"
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600"
+                        onChange={(e) => {
+                          const formatted = formatPhone(e.target.value);
+                          setFormStore({ ...formStore, phone: formatted, whatsapp: formatted });
+                        }}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 font-mono"
                       />
                     </div>
                   </div>
@@ -977,7 +988,6 @@ export const StoresManager: React.FC = () => {
                             required
                             value={formStore.ownerEmail}
                             onChange={(e) => setFormStore({ ...formStore, ownerEmail: e.target.value })}
-                            placeholder="gerente@loja.com"
                             className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-600 bg-white"
                           />
                         </div>
@@ -988,7 +998,6 @@ export const StoresManager: React.FC = () => {
                             required
                             value={formStore.tempPassword}
                             onChange={(e) => setFormStore({ ...formStore, tempPassword: e.target.value })}
-                            placeholder="PlanejaFacil2026!"
                             className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold font-mono focus:outline-none focus:ring-2 focus:ring-purple-600 bg-white"
                           />
                         </div>

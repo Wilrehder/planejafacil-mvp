@@ -568,7 +568,6 @@ export const AdminRoutingQueue: React.FC = () => {
                   type="text"
                   value={assignReason}
                   onChange={(e) => setAssignReason(e.target.value)}
-                  placeholder="Ex: Loja aceitou atender o cliente na região vizinha"
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-600"
                 />
               </div>

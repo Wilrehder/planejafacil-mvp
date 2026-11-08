@@ -5,6 +5,7 @@ import { ENVIRONMENTS, FINISHES, HARDWARE_OPTIONS, LAYOUT_OPTIONS, DOOR_TYPE_OPT
 import { supabase } from '../../lib/supabase';
 
 import { submitSimulationAndLead } from '../../lib/simulationService';
+import { formatPhone, isValidPhone } from '../../lib/formatters';
 
 export const LeadCaptureModal: React.FC = () => {
   const {
@@ -84,6 +85,11 @@ export const LeadCaptureModal: React.FC = () => {
 
     if (!acceptedTerms) {
       setErrorMessage('É obrigatório concordar com os Termos de Privacidade e Contato para prosseguir.');
+      return;
+    }
+
+    if (!isValidPhone(formData.whatsapp)) {
+      setErrorMessage('Informe um WhatsApp válido com DDD (10 ou 11 dígitos).');
       return;
     }
 
@@ -306,9 +312,10 @@ export const LeadCaptureModal: React.FC = () => {
                     <input
                       type="text"
                       required
+                      maxLength={15}
                       value={formData.whatsapp}
-                      onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
-                      className="w-full pl-10 pr-3 py-3 rounded-xl border border-slate-200 font-medium text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#439346]"
+                      onChange={(e) => setFormData({ ...formData, whatsapp: formatPhone(e.target.value) })}
+                      className="w-full pl-10 pr-3 py-3 rounded-xl border border-slate-200 font-mono font-medium text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#439346]"
                     />
                     <Phone className="w-4 h-4 text-[#439346] absolute left-3.5 top-3.5" />
                   </div>
