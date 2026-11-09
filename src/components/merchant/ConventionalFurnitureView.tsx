@@ -10,7 +10,6 @@ import {
   Check, 
   Image as ImageIcon, 
   Ruler, 
-  Landmark, 
   Layers, 
   CreditCard,
   AlertCircle,
@@ -20,13 +19,9 @@ import {
 import { useApp } from '../../context/AppContext';
 import { 
   ConventionalFurnitureItem, 
-  FinancialPartner, 
   fetchStoreFurniture, 
   saveStoreFurniture, 
-  deleteStoreFurniture,
-  fetchFinancialPartners,
-  saveFinancialPartner,
-  deleteFinancialPartner
+  deleteStoreFurniture
 } from '../../lib/conventionalFurnitureService';
 
 interface ConventionalFurnitureViewProps {
@@ -37,9 +32,7 @@ export const ConventionalFurnitureView: React.FC<ConventionalFurnitureViewProps>
   const { currentUser } = useApp();
   const isOwner = !currentUser?.role || currentUser?.role === 'store_owner' || currentUser?.role === 'platform_admin';
 
-  const [activeSubTab, setActiveSubTab] = useState<'moveis' | 'financeiras'>('moveis');
   const [furnitureList, setFurnitureList] = useState<ConventionalFurnitureItem[]>([]);
-  const [financialList, setFinancialList] = useState<FinancialPartner[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('todos');
@@ -60,22 +53,11 @@ export const ConventionalFurnitureView: React.FC<ConventionalFurnitureViewProps>
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Modal Nova Financeira
-  const [isFinancialModalOpen, setIsFinancialModalOpen] = useState(false);
-  const [editingPartner, setEditingPartner] = useState<FinancialPartner | null>(null);
-  const [finName, setFinName] = useState('');
-  const [finRetention, setFinRetention] = useState<string>('10.0');
-  const [finMaxInstallments, setFinMaxInstallments] = useState<number>(24);
-
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [furnitures, partners] = await Promise.all([
-        fetchStoreFurniture(tenantId),
-        fetchFinancialPartners(tenantId)
-      ]);
+      const furnitures = await fetchStoreFurniture(tenantId);
       setFurnitureList(furnitures);
-      setFinancialList(partners);
     } finally {
       setIsLoading(false);
     }
@@ -175,44 +157,6 @@ export const ConventionalFurnitureView: React.FC<ConventionalFurnitureViewProps>
     }
   };
 
-  const handleSaveFinancialPartner = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!finName.trim()) return;
-    setIsSubmitting(true);
-    try {
-      const res = await saveFinancialPartner({
-        id: editingPartner?.id,
-        tenantId,
-        name: finName,
-        retentionPercentage: parseFloat(finRetention.replace(',', '.')) || 10,
-        maxInstallments: finMaxInstallments
-      });
-
-      if (!res.success) throw new Error(res.error);
-
-      showFeedback(`Financeira "${finName}" salva com sucesso!`);
-      setIsFinancialModalOpen(false);
-      setEditingPartner(null);
-      setFinName('');
-      setFinRetention('10.0');
-      setFinMaxInstallments(24);
-      await loadData();
-    } catch (err: any) {
-      showFeedback(err.message || 'Erro ao salvar parceiro financeiro.', 'error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleDeletePartner = async (id: string, name: string) => {
-    if (!window.confirm(`Deseja remover a financeira "${name}"?`)) return;
-    const ok = await deleteFinancialPartner(id);
-    if (ok) {
-      showFeedback(`Financeira "${name}" removida.`);
-      await loadData();
-    }
-  };
-
   const categories = ['todos', 'Estofados', 'Sala de Jantar', 'Quarto', 'Mesas & Aparadores', 'Cadeiras & Banquetas', 'Complementos'];
 
   const filteredFurniture = furnitureList.filter((f) => {
@@ -225,72 +169,28 @@ export const ConventionalFurnitureView: React.FC<ConventionalFurnitureViewProps>
   return (
     <div className="space-y-6 text-left font-sans">
       
-      {/* Top Banner & Sub-Tabs */}
+      {/* Top Banner */}
       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2 text-xs font-black text-amber-600 uppercase tracking-wider mb-1">
             <Armchair className="w-4 h-4" />
-            <span>Móveis Convencionais & Condições Comerciais</span>
+            <span>Móveis Convencionais</span>
           </div>
           <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-            Catálogo de Móveis Prontos & Financeiras
+            Catálogo de Móveis Prontos da Loja
           </h2>
           <p className="text-xs text-slate-500 font-medium mt-1">
             Cadastre estofados, salas de jantar e complementos com markup automático para compor orçamentos unificados.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="bg-slate-100 p-1 rounded-2xl flex items-center">
-            <button
-              onClick={() => setActiveSubTab('moveis')}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
-                activeSubTab === 'moveis'
-                  ? 'bg-slate-900 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Armchair className="w-4 h-4" />
-              <span>Móveis ({furnitureList.length})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveSubTab('financeiras')}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
-                activeSubTab === 'financeiras'
-                  ? 'bg-slate-900 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Landmark className="w-4 h-4 text-purple-400" />
-              <span>Financeiras ({financialList.length})</span>
-            </button>
-          </div>
-
-          {activeSubTab === 'moveis' ? (
-            <button
-              onClick={handleOpenAddFurniture}
-              className="px-4 py-2 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs transition-all flex items-center gap-1.5 shadow-md hover:shadow-lg cursor-pointer shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Novo Móvel</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => {
-                setEditingPartner(null);
-                setFinName('');
-                setFinRetention('10.0');
-                setFinMaxInstallments(24);
-                setIsFinancialModalOpen(true);
-              }}
-              className="px-4 py-2 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-black text-xs transition-all flex items-center gap-1.5 shadow-md hover:shadow-lg cursor-pointer shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Nova Financeira</span>
-            </button>
-          )}
-        </div>
+        <button
+          onClick={handleOpenAddFurniture}
+          className="px-4 py-2.5 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs transition-all flex items-center gap-1.5 shadow-md hover:shadow-lg cursor-pointer shrink-0 self-start md:self-auto"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Novo Móvel</span>
+        </button>
       </div>
 
       {feedbackMsg && (
@@ -304,9 +204,8 @@ export const ConventionalFurnitureView: React.FC<ConventionalFurnitureViewProps>
         </div>
       )}
 
-      {/* ABA 1: CATÁLOGO DE MÓVEIS CONVENCIONAIS */}
-      {activeSubTab === 'moveis' && (
-        <div className="space-y-4">
+      {/* CATÁLOGO DE MÓVEIS CONVENCIONAIS */}
+      <div className="space-y-4">
           
           {/* Barra de Filtros e Busca */}
           <div className="bg-white p-4 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
@@ -451,66 +350,6 @@ export const ConventionalFurnitureView: React.FC<ConventionalFurnitureViewProps>
             </div>
           )}
         </div>
-      )}
-
-      {/* ABA 2: FINANCEIRAS PARCEIRAS */}
-      {activeSubTab === 'financeiras' && (
-        <div className="space-y-4">
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex items-start gap-3">
-            <Landmark className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
-            <div className="text-xs">
-              <span className="font-black text-slate-900 block">Como funcionam as Financeiras no Sistema:</span>
-              <span className="text-slate-600 mt-0.5 block">
-                Cadastre os bancos parceiros (ex: BV, Santander, Losango) e o percentual de retenção/desconto da financeira. 
-                Ao orçar propostas no CRM ou ERP, o vendedor poderá selecionar a financeira e o número de parcelas, calculando automaticamente as taxas de repasse.
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {financialList.map((partner) => (
-              <div 
-                key={partner.id}
-                className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-3 flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-black">
-                      <Landmark className="w-5 h-5" />
-                    </span>
-                    <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-900 text-[10px] font-black uppercase">
-                      Até {partner.maxInstallments}x
-                    </span>
-                  </div>
-
-                  <h3 className="text-base font-black text-slate-900 mt-2">{partner.name}</h3>
-
-                  <div className="pt-2 border-t border-slate-100 space-y-1 text-xs">
-                    <div className="flex justify-between text-slate-600">
-                      <span>Percentual de Retenção:</span>
-                      <strong className="text-purple-900 font-black">{partner.retentionPercentage}%</strong>
-                    </div>
-                    <div className="flex justify-between text-slate-600">
-                      <span>Parcelamento Máximo:</span>
-                      <strong className="text-slate-900">{partner.maxInstallments} Parcelas</strong>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-end">
-                  <button
-                    onClick={() => handleDeletePartner(partner.id, partner.name)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                    title="Excluir parceiro"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* MODAL NOVO / EDITAR MÓVEL CONVENCIONAL */}
       {isFurnitureModalOpen && (
@@ -670,79 +509,6 @@ export const ConventionalFurnitureView: React.FC<ConventionalFurnitureViewProps>
                   className="px-6 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black shadow-md cursor-pointer disabled:opacity-50"
                 >
                   {isSubmitting ? 'Salvando...' : 'Salvar Móvel no Catálogo'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL NOVA FINANCEIRA */}
-      {isFinancialModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                <Landmark className="w-4 h-4 text-purple-600" />
-                <span>Cadastrar Financeira Parceira</span>
-              </h3>
-              <button onClick={() => setIsFinancialModalOpen(false)} className="text-slate-400">✕</button>
-            </div>
-
-            <form onSubmit={handleSaveFinancialPartner} className="space-y-3 text-xs">
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Nome do Banco / Financeira *</label>
-                <input
-                  type="text"
-                  required
-                  value={finName}
-                  onChange={(e) => setFinName(e.target.value)}
-                  placeholder="Ex: Santander Financiamentos, BV Financeira, Losango"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Retenção da Financeira (%) *</label>
-                  <input
-                    type="text"
-                    required
-                    value={finRetention}
-                    onChange={(e) => setFinRetention(e.target.value)}
-                    placeholder="Ex: 10.5"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Parcelamento Máximo *</label>
-                  <select
-                    value={finMaxInstallments}
-                    onChange={(e) => setFinMaxInstallments(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold bg-white"
-                  >
-                    {[12, 18, 24, 30, 36, 48].map((n) => (
-                      <option key={n} value={n}>{n}x</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsFinancialModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 font-bold text-slate-600"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-black shadow-md"
-                >
-                  Salvar Financeira
                 </button>
               </div>
             </form>

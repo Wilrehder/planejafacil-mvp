@@ -30,7 +30,8 @@ import { AssemblerMobileView } from './AssemblerMobileView';
 import { SignContractModal } from './SignContractModal';
 import { StoreContractModal } from '../admin/StoreContractModal';
 import { ConventionalFurnitureView } from './ConventionalFurnitureView';
-import { Wrench, Activity, Users, Package, BarChart2, CreditCard, Share2, FileText } from 'lucide-react';
+import { MerchantSettingsView } from './MerchantSettingsView';
+import { Wrench, Activity, Users, Package, BarChart2, CreditCard, Share2, FileText, SlidersHorizontal } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { switchDevelopmentStoreSession } from '../../lib/authService';
 
@@ -396,12 +397,12 @@ export const MerchantDashboard: React.FC = () => {
           <button
             onClick={() => setMerchantTab('dashboard')}
             className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-              merchantTab === 'dashboard' || (!['erp', 'analytics', 'meta', 'moveis_convencionais'].includes(merchantTab))
+              merchantTab === 'dashboard' || (!['erp', 'analytics', 'meta', 'moveis_convencionais', 'settings'].includes(merchantTab))
                 ? 'bg-[#1B2B48] text-white shadow-md'
                 : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
             }`}
           >
-            <Users className={`w-3.5 h-3.5 ${merchantTab === 'dashboard' || (!['erp', 'analytics', 'meta', 'moveis_convencionais'].includes(merchantTab)) ? 'text-blue-400' : ''}`} />
+            <Users className={`w-3.5 h-3.5 ${merchantTab === 'dashboard' || (!['erp', 'analytics', 'meta', 'moveis_convencionais', 'settings'].includes(merchantTab)) ? 'text-blue-400' : ''}`} />
             CRM
           </button>
           
@@ -464,6 +465,19 @@ export const MerchantDashboard: React.FC = () => {
             <span className="bg-purple-500/20 text-purple-700 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-purple-500/30 uppercase ml-1">
               Pro ⭐
             </span>
+          </button>
+
+          {/* Configurações Comerciais & Taxas da Loja */}
+          <button
+            onClick={() => setMerchantTab('settings')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+              merchantTab === 'settings'
+                ? 'bg-[#1B2B48] text-white shadow-md'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+            }`}
+          >
+            <SlidersHorizontal className={`w-3.5 h-3.5 ${merchantTab === 'settings' ? 'text-emerald-400' : 'text-slate-500'}`} />
+            <span>Configurações & Taxas</span>
           </button>
 
           {/* Faturas B2B e Contrato exclusivos do Gerente / Dono da Loja */}
@@ -545,6 +559,14 @@ export const MerchantDashboard: React.FC = () => {
           storeId={selectedStoreId}
           storeName={currentStore.name}
           storePlan={activePlan}
+        />
+      ) : merchantTab === 'settings' ? (
+        <MerchantSettingsView
+          tenantId={
+            selectedStoreId === 'all'
+              ? (currentUser?.tenantId || currentStore.id)
+              : (STORE_ID_TO_TENANT_UUID[selectedStoreId] || selectedStoreId || currentStore.id)
+          }
         />
       ) : merchantTab === 'moveis_convencionais' ? (
         <ConventionalFurnitureView
