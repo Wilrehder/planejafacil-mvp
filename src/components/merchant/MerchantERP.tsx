@@ -19,7 +19,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { OrderStage, StoreOrder, ERPMetrics } from '../../types';
 import { fetchStoreOrders, fetchERPMetrics } from '../../lib/erpService';
-import { OrderFolderModal } from './OrderFolderModal';
+import { OrderDetailView } from './OrderDetailView';
 
 interface MerchantERPProps {
   merchantPlan: 'Basic' | 'Pro';
@@ -75,6 +75,65 @@ export const MerchantERP: React.FC<MerchantERPProps> = ({ merchantPlan, storeId 
   useEffect(() => {
     loadOrdersAndMetrics();
   }, [storeId, contextOrders.length]);
+
+  // Sincroniza pedido selecionado pela URL (ex: ?pedido=PED-4153)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const pedidoParam = params.get('pedido');
+    if (pedidoParam && liveOrders.length > 0) {
+      const matched = liveOrders.find(
+        (o) => o.id === pedidoParam || o.orderNumber === pedidoParam || o.uuid === pedidoParam
+      );
+      if (matched) {
+        setActiveModalOrder(matched);
+      }
+    }
+  }, [liveOrders]);
+
+  // Listener para navegação pelo histórico do navegador (botão voltar/avançar)
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const pedidoParam = params.get('pedido');
+      if (!pedidoParam) {
+        setActiveModalOrder(null);
+        setSelectedOrderForFolder(null);
+      } else if (liveOrders.length > 0) {
+        const matched = liveOrders.find(
+          (o) => o.id === pedidoParam || o.orderNumber === pedidoParam || o.uuid === pedidoParam
+        );
+        if (matched) {
+          setActiveModalOrder(matched);
+        }
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [liveOrders]);
+
+  const handleOpenOrder = (order: StoreOrder) => {
+    setActiveModalOrder(order);
+    setSelectedOrderForFolder(order);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('pedido', order.orderNumber || order.id);
+      window.history.pushState({}, '', url.toString());
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  const handleBackToList = () => {
+    setActiveModalOrder(null);
+    setSelectedOrderForFolder(null);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('pedido');
+      window.history.pushState({}, '', url.toString());
+    } catch (e) {
+      // ignore
+    }
+  };
 
   const displayedOrders = liveOrders;
 
@@ -135,6 +194,25 @@ export const MerchantERP: React.FC<MerchantERPProps> = ({ merchantPlan, storeId 
           Alterne a chave do <strong>Plano Pro ⭐ (R$ 219,90/mês)</strong> no topo da tela para testar o ERP operacional.
         </div>
       </div>
+    );
+  }
+
+  // RENDERIZAÇÃO DA PÁGINA DEDICADA DE DETALHES DO PEDIDO
+  const currentDetailOrder = activeModalOrder || selectedOrderForFolder;
+  if (currentDetailOrder) {
+    const detailedOrder =
+      liveOrders.find((o) => 
+        o.id === currentDetailOrder.id || 
+        o.uuid === currentDetailOrder.uuid ||
+        o.orderNumber === currentDetailOrder.orderNumber
+      ) || currentDetailOrder;
+
+    return (
+      <OrderDetailView
+        order={detailedOrder}
+        onBack={handleBackToList}
+        onOrderUpdated={loadOrdersAndMetrics}
+      />
     );
   }
 
@@ -359,10 +437,7 @@ export const MerchantERP: React.FC<MerchantERPProps> = ({ merchantPlan, storeId 
                       {/* AÇÃO: ABRIR PASTA DO PEDIDO */}
                       <td className="py-3 px-4 text-center">
                         <button
-                          onClick={() => {
-                            setActiveModalOrder(order);
-                            setSelectedOrderForFolder(order);
-                          }}
+                          onClick={() => handleOpenOrder(order)}
                           className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-2xs transition-colors inline-flex items-center gap-1.5 cursor-pointer"
                         >
                           <FolderCheck className="w-3.5 h-3.5" />
@@ -383,24 +458,6 @@ export const MerchantERP: React.FC<MerchantERPProps> = ({ merchantPlan, storeId 
           </table>
         </div>
       </div>
-
-      {/* MODAL DA PASTA DIGITAL DO PEDIDO */}
-      {(activeModalOrder || selectedOrderForFolder) && (
-        <OrderFolderModal
-          order={
-            (liveOrders.find((o) => 
-              o.id === (activeModalOrder || selectedOrderForFolder)?.id || 
-              o.uuid === (activeModalOrder || selectedOrderForFolder)?.uuid ||
-              o.orderNumber === (activeModalOrder || selectedOrderForFolder)?.orderNumber
-            ) || activeModalOrder || selectedOrderForFolder)!
-          }
-          onClose={() => {
-            setActiveModalOrder(null);
-            setSelectedOrderForFolder(null);
-          }}
-          onOrderUpdated={loadOrdersAndMetrics}
-        />
-      )}
 
     </div>
   );

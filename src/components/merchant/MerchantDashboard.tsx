@@ -1199,11 +1199,12 @@ export const MerchantDashboard: React.FC = () => {
       {/* Drawer Details */}
       <LeadDetailDrawer onLeadUpdated={syncStoreAuthAndFetch} />
 
-      {/* Modal Pasta do Pedido ERP */}
-      {selectedOrderForFolder && (
+      {/* Modal Pasta do Pedido ERP se acionado fora da aba ERP */}
+      {selectedOrderForFolder && merchantTab !== 'erp' && (
         <OrderFolderModal
           order={selectedOrderForFolder}
           onClose={() => setSelectedOrderForFolder(null)}
+          onOrderUpdated={syncStoreAuthAndFetch}
         />
       )}
 
