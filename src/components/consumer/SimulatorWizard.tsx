@@ -1,19 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  ArrowLeft, 
-  ArrowRight, 
-  Bath, 
-  Bed, 
-  Box, 
-  ChefHat, 
-  Flame, 
-  Laptop, 
-  Printer, 
-  RotateCcw, 
-  Shirt, 
-  Sofa, 
-  Tv, 
-  WashingMachine, 
+import {
+  ArrowLeft,
+  ArrowRight,
+  Bath,
+  Bed,
+  Box,
+  ChefHat,
+  Flame,
+  Laptop,
+  Printer,
+  RotateCcw,
+  Shirt,
+  Sofa,
+  Tv,
+  WashingMachine,
   Check,
   Loader2,
   Sparkles,
@@ -60,15 +60,15 @@ const LOADING_MESSAGES = [
 ];
 
 export const SimulatorWizard: React.FC = () => {
-  const { 
-    simulator, 
-    updateSimulator, 
-    addEnvironment, 
+  const {
+    simulator,
+    updateSimulator,
+    addEnvironment,
     removeEnvironment,
-    calculateEstimate, 
+    calculateEstimate,
     addLead,
     resetSimulator,
-    setConsumerTab 
+    setConsumerTab
   } = useApp();
 
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
@@ -188,16 +188,16 @@ export const SimulatorWizard: React.FC = () => {
   const handleSaveCurrentEnvironment = () => {
     // Adiciona o ambiente atual na lista de ambientes do simulador
     const createdEnv = addEnvironment(selectedEnvTypeId, newEnvName, newEnvArea, newEnvWallCount, newEnvCeilingHeight);
-    
+
     // Se for o primeiro ambiente, substitui os ambientes iniciais pela lista contendo este novo
     const isFirstCustomEnv = simulator.environments.length === 1 && simulator.environments[0].id === 'env-cozinha-1';
-    const updatedEnvironments = isFirstCustomEnv 
-      ? [createdEnv] 
+    const updatedEnvironments = isFirstCustomEnv
+      ? [createdEnv]
       : [...simulator.environments, createdEnv];
 
-    updateSimulator({ 
-      environments: updatedEnvironments, 
-      currentEditingEnvId: createdEnv.id 
+    updateSimulator({
+      environments: updatedEnvironments,
+      currentEditingEnvId: createdEnv.id
     });
   };
 
@@ -384,7 +384,7 @@ export const SimulatorWizard: React.FC = () => {
     return (
       <div className="max-w-xl mx-auto px-4 py-16 text-center font-sans space-y-8 animate-in fade-in duration-300">
         <div className="bg-white rounded-3xl border border-slate-200/90 p-8 sm:p-12 shadow-xl space-y-8">
-          
+
           {/* Animated Icon Badge */}
           <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
             <div className="absolute inset-0 bg-[#EBF7EC] rounded-3xl animate-ping opacity-25" />
@@ -406,7 +406,7 @@ export const SimulatorWizard: React.FC = () => {
           {/* Clean Progress Bar */}
           <div className="space-y-2">
             <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden p-0.5 border border-slate-200/60">
-              <div 
+              <div
                 className="bg-[#439346] h-full rounded-full transition-all duration-700 ease-out shadow-sm"
                 style={{ width: `${currentMsg.progress}%` }}
               />
@@ -420,15 +420,14 @@ export const SimulatorWizard: React.FC = () => {
           {/* Step indicators */}
           <div className="pt-2 flex justify-center items-center space-x-2">
             {LOADING_MESSAGES.map((_, idx) => (
-              <div 
+              <div
                 key={idx}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  idx === loadingStepIndex 
-                    ? 'w-6 bg-[#439346]' 
-                    : idx < loadingStepIndex 
-                      ? 'w-2 bg-[#439346]/40' 
-                      : 'w-2 bg-slate-200'
-                }`}
+                className={`h-1.5 rounded-full transition-all duration-300 ${idx === loadingStepIndex
+                  ? 'w-6 bg-[#439346]'
+                  : idx < loadingStepIndex
+                    ? 'w-2 bg-[#439346]/40'
+                    : 'w-2 bg-slate-200'
+                  }`}
               />
             ))}
           </div>
@@ -442,7 +441,7 @@ export const SimulatorWizard: React.FC = () => {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-4 sm:py-10 font-sans pb-32 sm:pb-10">
-      
+
       {/* Top Header Bar */}
       <div className="mb-6 flex items-center justify-between bg-white px-4 py-3 rounded-2xl border border-slate-200/90 shadow-sm">
         <button
@@ -481,7 +480,7 @@ export const SimulatorWizard: React.FC = () => {
 
       {/* Progress Line */}
       <div className="w-full bg-slate-200 h-2 rounded-full mb-8 overflow-hidden">
-        <div 
+        <div
           className="bg-[#439346] h-full transition-all duration-300 rounded-full"
           style={{ width: `${(simulator.step / 4) * 100}%` }}
         />
@@ -511,7 +510,7 @@ export const SimulatorWizard: React.FC = () => {
       {/* ========================================================================= */}
       {simulator.step === 1 && (
         <div className="space-y-8 animate-in fade-in duration-300">
-          
+
           <div className="text-center space-y-2">
             <h1 className="text-2xl sm:text-4xl font-black text-[#1B2B48] tracking-tight">
               Faça seu Orçamento
@@ -530,11 +529,10 @@ export const SimulatorWizard: React.FC = () => {
                 <div
                   key={item.id}
                   onClick={() => setSelectedEnvTypeId(item.id as EnvironmentTypeId)}
-                  className={`group relative rounded-2xl overflow-hidden border-2 cursor-pointer transition-all duration-300 bg-white ${
-                    isSelected
-                      ? 'border-[#439346] shadow-xl ring-2 ring-[#439346]/20 transform scale-[1.01]'
-                      : 'border-slate-200 hover:border-slate-300 shadow-md hover:shadow-lg'
-                  }`}
+                  className={`group relative rounded-2xl overflow-hidden border-2 cursor-pointer transition-all duration-300 bg-white ${isSelected
+                    ? 'border-[#439346] shadow-xl ring-2 ring-[#439346]/20 transform scale-[1.01]'
+                    : 'border-slate-200 hover:border-slate-300 shadow-md hover:shadow-lg'
+                    }`}
                 >
                   <div className="h-44 w-full relative overflow-hidden bg-slate-800">
                     <img
@@ -543,7 +541,7 @@ export const SimulatorWizard: React.FC = () => {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                    
+
                     <div className="absolute top-3 left-3 p-2 rounded-xl bg-white/90 backdrop-blur-md text-[#1B2B48] shadow">
                       {renderEnvIcon(item.iconName, 'w-4 h-4')}
                     </div>
@@ -558,11 +556,10 @@ export const SimulatorWizard: React.FC = () => {
                   <div className="p-3 sm:p-4 bg-white flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <div
-                        className={`w-5 h-5 rounded-md flex items-center justify-center border transition-colors shrink-0 ${
-                          isSelected
-                            ? 'bg-[#439346] border-[#439346] text-white'
-                            : 'border-slate-300 bg-slate-50 group-hover:border-[#439346]'
-                        }`}
+                        className={`w-5 h-5 rounded-md flex items-center justify-center border transition-colors shrink-0 ${isSelected
+                          ? 'bg-[#439346] border-[#439346] text-white'
+                          : 'border-slate-300 bg-slate-50 group-hover:border-[#439346]'
+                          }`}
                       >
                         {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                       </div>
@@ -596,7 +593,7 @@ export const SimulatorWizard: React.FC = () => {
       {/* ========================================================================= */}
       {simulator.step === 2 && (
         <div className="space-y-8 animate-in fade-in duration-300">
-          
+
           <div className="text-center space-y-2">
             <h2 className="text-2xl sm:text-3xl font-black text-[#1B2B48]">
               Medidas do Cômodo: <span className="text-[#439346]">{newEnvName}</span>
@@ -607,7 +604,7 @@ export const SimulatorWizard: React.FC = () => {
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-8 space-y-8 max-w-2xl mx-auto shadow-md">
-            
+
             {/* 1. Pé-direito */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -661,18 +658,17 @@ export const SimulatorWizard: React.FC = () => {
               <label className="block text-xs font-bold text-[#1B2B48] uppercase tracking-wider">
                 3. Em quantas paredes vai móvel planejado?
               </label>
-              
+
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[1, 2, 3, 4].map((count) => (
                   <button
                     key={count}
                     type="button"
                     onClick={() => setNewEnvWallCount(count as 1 | 2 | 3 | 4)}
-                    className={`py-3.5 px-4 rounded-xl font-extrabold text-sm border transition-all ${
-                      newEnvWallCount === count
-                        ? 'bg-[#439346] text-white border-[#439346] shadow-md'
-                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                    }`}
+                    className={`py-3.5 px-4 rounded-xl font-extrabold text-sm border transition-all ${newEnvWallCount === count
+                      ? 'bg-[#439346] text-white border-[#439346] shadow-md'
+                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                      }`}
                   >
                     {count} {count === 1 ? 'Parede' : 'Paredes'}
                   </button>
@@ -717,7 +713,7 @@ export const SimulatorWizard: React.FC = () => {
       {/* ========================================================================= */}
       {simulator.step === 3 && (
         <form onSubmit={handleSubmitLead} className="space-y-8 animate-in fade-in duration-300">
-          
+
           <div className="text-center space-y-2">
             <h2 className="text-2xl sm:text-3xl font-black text-[#1B2B48]">
               Seus Dados para Exibir o Orçamento
@@ -728,74 +724,13 @@ export const SimulatorWizard: React.FC = () => {
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-8 space-y-6 max-w-xl mx-auto shadow-md">
-            
+
             {submitError && (
               <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs font-bold text-red-700 flex items-center space-x-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{submitError}</span>
               </div>
             )}
-
-            {/* Preenchimento Rápido com Google ou Apple */}
-            <div className="space-y-3 pb-2 border-b border-slate-100">
-              <div className="flex items-center justify-center space-x-2">
-                <span className="h-px bg-slate-200 flex-1"></span>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  Preenchimento Rápido
-                </span>
-                <span className="h-px bg-slate-200 flex-1"></span>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleOAuthQuickFill('google')}
-                  disabled={Boolean(oauthLoading)}
-                  className="flex items-center justify-center space-x-2 px-3 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 active:scale-95 transition-all text-slate-700 font-bold text-xs shadow-sm hover:shadow"
-                >
-                  {oauthLoading === 'google' ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-[#439346]" />
-                  ) : (
-                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-                    </svg>
-                  )}
-                  <span>Google</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleOAuthQuickFill('apple')}
-                  disabled={Boolean(oauthLoading)}
-                  className="flex items-center justify-center space-x-2 px-3 py-3 rounded-xl border border-slate-900 bg-slate-900 hover:bg-black active:scale-95 transition-all text-white font-bold text-xs shadow-sm hover:shadow"
-                >
-                  {oauthLoading === 'apple' ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-white" />
-                  ) : (
-                    <svg className="w-4 h-4 shrink-0 fill-current" viewBox="0 0 24 24">
-                      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.84c.66-.82 1.11-1.96.99-3.1-.96.04-2.12.64-2.8 1.44-.6.69-1.13 1.83-.99 2.94 1.07.08 2.14-.46 2.8-1.28z"/>
-                    </svg>
-                  )}
-                  <span>Apple</span>
-                </button>
-              </div>
-
-              {socialNotice && (
-                <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-[11px] font-semibold text-blue-700 text-center animate-in fade-in">
-                  {socialNotice}
-                </div>
-              )}
-
-              <div className="flex items-center justify-center space-x-2 pt-1">
-                <span className="h-px bg-slate-200 flex-1"></span>
-                <span className="text-[11px] font-semibold text-slate-400">
-                  ou preencha os campos
-                </span>
-                <span className="h-px bg-slate-200 flex-1"></span>
-              </div>
-            </div>
 
             <div className="space-y-4">
               <div>
@@ -931,7 +866,7 @@ export const SimulatorWizard: React.FC = () => {
 
         return (
           <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
-            
+
             <div className="text-center space-y-1">
               <h2 className="text-2xl sm:text-3xl font-black text-[#1B2B48] tracking-tight">
                 Orçamento Estimado do Seu Projeto
@@ -942,7 +877,7 @@ export const SimulatorWizard: React.FC = () => {
             </div>
 
             <div className="bg-[#1B2B48] text-white rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl border border-[#283D64]">
-              
+
               {/* Barra Superior: Código do Orçamento */}
               <div className="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-white/10">
                 <div className="flex items-center gap-2">
