@@ -276,3 +276,4 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION public.get_erp_metrics(UUID) TO authenticated, anon, service_role;
+

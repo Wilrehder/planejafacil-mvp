@@ -430,6 +430,27 @@ export const CustomerContractModal: React.FC<CustomerContractModalProps> = ({
                         <ExternalLink className="w-4 h-4" />
                       </a>
                     </div>
+                    {lead?.phone && (
+                      <div className="pt-1">
+                        <a
+                          href={`https://wa.me/55${(lead.phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${clientName}, segue o link seguro para visualização e assinatura digital do seu contrato de móveis planejados: ${signingUrl}`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition-colors"
+                        >
+                          <span>💬 Enviar Link para WhatsApp do Cliente ({lead.phone})</span>
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Fluxo Operacional Automático */}
+                  <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 text-xs flex items-start space-x-3">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-700 flex-shrink-0 mt-0.5" />
+                    <div className="space-y-1 text-[11px] leading-relaxed">
+                      <span className="font-bold text-emerald-900 block">Avanço Operacional Automático:</span>
+                      Assim que o cliente assinar eletronicamente pelo link ou QR Code, o contrato é marcado como <strong>Assinado</strong> e o pedido avança <strong>automaticamente para a etapa de Medição Fina</strong> no ERP da loja.
+                    </div>
                   </div>
 
                   {/* Informações de Validade Jurídica */}

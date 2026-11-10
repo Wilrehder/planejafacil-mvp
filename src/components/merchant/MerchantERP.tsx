@@ -27,12 +27,13 @@ interface MerchantERPProps {
 }
 
 const STAGE_LABELS: Record<OrderStage, { label: string; bg: string; text: string; icon: React.FC<{ className?: string }> }> = {
-  medicao: { label: '1. Medição', bg: 'bg-blue-50 border-blue-200', text: 'text-blue-700', icon: Ruler },
-  projeto_aprovacao: { label: '2. Projeto & Aprovação', bg: 'bg-purple-50 border-purple-200', text: 'text-purple-700', icon: FileText },
-  producao: { label: '3. Produção', bg: 'bg-orange-50 border-orange-200', text: 'text-orange-700', icon: Package },
-  montagem: { label: '4. Montagem', bg: 'bg-amber-50 border-amber-200', text: 'text-amber-700', icon: Wrench },
-  entrega_aceite: { label: '5. Entrega / Aceite', bg: 'bg-indigo-50 border-indigo-200', text: 'text-indigo-700', icon: ShieldCheck },
-  concluido: { label: '6. Concluído', bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700', icon: CheckCircle2 },
+  formalizacao_contratual: { label: '1. Formalização Contratual', bg: 'bg-indigo-50 border-indigo-200', text: 'text-indigo-700', icon: FileText },
+  medicao: { label: '2. Medição', bg: 'bg-blue-50 border-blue-200', text: 'text-blue-700', icon: Ruler },
+  projeto_aprovacao: { label: '3. Projeto & Aprovação', bg: 'bg-purple-50 border-purple-200', text: 'text-purple-700', icon: FileText },
+  producao: { label: '4. Produção', bg: 'bg-orange-50 border-orange-200', text: 'text-orange-700', icon: Package },
+  montagem: { label: '5. Montagem', bg: 'bg-amber-50 border-amber-200', text: 'text-amber-700', icon: Wrench },
+  entrega_aceite: { label: '6. Entrega / Aceite', bg: 'bg-indigo-50 border-indigo-200', text: 'text-indigo-700', icon: ShieldCheck },
+  concluido: { label: '7. Concluído', bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700', icon: CheckCircle2 },
 };
 
 export const MerchantERP: React.FC<MerchantERPProps> = ({ merchantPlan, storeId = 'store-suzano' }) => {

@@ -325,7 +325,16 @@ export async function createExternalLeadManual(payload: {
 export async function convertLeadToOrderOnServer(
   assignmentId: string,
   totalValue?: number
-): Promise<{ success: boolean; orderId?: string; orderNumber?: string; totalValue?: number; error?: string }> {
+): Promise<{ 
+  success: boolean; 
+  orderId?: string; 
+  orderNumber?: string; 
+  totalValue?: number; 
+  contractToken?: string;
+  contractStatus?: string;
+  currentStage?: string;
+  error?: string 
+}> {
   try {
     const { data, error } = await supabase.rpc('convert_lead_to_order', {
       p_assignment_id: assignmentId,
@@ -346,6 +355,9 @@ export async function convertLeadToOrderOnServer(
       orderId: data.order_id,
       orderNumber: data.order_number,
       totalValue: Number(data.total_value),
+      contractToken: data.contract_token,
+      contractStatus: data.contract_status,
+      currentStage: data.current_stage,
     };
   } catch (err: any) {
     return { success: false, error: err?.message || 'Erro ao comunicar com o servidor.' };

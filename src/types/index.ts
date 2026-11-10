@@ -61,7 +61,7 @@ export type AdminTab = 'finance' | 'routing' | 'stores' | 'radar' | 'settings';
 export type MerchantTab = 'dashboard' | 'leads' | 'erp' | 'analytics' | 'settings' | 'meta' | 'moveis_convencionais';
 export type LeadStatus = 'novo' | 'em_atendimento' | 'orcado' | 'convertido' | 'perdido';
 
-export type OrderStage = 'medicao' | 'projeto_aprovacao' | 'producao' | 'montagem' | 'entrega_aceite' | 'concluido';
+export type OrderStage = 'formalizacao_contratual' | 'medicao' | 'projeto_aprovacao' | 'producao' | 'montagem' | 'entrega_aceite' | 'concluido';
 
 export interface OrderAuditLog {
   id: string;
@@ -126,7 +126,7 @@ export interface StoreOrder {
   paymentAllocations?: PaymentAllocation[];
   commercialProposal?: CommercialProposal;
   orderNotes?: string;
-  contractStatus?: 'rascunho' | 'emitido' | 'assinado';
+  contractStatus?: 'rascunho' | 'formalizacao_pendente' | 'aguardando_assinatura' | 'emitido' | 'assinado' | 'assinado_eletronico' | 'assinado_externo';
   contractToken?: string;
   contractSignedAt?: string;
   contractSignedByName?: string;

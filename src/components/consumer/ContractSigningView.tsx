@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   FileText, 
   CheckCircle2, 
@@ -10,7 +10,9 @@ import {
   Building2, 
   DollarSign, 
   Clock, 
-  FileCheck 
+  FileCheck,
+  PenTool,
+  RotateCcw
 } from 'lucide-react';
 import { fetchContractForSigning, submitDigitalSignature } from '../../lib/customerContractService';
 import { StoreContractTemplate } from '../../types';
@@ -37,6 +39,11 @@ export const ContractSigningView: React.FC<ContractSigningViewProps> = ({ token,
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [signSuccess, setSignSuccess] = useState(false);
 
+  // Canvas de assinatura manual
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [hasDrawn, setHasDrawn] = useState(false);
+
   useEffect(() => {
     if (token) {
       setLoading(true);
@@ -61,16 +68,71 @@ export const ContractSigningView: React.FC<ContractSigningViewProps> = ({ token,
     }
   }, [token]);
 
+  // Funções do Canvas de Assinatura
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    setIsDrawing(true);
+    setHasDrawn(true);
+    const rect = canvas.getBoundingClientRect();
+    const x = 'touches' in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
+    const y = 'touches' in e ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#1B2B48';
+  };
+
+  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = 'touches' in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
+    const y = 'touches' in e ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  const stopDrawing = () => {
+    setIsDrawing(false);
+  };
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setHasDrawn(false);
+  };
+
   const handleSign = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!signerName.trim() || !signerCpf.trim() || !agreedTerms) return;
+
+    let signatureImage: string | undefined = undefined;
+    if (canvasRef.current && hasDrawn) {
+      signatureImage = canvasRef.current.toDataURL('image/png');
+    }
 
     setIsSubmitting(true);
     try {
       const res = await submitDigitalSignature(token, {
         name: signerName.trim(),
         cpf: signerCpf.trim(),
-        userAgent: navigator.userAgent
+        userAgent: navigator.userAgent,
+        signatureImage
       });
 
       if (!res.success) {
@@ -254,6 +316,47 @@ export const ContractSigningView: React.FC<ContractSigningViewProps> = ({ token,
                     placeholder="000.000.000-00"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold bg-white"
                   />
+                </div>
+              </div>
+
+              {/* Campo de Assinatura Manuscrita / Rubrica na Tela */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] uppercase font-bold text-slate-700 flex items-center space-x-1.5">
+                    <PenTool className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Desenhe sua Assinatura / Rubrica no Quadro Abaixo (Touch ou Mouse):</span>
+                  </label>
+                  {hasDrawn && (
+                    <button
+                      type="button"
+                      onClick={clearCanvas}
+                      className="text-[10px] font-bold text-rose-600 hover:text-rose-700 flex items-center space-x-1 cursor-pointer"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>Limpar Assinatura</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="relative border-2 border-dashed border-slate-300 rounded-2xl bg-white overflow-hidden touch-none">
+                  <canvas
+                    ref={canvasRef}
+                    width={600}
+                    height={160}
+                    onMouseDown={startDrawing}
+                    onMouseMove={draw}
+                    onMouseUp={stopDrawing}
+                    onMouseLeave={stopDrawing}
+                    onTouchStart={startDrawing}
+                    onTouchMove={draw}
+                    onTouchEnd={stopDrawing}
+                    className="w-full h-32 sm:h-36 block cursor-crosshair bg-white"
+                  />
+                  {!hasDrawn && (
+                    <div className="absolute inset-0 pointer-events-none flex items-center justify-center text-slate-400 text-xs">
+                      <span>Clique ou use o dedo para assinar aqui</span>
+                    </div>
+                  )}
                 </div>
               </div>
 

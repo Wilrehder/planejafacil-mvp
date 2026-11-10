@@ -184,8 +184,26 @@ export async function saveStoreContractTemplate(template: StoreContractTemplate)
  * Constrói a URL pública para assinatura digital do cliente
  */
 export function getContractSigningUrl(token: string): string {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.useplanejafacil.com';
-  return `${origin}/?sign_token=${encodeURIComponent(token)}`;
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname.toLowerCase();
+    // Em localhost, se não for configurado IP público, utiliza o domínio oficial da plataforma para garantir
+    // que a leitura do QR Code pelo celular funcione imediatamente pela internet
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return `https://www.useplanejafacil.com/?sign_token=${encodeURIComponent(token)}`;
+    }
+    return `${window.location.origin}/?sign_token=${encodeURIComponent(token)}`;
+  }
+  return `https://www.useplanejafacil.com/?sign_token=${encodeURIComponent(token)}`;
+}
+
+/**
+ * Retorna URL local direta (útil para testes na mesma máquina)
+ */
+export function getLocalContractSigningUrl(token: string): string {
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/?sign_token=${encodeURIComponent(token)}`;
+  }
+  return `https://www.useplanejafacil.com/?sign_token=${encodeURIComponent(token)}`;
 }
 
 /**
@@ -544,7 +562,8 @@ export async function downloadContractPdf(params: ContractPdfParams, filename?: 
 }
 
 /**
- * Busca dados do contrato para exibição na página pública de assinatura do cliente
+ * Busca dados do contrato para exibição na página pública de assinatura do cliente.
+ * Utiliza a RPC segura get_contract_for_signing para permitir acesso público sem login.
  */
 export async function fetchContractForSigning(token: string): Promise<{
   success: boolean;
@@ -557,31 +576,25 @@ export async function fetchContractForSigning(token: string): Promise<{
   if (!token) return { success: false, error: 'Token de assinatura não informado.' };
 
   try {
-    const { data: order, error } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('contract_token', token)
-      .maybeSingle();
+    const { data, error } = await supabase.rpc('get_contract_for_signing', {
+      p_token: token
+    });
 
-    if (error || !order) {
-      return { success: false, error: 'Contrato não encontrado ou link expirado.' };
+    if (error) {
+      console.error('[customerContractService] Erro ao chamar get_contract_for_signing:', error);
+      return { success: false, error: error.message || 'Erro ao carregar dados do contrato.' };
     }
 
-    const template = await fetchStoreContractTemplate(order.tenant_id);
-
-    const alreadySigned = order.contract_status === 'assinado';
+    if (!data || !data.success) {
+      return { success: false, error: data?.error || 'Contrato não encontrado ou link expirado.' };
+    }
 
     return {
       success: true,
-      order,
-      template,
-      alreadySigned,
-      signedInfo: alreadySigned ? {
-        signedAt: order.contract_signed_at,
-        signedByName: order.contract_signed_by_name,
-        signedByCpf: order.contract_signed_by_cpf,
-        signatureIp: order.contract_signature_ip
-      } : undefined
+      order: data.order,
+      template: data.template,
+      alreadySigned: Boolean(data.alreadySigned),
+      signedInfo: data.signedInfo || undefined
     };
   } catch (err: any) {
     return { success: false, error: err?.message || 'Erro ao carregar dados do contrato.' };
@@ -589,7 +602,8 @@ export async function fetchContractForSigning(token: string): Promise<{
 }
 
 /**
- * Executa a assinatura eletrônica do cliente com registro de evidências e auditoria
+ * Executa a assinatura eletrônica do cliente com registro de evidências e avanço automático para Medição Fina.
+ * Utiliza a RPC segura submit_contract_signature no Supabase.
  */
 export async function submitDigitalSignature(
   token: string,
@@ -600,76 +614,74 @@ export async function submitDigitalSignature(
     userAgent?: string;
     signatureImage?: string;
   }
-): Promise<{ success: boolean; error?: string }> {
-  if (!token || !signerData.name?.trim() || !signerData.cpf?.trim()) {
-    return { success: false, error: 'Nome e CPF do signatário são obrigatórios.' };
+): Promise<{ success: boolean; orderId?: string; orderNumber?: string; currentStage?: string; error?: string }> {
+  if (!token || !signerData.name?.trim() || !signerCpfFormatValid(signerData.cpf)) {
+    return { success: false, error: 'Nome completo e CPF válido do signatário são obrigatórios.' };
   }
 
   try {
-    const { data: order, error: orderErr } = await supabase
-      .from('orders')
-      .select('id, tenant_id, order_number')
-      .eq('contract_token', token)
-      .single();
-
-    if (orderErr || !order) {
-      return { success: false, error: 'Pedido associado ao contrato não foi localizado.' };
-    }
-
-    const signedAt = new Date().toISOString();
-    const clientIp = signerData.ip || 'Dispositivo Cliente Web';
     const userAgent = signerData.userAgent || (typeof navigator !== 'undefined' ? navigator.userAgent : 'Web');
+    const clientIp = signerData.ip || 'Dispositivo Web';
 
-    // 1. Gravar registro de assinatura auditável
-    const { error: sigErr } = await supabase
-      .from('contract_signatures')
-      .insert({
-        order_id: order.id,
-        token,
-        signer_name: signerData.name.trim(),
-        signer_cpf: signerData.cpf.trim(),
-        signer_ip: clientIp,
-        signer_user_agent: userAgent,
-        signature_image: signerData.signatureImage || null,
-        signed_at: signedAt
-      });
+    const { data, error } = await supabase.rpc('submit_contract_signature', {
+      p_token: token,
+      p_signer_name: signerData.name.trim(),
+      p_signer_cpf: signerData.cpf.trim(),
+      p_signer_ip: clientIp,
+      p_signer_user_agent: userAgent,
+      p_signature_image: signerData.signatureImage || null
+    });
 
-    if (sigErr) {
-      console.warn('Erro ao inserir contract_signatures:', sigErr);
+    if (error) {
+      console.error('[customerContractService] Erro na RPC submit_contract_signature:', error);
+      return { success: false, error: error.message };
     }
 
-    // 2. Atualizar pedido para status de assinado
-    const { error: updErr } = await supabase
-      .from('orders')
-      .update({
-        contract_status: 'assinado',
-        contract_signed_at: signedAt,
-        contract_signed_by_name: signerData.name.trim(),
-        contract_signed_by_cpf: signerData.cpf.trim(),
-        contract_signature_ip: clientIp,
-        contract_signature_image: signerData.signatureImage || null,
-        updated_at: signedAt
-      })
-      .eq('id', order.id);
-
-    if (updErr) {
-      return { success: false, error: updErr.message };
+    if (!data || !data.success) {
+      return { success: false, error: data?.error || 'Não foi possível confirmar a assinatura.' };
     }
 
-    // 3. Registrar na timeline de auditoria do pedido
-    try {
-      await supabase.from('order_audit_logs').insert({
-        order_id: order.id,
-        action: 'contract_signed_digitally',
-        details: `Contrato assinado eletronicamente por ${signerData.name.trim()} (CPF ${signerData.cpf.trim()}) via link seguro.`,
-        author: signerData.name.trim()
-      });
-    } catch {
-      // ignore timeline fallback
-    }
-
-    return { success: true };
+    return {
+      success: true,
+      orderId: data.order_id,
+      orderNumber: data.order_number,
+      currentStage: data.current_stage
+    };
   } catch (err: any) {
     return { success: false, error: err?.message || 'Falha ao processar assinatura eletrônica.' };
   }
+}
+
+/**
+ * Confirma formalização contratual física e avança para Medição Fina
+ */
+export async function confirmPhysicalContractOnServer(
+  orderId: string,
+  notes?: string
+): Promise<{ success: boolean; currentStage?: string; error?: string }> {
+  try {
+    const { data, error } = await supabase.rpc('confirm_physical_contract_and_advance', {
+      p_order_id: orderId,
+      p_notes: notes || null
+    });
+
+    if (error) {
+      console.error('[customerContractService] Erro ao confirmar contrato físico:', error);
+      return { success: false, error: error.message };
+    }
+
+    if (!data || !data.success) {
+      return { success: false, error: data?.error || 'Não foi possível confirmar o contrato físico.' };
+    }
+
+    return { success: true, currentStage: data.current_stage };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Erro ao processar confirmação de contrato.' };
+  }
+}
+
+function signerCpfFormatValid(cpf: string): boolean {
+  if (!cpf) return false;
+  const clean = cpf.replace(/\D/g, '');
+  return clean.length === 11;
 }

@@ -14,6 +14,7 @@ import {
 } from '../../lib/erpService';
 import { fetchStoreCommercialSettings, StoreCommercialSettings } from '../../lib/expenseService';
 import { CustomerContractModal } from './CustomerContractModal';
+import { confirmPhysicalContractOnServer } from '../../lib/customerContractService';
 
 interface OrderFolderModalProps {
   order: StoreOrder;
@@ -22,18 +23,20 @@ interface OrderFolderModalProps {
 }
 
 const STAGES: { key: OrderStage; label: string; icon: React.FC<{ className?: string }> }[] = [
-  { key: 'medicao', label: '1. Medição', icon: Ruler },
-  { key: 'projeto_aprovacao', label: '2. Projeto & Aprovação', icon: FileCheck },
-  { key: 'producao', label: '3. Produção', icon: Package },
-  { key: 'montagem', label: '4. Montagem', icon: Wrench },
-  { key: 'entrega_aceite', label: '5. Entrega / Aceite', icon: ShieldCheck },
-  { key: 'concluido', label: '6. Concluído', icon: CheckCircle2 },
+  { key: 'formalizacao_contratual', label: '1. Formalização', icon: FileCheck },
+  { key: 'medicao', label: '2. Medição', icon: Ruler },
+  { key: 'projeto_aprovacao', label: '3. Projeto & Aprovação', icon: FileText },
+  { key: 'producao', label: '4. Produção', icon: Package },
+  { key: 'montagem', label: '5. Montagem', icon: Wrench },
+  { key: 'entrega_aceite', label: '6. Entrega / Aceite', icon: ShieldCheck },
+  { key: 'concluido', label: '7. Concluído', icon: CheckCircle2 },
 ];
 
 export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClose, onOrderUpdated }) => {
   const { updateOrder } = useApp();
 
   // Estados locais para arquivos e confirmações
+  const [contratoFileName, setContratoFileName] = useState(order.contractFile || '');
   const [medicaoFileName, setMedicaoFileName] = useState(order.medicaoFile || '');
   const [projectFileName, setProjectFileName] = useState(order.projectFile || '');
   const [clientApprovedProject, setClientApprovedProject] = useState(order.projectApproved || false);
@@ -120,7 +123,8 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
     setSuccessMessage(`Documento "${file.name}" anexado com sucesso na etapa "${stage}"!`);
 
     // Atualiza states locais conforme a etapa
-    if (stage === 'medicao') setMedicaoFileName(file.name);
+    if (stage === 'contrato') setContratoFileName(file.name);
+    else if (stage === 'medicao') setMedicaoFileName(file.name);
     else if (stage === 'projeto') setProjectFileName(file.name);
     else if (stage === 'producao') setProducaoFileName(file.name);
     else if (stage === 'montagem') setMontagemFotoName(file.name);
@@ -130,6 +134,7 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
     updateOrder(
       order.id,
       {
+        ...(stage === 'contrato' ? { contractFile: file.name } : {}),
         ...(stage === 'medicao' ? { medicaoFile: file.name, medicaoDone: true } : {}),
         ...(stage === 'projeto' ? { projectFile: file.name } : {}),
         ...(stage === 'producao' ? { producaoFile: file.name, producaoDone: true } : {}),
@@ -224,6 +229,71 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
       { hasPendingIssues, pendingNotes: pendingNotesInput },
       hasPendingIssues ? `Pendência registrada: ${pendingNotesInput}` : 'Pendências operacionais resolvidas.',
       'Operador ERP',
+      'Lojista Parceiro'
+    );
+
+    if (onOrderUpdated) onOrderUpdated();
+  };
+
+  // 0. FORMALIZAÇÃO CONTRATUAL
+  const handleConfirmPhysicalContract = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage(null);
+    const targetUuid = order.uuid || order.id;
+
+    const hasDoc = contratoFileName || (order.documents && order.documents.some(d => d.stage === 'contrato' || d.docType === 'contrato' || d.docType === 'contrato_assinado'));
+    if (!hasDoc) {
+      setErrorMessage('Por favor, anexe o arquivo PDF ou foto do contrato físico assinado pelo cliente antes de confirmar.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    const res = await confirmPhysicalContractOnServer(targetUuid, `Contrato assinado fisicamente anexado (${contratoFileName || 'documento'}).`);
+    setIsSubmitting(false);
+
+    if (!res.success) {
+      setErrorMessage(res.error || 'Erro ao confirmar formalização física do contrato.');
+      return;
+    }
+
+    setSuccessMessage('Formalização contratual física confirmada! Pedido liberado para Medição Fina.');
+    updateOrder(
+      order.id,
+      { currentStage: 'medicao', contractStatus: 'assinado_externo', contractFile: contratoFileName },
+      `Contrato assinado fisicamente confirmado e anexado. Pedido liberado para Medição Fina.`,
+      'Formalização Contratual',
+      'Lojista Parceiro'
+    );
+
+    if (onOrderUpdated) onOrderUpdated();
+  };
+
+  const handleAdvanceFromFormalizacao = async () => {
+    setErrorMessage(null);
+    setIsSubmitting(true);
+    const targetUuid = order.uuid || order.id;
+
+    const res = await advanceOrderStageOnServer(
+      targetUuid,
+      'medicao',
+      'Formalização contratual confirmada. Pedido avançado para Medição Fina.',
+      undefined,
+      true
+    );
+
+    setIsSubmitting(false);
+
+    if (!res.success) {
+      setErrorMessage(res.error || 'Erro ao avançar pedido para Medição Fina.');
+      return;
+    }
+
+    setSuccessMessage('Contrato validado! Pedido avançado para a etapa de Medição Fina.');
+    updateOrder(
+      order.id,
+      { currentStage: 'medicao' },
+      'Formalização contratual concluída. Pedido liberado para Medição Fina.',
+      'Formalização Contratual',
       'Lojista Parceiro'
     );
 
@@ -781,7 +851,130 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
                 Preencha as informações essenciais para avançar o status do pedido com persistência no PostgreSQL.
               </p>
 
-              {/* ETAPA 1: MEDIÇÃO */}
+              {/* ETAPA 1: FORMALIZAÇÃO CONTRATUAL */}
+              {order.currentStage === 'formalizacao_contratual' && (
+                <div className="space-y-5 animate-in fade-in">
+                  {/* Status Banner */}
+                  <div className={`p-4 rounded-2xl border flex items-start space-x-3.5 ${
+                    order.contractStatus === 'assinado' || order.contractStatus === 'assinado_eletronico'
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-950'
+                      : order.contractStatus === 'assinado_externo'
+                      ? 'bg-blue-50 border-blue-200 text-blue-950'
+                      : 'bg-amber-50 border-amber-200 text-amber-950'
+                  }`}>
+                    {order.contractStatus === 'assinado' || order.contractStatus === 'assinado_eletronico' || order.contractStatus === 'assinado_externo' ? (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    ) : (
+                      <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    )}
+                    <div className="space-y-1 text-xs">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-extrabold uppercase tracking-wider text-[11px]">
+                          Situação do Contrato:
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                          order.contractStatus === 'assinado' || order.contractStatus === 'assinado_eletronico'
+                            ? 'bg-emerald-200 text-emerald-900'
+                            : order.contractStatus === 'assinado_externo'
+                            ? 'bg-blue-200 text-blue-900'
+                            : 'bg-amber-200 text-amber-900'
+                        }`}>
+                          {order.contractStatus === 'assinado' || order.contractStatus === 'assinado_eletronico'
+                            ? 'Assinado Eletronicamente'
+                            : order.contractStatus === 'assinado_externo'
+                            ? 'Assinado Fisicamente'
+                            : 'Aguardando Formalização'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] leading-relaxed opacity-90">
+                        {order.contractStatus === 'assinado' || order.contractStatus === 'assinado_eletronico'
+                          ? `Contrato assinado eletronicamente por ${order.contractSignedByName || order.clientName} (CPF ${order.contractSignedByCpf || 'conferido'}) em ${order.contractSignedAt ? new Date(order.contractSignedAt).toLocaleString('pt-BR') : 'recente'}. Pedido apto para Medição Fina.`
+                          : order.contractStatus === 'assinado_externo'
+                          ? 'Contrato assinado em meio físico validado e anexado à pasta digital. Pedido apto para Medição Fina.'
+                          : 'O contrato comercial precisa ser assinado pelo cliente (digitalmente via Link/QR Code) ou fisicamente (impresso e anexado) para liberar a etapa de Medição Fina.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Ações de Formalização */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Opção 1: Assinatura Eletrônica (Recomendada) */}
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between space-y-3">
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 block mb-1">
+                          Opção A (Recomendada)
+                        </span>
+                        <h4 className="text-xs font-bold text-slate-900">Emissão & Assinatura Digital</h4>
+                        <p className="text-[11px] text-slate-500 mt-1">
+                          Gere o PDF com QR Code ou envie o link seguro para o cliente assinar na tela do celular.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsContractModalOpen(true)}
+                        className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-sm transition-colors cursor-pointer"
+                      >
+                        <FileText className="w-4 h-4" />
+                        <span>Abrir Emissão / QR Code / Link</span>
+                      </button>
+                    </div>
+
+                    {/* Opção 2: Contrato Físico Impresso */}
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between space-y-3">
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-blue-700 block mb-1">
+                          Opção B (Física)
+                        </span>
+                        <h4 className="text-xs font-bold text-slate-900">Assinatura em Papel</h4>
+                        <p className="text-[11px] text-slate-500 mt-1">
+                          Imprima o contrato gerado, colha a assinatura manual e anexe o arquivo escaneado ou foto.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => triggerFileInput('contrato')}
+                        className="w-full py-2.5 px-3 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs flex items-center justify-center space-x-1.5 transition-colors cursor-pointer"
+                      >
+                        <Upload className="w-4 h-4" />
+                        <span>{contratoFileName ? 'Substituir PDF Assinado' : 'Anexar Contrato Assinado'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Confirmação Física ou Avanço Manual */}
+                  {contratoFileName && order.contractStatus !== 'assinado' && order.contractStatus !== 'assinado_eletronico' && (
+                    <form onSubmit={handleConfirmPhysicalContract} className="p-4 rounded-2xl bg-indigo-50 border border-indigo-200 space-y-3">
+                      <div className="flex items-center space-x-2 text-indigo-900 text-xs font-bold">
+                        <Check className="w-4 h-4 text-indigo-600" />
+                        <span>Arquivo de Contrato Anexado: <strong>{contratoFileName}</strong></span>
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center space-x-2 cursor-pointer"
+                      >
+                        <ShieldCheck className="w-4 h-4" />
+                        <span>Confirmar Formalização Física & Liberar Medição Fina →</span>
+                      </button>
+                    </form>
+                  )}
+
+                  {/* Se já foi assinado eletronicamente ou externamente, botão direto para avançar */}
+                  {(order.contractStatus === 'assinado' || order.contractStatus === 'assinado_eletronico' || order.contractStatus === 'assinado_externo') && (
+                    <button
+                      type="button"
+                      onClick={handleAdvanceFromFormalizacao}
+                      disabled={isSubmitting}
+                      className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center justify-center space-x-2 cursor-pointer"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Contrato Formalizado: Avançar para Medição Fina →</span>
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* ETAPA 2: MEDIÇÃO */}
               {order.currentStage === 'medicao' && (
                 <form onSubmit={handleSaveMedicao} className="space-y-4">
                   <div>

@@ -487,6 +487,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         globalNextStage = nextStage;
 
         const stageNamesMap: Record<OrderStage, string> = {
+          formalizacao_contratual: 'Formalização Contratual',
           medicao: 'Medição Técnica',
           projeto_aprovacao: 'Projeto & Aprovação',
           producao: 'Produção',
