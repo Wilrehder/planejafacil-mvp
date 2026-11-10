@@ -387,7 +387,13 @@ export const MerchantERP: React.FC<MerchantERPProps> = ({ merchantPlan, storeId 
       {/* MODAL DA PASTA DIGITAL DO PEDIDO */}
       {(activeModalOrder || selectedOrderForFolder) && (
         <OrderFolderModal
-          order={activeModalOrder || selectedOrderForFolder!}
+          order={
+            (liveOrders.find((o) => 
+              o.id === (activeModalOrder || selectedOrderForFolder)?.id || 
+              o.uuid === (activeModalOrder || selectedOrderForFolder)?.uuid ||
+              o.orderNumber === (activeModalOrder || selectedOrderForFolder)?.orderNumber
+            ) || activeModalOrder || selectedOrderForFolder)!
+          }
           onClose={() => {
             setActiveModalOrder(null);
             setSelectedOrderForFolder(null);
