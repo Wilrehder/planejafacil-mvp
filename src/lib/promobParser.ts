@@ -3,6 +3,15 @@
  * Suporta execução universal (tanto no navegador quanto no Node.js/Vitest).
  */
 
+export interface PromobItem {
+  id?: string;
+  description: string;
+  quantity: number;
+  dimensions?: string;
+  group?: string;
+  price?: number;
+}
+
 export interface PromobProjectData {
   projectName?: string;
   clientName?: string;
@@ -13,6 +22,7 @@ export interface PromobProjectData {
   factoryOrderCost: number; // Custo de fábrica da loja (tag <ORDER VALUE="...">)
   tablePrice: number;      // Valor de tabela (tag <TOTALPRICES TABLE="...">)
   itemsCount: number;
+  items?: PromobItem[];
 }
 
 export function parsePromobXML(xmlContent: string): PromobProjectData {
@@ -58,26 +68,54 @@ export function parsePromobXML(xmlContent: string): PromobProjectData {
   const clientEmail = extractCustomerData('email') || extractCustomerData('email_Private_0');
   const environmentName = extractCustomerData('Environment');
 
-  // 3. Extrair Ambientes (<AMBIENT ... DESCRIPTION="...">)
+  // 3. Extrair Ambientes e Nome do Projeto
   let projectName = '';
   const ambientMatch = xmlContent.match(/<AMBIENT[^>]*\bDESCRIPTION=["']([^"']+)["']/i);
-  if (ambientMatch) {
+  if (ambientMatch && ambientMatch[1].trim()) {
     projectName = ambientMatch[1].trim();
+  } else {
+    const projectTagMatch = xmlContent.match(/<PROJECT[^>]*\bNAME=["']([^"']+)["']/i);
+    if (projectTagMatch && projectTagMatch[1].trim()) {
+      projectName = projectTagMatch[1].trim();
+    } else {
+      const dataProject = extractCustomerData('projeto') || extractCustomerData('Environment');
+      if (dataProject) {
+        projectName = dataProject;
+      }
+    }
+  }
+
+  // 4. Extrair Itens Reais do Projeto (para listagem no contrato comercial)
+  const items: PromobItem[] = [];
+  const itemRegex = /<ITEM\b[^>]*\bDESCRIPTION=["']([^"']+)["'][^>]*\bQUANTITY=["']([^"']+)["'](?:[^>]*\bTEXTDIMENSION=["']([^"']*)["'])?/gi;
+  let match: RegExpExecArray | null;
+  while ((match = itemRegex.exec(xmlContent)) !== null && items.length < 50) {
+    const desc = match[1]?.trim();
+    const qty = parseInt(match[2], 10) || 1;
+    const dims = match[3]?.trim();
+    if (desc && desc.length > 2) {
+      items.push({
+        description: desc,
+        quantity: qty,
+        dimensions: dims,
+      });
+    }
   }
 
   // Contagem de itens
   const itemMatches = xmlContent.match(/<ITEM\b/gi);
-  const itemsCount = itemMatches ? itemMatches.length : 0;
+  const itemsCount = itemMatches ? itemMatches.length : items.length;
 
   return {
-    projectName: projectName || environmentName || 'Projeto Promob',
+    projectName: projectName || environmentName || '',
     clientName,
     clientPhone,
     clientEmail,
-    environmentName: environmentName || projectName,
+    environmentName: environmentName || projectName || '',
     budgetValue: Math.round(budgetValue * 100) / 100,
     factoryOrderCost: Math.round(factoryOrderCost * 100) / 100,
     tablePrice: Math.round(tablePrice * 100) / 100,
     itemsCount,
+    items,
   };
 }

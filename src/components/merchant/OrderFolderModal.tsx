@@ -13,6 +13,7 @@ import {
   updateOrderPendencyOnServer
 } from '../../lib/erpService';
 import { fetchStoreCommercialSettings, StoreCommercialSettings } from '../../lib/expenseService';
+import { CustomerContractModal } from './CustomerContractModal';
 
 interface OrderFolderModalProps {
   order: StoreOrder;
@@ -84,6 +85,7 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
   // Estados de submissão e erros
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingStage, setUploadingStage] = useState<string | null>(null);
+  const [isContractModalOpen, setIsContractModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -740,13 +742,23 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
             {/* PASTA DIGITAL DO PEDIDO */}
             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-blue-600" />
-                  Pasta Digital do Pedido (Storage Seguro)
-                </h3>
-                <span className="text-[10px] text-slate-400 font-medium">
-                  Bucket: order-documents
-                </span>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-blue-600" />
+                    Pasta Digital do Pedido (Storage Seguro)
+                  </h3>
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    Bucket: order-documents
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsContractModalOpen(true)}
+                  className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-bold flex items-center space-x-1.5 transition-colors cursor-pointer"
+                >
+                  <FileCheck className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Gerar / Assinar Contrato Comercial</span>
+                </button>
               </div>
               
               <div className="grid grid-cols-2 gap-3">
@@ -1106,6 +1118,18 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
             Fechar Pasta
           </button>
         </div>
+
+        {/* Modal do Contrato Comercial do Cliente */}
+        {isContractModalOpen && (
+          <CustomerContractModal
+            isOpen={isContractModalOpen}
+            onClose={() => setIsContractModalOpen(false)}
+            order={order}
+            onContractIssued={() => {
+              onOrderUpdated?.();
+            }}
+          />
+        )}
 
       </div>
     </div>

@@ -13,6 +13,7 @@ import { AppProvider, useApp } from './context/AppContext';
 import { LoginModal } from './components/auth/LoginModal';
 import { MustChangePasswordModal } from './components/auth/MustChangePasswordModal';
 import { PainelLoginPage } from './components/auth/PainelLoginPage';
+import { ContractSigningView } from './components/consumer/ContractSigningView';
 
 const isPainelDomainOrPath = (): boolean => {
   if (typeof window === 'undefined') return false;
@@ -39,10 +40,28 @@ const MainContent: React.FC = () => {
   } = useApp();
 
   const [isPainelEnv, setIsPainelEnv] = useState<boolean>(isPainelDomainOrPath());
+  const [signToken, setSignToken] = useState<string | null>(null);
 
   useEffect(() => {
     setIsPainelEnv(isPainelDomainOrPath());
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('sign_token');
+      if (token) setSignToken(token);
+    }
   }, []);
+
+  // Se o cliente estiver acessando o link seguro de assinatura digital do contrato:
+  if (signToken) {
+    return (
+      <ContractSigningView 
+        token={signToken} 
+        onClose={() => { 
+          window.location.href = window.location.pathname; 
+        }} 
+      />
+    );
+  }
 
   // Se o usuário acessar via painel.useplanejafacil.com ou /painel ou /login e não estiver autenticado:
   if (isPainelEnv && !currentUser && role === 'consumer') {

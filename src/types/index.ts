@@ -101,6 +101,7 @@ export interface StoreOrder {
   clientName: string;
   phone: string;
   clientCpf?: string;
+  clientRg?: string;
   billingAddress?: string;
   installationAddress?: string;
   desiredDeadline?: string;
@@ -120,6 +121,19 @@ export interface StoreOrder {
   createdAt: string;
   updatedAt?: string;
   storeId: string;
+
+  // Dados Financeiros e Contrato
+  paymentAllocations?: PaymentAllocation[];
+  commercialProposal?: CommercialProposal;
+  orderNotes?: string;
+  contractStatus?: 'rascunho' | 'emitido' | 'assinado';
+  contractToken?: string;
+  contractSignedAt?: string;
+  contractSignedByName?: string;
+  contractSignedByCpf?: string;
+  contractSignatureIp?: string;
+  contractSignatureImage?: string;
+  contractPdfUrl?: string;
 
   // Pasta Digital de Documentos (6 categorias genéricas)
   contractFile?: string; // 1. Contrato
@@ -141,6 +155,47 @@ export interface StoreOrder {
 
   // Log de Auditoria
   timeline: OrderAuditLog[];
+}
+
+export interface PaymentAllocation {
+  id: string;
+  method: 'pix' | 'cartao_vista' | 'cartao_parcelado' | 'financeira' | string;
+  methodLabel: string;
+  baseAmount: number; // Valor do orçamento atribuído a esta modalidade
+  installments: number; // 1 para à vista, 2..48 para parcelado
+  feePercentage: number; // Taxa de juros / operadora incidente
+  feeAmount: number; // Valor dos juros calculados exclusivamente sobre baseAmount
+  totalAmountWithFee: number; // baseAmount + feeAmount
+  installmentValue: number; // totalAmountWithFee / installments
+  partnerId?: string;
+  partnerName?: string; // Nome da financeira parceira (se aplicável)
+  details?: string;
+  surchargePct: number;
+  surchargeAmount: number;
+  totalAmount: number;
+}
+
+export type Order = StoreOrder;
+
+export interface ContractClause {
+  id: string;
+  number: string; // ex: "CLÁUSULA PRIMEIRA"
+  title: string;  // ex: "DAS DECLARAÇÕES E CIÊNCIA SOBRE O CONTRATO"
+  text: string;   // conteúdo dos parágrafos
+}
+
+export interface StoreContractTemplate {
+  tenantId: string;
+  companyName: string;
+  tradeName?: string;
+  cnpj?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  logoUrl?: string;
+  defaultDeliveryDays?: number;
+  clauses?: ContractClause[];
+  generalConditions?: string;
 }
 
 export interface CommercialProposal {
@@ -181,6 +236,10 @@ export interface CommercialProposal {
   transactionFeeAmount?: number;
   partnerName?: string;
   calculatedAt?: string;
+  // Suporte a Distribuição Multi-Modalidades de Pagamento
+  paymentAllocations?: PaymentAllocation[];
+  notes?: string;
+  observations?: string;
 }
 
 export interface Lead {
@@ -193,10 +252,14 @@ export interface Lead {
   state: string;
   cep: string;
   cpf?: string;
+  rg?: string;
   birthDate?: string;
   billingAddress?: string;
   installationAddress?: string;
   desiredDeadline?: string;
+  contractStatus?: string;
+  contractToken?: string;
+  contractSignedAt?: string;
   environment: string; // ex: "Cozinha (3.5m²), Quarto Casal (12m²)"
   qualityTier?: string;
   finishPattern?: string;
@@ -600,6 +663,35 @@ export interface PlanModulesConfig {
   digital_folder: boolean;
   promob: boolean;
   [key: string]: boolean;
+}
+
+/**
+ * Validação rigorosa dos campos obrigatórios do cliente para liberação da proposta e futuro contrato.
+ */
+export function isCustomerRegistrationComplete(lead: Partial<Lead> | null | undefined): {
+  isComplete: boolean;
+  missingFields: string[];
+} {
+  if (!lead) {
+    return {
+      isComplete: false,
+      missingFields: ['Nome', 'Telefone', 'CPF', 'E-mail', 'Endereço de Cobrança', 'Endereço de Instalação', 'Prazo']
+    };
+  }
+  
+  const missing: string[] = [];
+  if (!lead.name?.trim()) missing.push('Nome do Cliente');
+  if (!lead.cpf?.trim()) missing.push('CPF do Cliente');
+  if (!lead.phone?.trim() && !lead.whatsapp?.trim()) missing.push('Telefone / WhatsApp');
+  if (!lead.email?.trim()) missing.push('E-mail');
+  if (!lead.billingAddress?.trim()) missing.push('Endereço de Cobrança / Moradia');
+  if (!lead.installationAddress?.trim()) missing.push('Endereço de Instalação');
+  if (!lead.desiredDeadline?.trim()) missing.push('Prazo Desejado');
+
+  return {
+    isComplete: missing.length === 0,
+    missingFields: missing,
+  };
 }
 
 export interface SaaSPlanConfig {

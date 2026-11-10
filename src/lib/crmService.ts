@@ -379,6 +379,10 @@ export async function updateLeadRegistrationData(
   assignmentId: string,
   data: {
     cpf?: string;
+    rg?: string;
+    name?: string;
+    phone?: string;
+    email?: string;
     birthDate?: string;
     billingAddress?: string;
     installationAddress?: string;
@@ -389,6 +393,10 @@ export async function updateLeadRegistrationData(
     const { data: res, error } = await supabase.rpc('update_lead_registration_data', {
       p_assignment_id: assignmentId,
       p_cpf: data.cpf || null,
+      p_rg: data.rg || null,
+      p_name: data.name || null,
+      p_phone: data.phone || null,
+      p_email: data.email || null,
       p_birth_date: data.birthDate || null,
       p_billing_address: data.billingAddress || null,
       p_installation_address: data.installationAddress || null,

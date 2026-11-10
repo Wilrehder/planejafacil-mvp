@@ -32,10 +32,11 @@ import {
   Calendar,
   MapPin,
   Clock,
-  Save
+  Save,
+  Lock
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { LeadStatus, CommercialProposal } from '../../types';
+import { LeadStatus, CommercialProposal, Order, isCustomerRegistrationComplete } from '../../types';
 import { 
   uploadAndAttachProposal, 
   addLeadNoteOnServer, 
@@ -50,6 +51,7 @@ import { getOrderDocumentSignedUrl } from '../../lib/erpService';
 import { parsePromobXML, PromobProjectData } from '../../lib/promobParser';
 import { PromobNegotiationModal } from './PromobNegotiationModal';
 import { PromobViewerModal } from './PromobViewerModal';
+import { CustomerContractModal } from './CustomerContractModal';
 import { updateLeadConventionalItems } from '../../lib/conventionalFurnitureService';
 
 interface LeadDetailDrawerProps {
@@ -65,15 +67,23 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
   const [isUploading, setIsUploading] = useState(false);
   const [recommendationNotice, setRecommendationNotice] = useState<string | null>(null);
 
-  // Estados dos Dados Cadastrais do Cliente
+  // Estados dos Dados Cadastrais do Cliente (Ficha Completa)
   const [isEditingRegistration, setIsEditingRegistration] = useState(false);
+  const [regName, setRegName] = useState('');
+  const [regPhone, setRegPhone] = useState('');
+  const [regEmail, setRegEmail] = useState('');
   const [regCpf, setRegCpf] = useState('');
+  const [regRg, setRegRg] = useState('');
   const [regBirthDate, setRegBirthDate] = useState('');
   const [regBillingAddress, setRegBillingAddress] = useState('');
   const [regInstallationAddress, setRegInstallationAddress] = useState('');
   const [regDesiredDays, setRegDesiredDays] = useState('');
   const [isSavingRegistration, setIsSavingRegistration] = useState(false);
   const [registrationMessage, setRegistrationMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Estado do Modal de Contrato Comercial
+  const [contractModalOrder, setContractModalOrder] = useState<Partial<Order> | null>(null);
+  const [isContractModalOpen, setIsContractModalOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -89,7 +99,11 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
 
   useEffect(() => {
     if (selectedLeadForDetail) {
+      setRegName(selectedLeadForDetail.name || '');
+      setRegPhone(selectedLeadForDetail.phone || selectedLeadForDetail.whatsapp || '');
+      setRegEmail(selectedLeadForDetail.email || '');
       setRegCpf(selectedLeadForDetail.cpf || '');
+      setRegRg(selectedLeadForDetail.rg || '');
       setRegBirthDate(selectedLeadForDetail.birthDate || '');
       setRegBillingAddress(selectedLeadForDetail.billingAddress || '');
       setRegInstallationAddress(selectedLeadForDetail.installationAddress || '');
@@ -101,7 +115,12 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
     }
   }, [
     selectedLeadForDetail?.id, 
+    selectedLeadForDetail?.name,
+    selectedLeadForDetail?.phone,
+    selectedLeadForDetail?.whatsapp,
+    selectedLeadForDetail?.email,
     selectedLeadForDetail?.cpf, 
+    selectedLeadForDetail?.rg,
     selectedLeadForDetail?.birthDate, 
     selectedLeadForDetail?.billingAddress, 
     selectedLeadForDetail?.installationAddress, 
@@ -114,13 +133,19 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
   const isPlatformLead = !lead.isExternal && lead.source !== 'instagram' && lead.source !== 'google' && lead.source !== 'indicacao' && lead.source !== 'balcao';
   const assignmentId = lead.assignmentId || lead.id;
 
-  const hasAllRegistrationData = Boolean(
-    lead.cpf?.trim() &&
-    lead.birthDate?.trim() &&
-    lead.billingAddress?.trim() &&
-    lead.installationAddress?.trim() &&
-    (regDesiredDays.trim() || lead.desiredDeadline?.trim())
-  );
+  const registrationValidation = isCustomerRegistrationComplete({
+    name: lead.name,
+    phone: lead.phone,
+    whatsapp: lead.whatsapp,
+    email: lead.email,
+    cpf: lead.cpf,
+    rg: lead.rg,
+    billingAddress: lead.billingAddress,
+    installationAddress: lead.installationAddress,
+    desiredDeadline: lead.desiredDeadline,
+  });
+
+  const hasAllRegistrationData = registrationValidation.isComplete;
 
   const handleSaveRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,7 +156,11 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
 
     try {
       const res = await updateLeadRegistrationData(assignmentId, {
+        name: regName.trim(),
+        phone: regPhone.trim(),
+        email: regEmail.trim(),
         cpf: regCpf.trim(),
+        rg: regRg.trim(),
         birthDate: regBirthDate.trim(),
         billingAddress: regBillingAddress.trim(),
         installationAddress: regInstallationAddress.trim(),
@@ -144,8 +173,13 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
         return;
       }
 
-      const updatedFields = {
+      const updatedFields: any = {
+        name: regName.trim(),
+        phone: regPhone.trim(),
+        whatsapp: regPhone.trim(),
+        email: regEmail.trim(),
         cpf: regCpf.trim(),
+        rg: regRg.trim(),
         birthDate: regBirthDate.trim(),
         billingAddress: regBillingAddress.trim(),
         installationAddress: regInstallationAddress.trim(),
@@ -281,6 +315,13 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!hasAllRegistrationData) {
+      setValidationError(`⚠️ Bloqueio de Orçamento: Complete o cadastro do cliente antes de criar o orçamento. Pendências: ${registrationValidation.missingFields.join(', ')}.`);
+      setIsEditingRegistration(true);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     if (file.size > 15 * 1024 * 1024) {
       setValidationError('O arquivo não pode exceder 15MB.');
       return;
@@ -361,7 +402,28 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
 
       if (targetStatus === 'convertido') {
         const orderFinalValue = lead.commercialProposal?.finalOrderTotal || lead.estimatedMax || Math.round(((lead.estimatedMin || 15000) + (lead.estimatedMax || 25000)) / 2);
-        await convertLeadToOrderOnServer(assignmentId, orderFinalValue);
+        const convRes = await convertLeadToOrderOnServer(assignmentId, orderFinalValue);
+        if (convRes.success) {
+          setContractModalOrder({
+            id: convRes.orderId,
+            orderNumber: convRes.orderNumber,
+            clientName: lead.name,
+            phone: lead.phone,
+            clientCpf: lead.cpf,
+            clientRg: lead.rg,
+            billingAddress: lead.billingAddress,
+            installationAddress: lead.installationAddress,
+            environment: lead.environment,
+            totalValue: convRes.totalValue || orderFinalValue,
+            contractedValue: convRes.totalValue || orderFinalValue,
+            contractToken: (convRes as any).contractToken,
+            contractStatus: 'rascunho',
+            storeId: lead.assignedStoreId,
+            commercialProposal: lead.commercialProposal,
+            paymentAllocations: lead.commercialProposal?.paymentAllocations,
+          });
+          setIsContractModalOpen(true);
+        }
       }
 
       updateLeadStatus(lead.id, targetStatus);
@@ -392,7 +454,28 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
 
       if (decision === 'convertido') {
         const orderFinalValue = lead.commercialProposal?.finalOrderTotal || lead.estimatedMax || Math.round(((lead.estimatedMin || 15000) + (lead.estimatedMax || 25000)) / 2);
-        await convertLeadToOrderOnServer(assignmentId, orderFinalValue);
+        const convRes = await convertLeadToOrderOnServer(assignmentId, orderFinalValue);
+        if (convRes.success) {
+          setContractModalOrder({
+            id: convRes.orderId,
+            orderNumber: convRes.orderNumber,
+            clientName: lead.name,
+            phone: lead.phone,
+            clientCpf: lead.cpf,
+            clientRg: lead.rg,
+            billingAddress: lead.billingAddress,
+            installationAddress: lead.installationAddress,
+            environment: lead.environment,
+            totalValue: convRes.totalValue || orderFinalValue,
+            contractedValue: convRes.totalValue || orderFinalValue,
+            contractToken: (convRes as any).contractToken,
+            contractStatus: 'rascunho',
+            storeId: lead.assignedStoreId,
+            commercialProposal: lead.commercialProposal,
+            paymentAllocations: lead.commercialProposal?.paymentAllocations,
+          });
+          setIsContractModalOpen(true);
+        }
       }
 
       const updates = {
@@ -599,28 +682,87 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
             {/* COLUNA DIREITA */}
             <div className="space-y-5">
               
-              {/* Se o lead AINDA NÃO tem proposta: APENAS o Botão Verde Minimalista de Criar Orçamento */}
+              {/* Se o lead AINDA NÃO tem proposta: Botão Verde Criar Orçamento (Bloqueado se cadastro incompleto) */}
               {!lead.commercialProposal && !lead.attachmentName ? (
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                  className="w-full py-4 px-6 rounded-2xl bg-[#439346] hover:bg-[#387F3B] text-white font-black text-sm flex items-center justify-center space-x-2 shadow-sm hover:shadow-md transition-all cursor-pointer disabled:opacity-50"
-                >
-                  {isUploading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Processando Arquivo...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="w-4 h-4 stroke-[3]" />
-                      <span>Criar Orçamento</span>
-                    </>
-                  )}
-                </button>
+                hasAllRegistrationData ? (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="w-full py-4 px-6 rounded-2xl bg-[#439346] hover:bg-[#387F3B] text-white font-black text-sm flex items-center justify-center space-x-2 shadow-sm hover:shadow-md transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Processando Arquivo...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 stroke-[3]" />
+                        <span>Criar Orçamento</span>
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <div className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingRegistration(true)}
+                      className="w-full py-4 px-6 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-500 font-black text-sm flex items-center justify-center space-x-2 border-2 border-dashed border-slate-300 transition-all cursor-pointer"
+                      title="Complete os dados cadastrais obrigatórios do cliente para liberar a criação de orçamento"
+                    >
+                      <Lock className="w-4 h-4 text-slate-400" />
+                      <span>Criar Orçamento (Bloqueado)</span>
+                    </button>
+                    <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 text-xs flex items-start space-x-2.5">
+                      <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <span className="font-extrabold block">Cadastro Incompleto para Orçamento</span>
+                        <p className="text-[11px] text-amber-800 leading-relaxed">
+                          Para liberar o orçamento comercial e assegurar o futuro contrato, preencha: <strong className="text-amber-950">{registrationValidation.missingFields.join(', ')}</strong>.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingRegistration(true)}
+                          className="text-[11px] font-black text-amber-900 underline hover:text-amber-950 cursor-pointer pt-0.5 inline-block"
+                        >
+                          Completar Ficha Cadastral Agora →
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
               ) : (
                 <>
+                  {/* Botão de Visualização / Emissão de Contrato Comercial */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setContractModalOrder({
+                        id: lead.orderId || `ord_${lead.id}`,
+                        orderNumber: lead.orderNumber || '#PED-1000',
+                        clientName: lead.name,
+                        phone: lead.phone,
+                        clientCpf: lead.cpf,
+                        clientRg: lead.rg,
+                        billingAddress: lead.billingAddress,
+                        installationAddress: lead.installationAddress,
+                        environment: lead.environment,
+                        totalValue: lead.commercialProposal?.finalOrderTotal || lead.estimatedMax || 0,
+                        contractedValue: lead.commercialProposal?.finalOrderTotal || lead.estimatedMax || 0,
+                        contractToken: lead.contractToken,
+                        contractStatus: (lead.contractStatus as any) || 'rascunho',
+                        storeId: lead.assignedStoreId,
+                        commercialProposal: lead.commercialProposal,
+                        paymentAllocations: lead.commercialProposal?.paymentAllocations,
+                      });
+                      setIsContractModalOpen(true);
+                    }}
+                    className="w-full py-3 px-4 rounded-2xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-900 font-bold text-xs flex items-center justify-center space-x-2 transition-colors cursor-pointer"
+                  >
+                    <FileSignature className="w-4 h-4 text-indigo-600" />
+                    <span>Visualizar / Emitir Contrato Comercial</span>
+                  </button>
                   {/* Composição Consolidada do Pedido (Promob + Móveis Convencionais + Taxa de Pagamento) */}
                   {lead.commercialProposal && (
                     <div className="bg-gradient-to-br from-slate-900 to-[#1B2B48] text-white p-4 sm:p-5 rounded-2xl shadow-md space-y-3.5 border border-slate-800 animate-in fade-in">
@@ -943,16 +1085,20 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
         />
       )}
 
-      {/* Modal Popover de Edição Cadastral do Cliente */}
+      {/* Modal Ficha Completa de Cadastro do Cliente */}
       {isEditingRegistration && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-150 flex flex-col">
-            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
-              <div className="flex items-center space-x-2">
-                <FileSignature className="w-4 h-4 text-[#439346]" />
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-150 flex flex-col max-h-[92vh]">
+            <div className="px-6 py-4 bg-[#1B2B48] text-white flex items-center justify-between border-b border-slate-800">
+              <div className="flex items-center space-x-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold">
+                  <FileSignature className="w-5 h-5" />
+                </div>
                 <div>
-                  <h3 className="text-sm font-black text-white">Dados Cadastrais do Cliente</h3>
-                  <p className="text-[11px] text-slate-400">{lead.name}</p>
+                  <h3 className="text-sm font-black text-white">Ficha Cadastral Completa do Cliente</h3>
+                  <p className="text-[11px] text-slate-300">
+                    {hasAllRegistrationData ? '✓ Cadastro Completo para Contrato' : `Pendências: ${registrationValidation.missingFields.length} campos restantes`}
+                  </p>
                 </div>
               </div>
               <button
@@ -967,91 +1113,189 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
               </button>
             </div>
 
-            <form onSubmit={handleSaveRegistration} className="p-6 space-y-4 text-xs text-slate-800">
+            <form onSubmit={handleSaveRegistration} className="p-6 space-y-4 text-xs text-slate-800 overflow-y-auto flex-1">
               {registrationMessage && (
-                <div className={`p-2.5 rounded-xl text-xs font-semibold ${
+                <div className={`p-3 rounded-2xl text-xs font-semibold ${
                   registrationMessage.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'
                 }`}>
                   {registrationMessage.text}
                 </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Informações Pessoais */}
+              <div className="space-y-3">
+                <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 block">
+                  Identificação do Contratante
+                </span>
+
                 <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-500 block mb-1">CPF do Cliente</label>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-[10px] uppercase font-bold text-slate-600">Nome Completo *</label>
+                    {!regName.trim() && <span className="text-[10px] text-rose-600 font-bold">Obrigatório</span>}
+                  </div>
                   <input
                     type="text"
-                    value={regCpf}
-                    onChange={(e) => setRegCpf(e.target.value)}
-                    placeholder="000.000.000-00"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-[#439346] outline-none"
+                    required
+                    value={regName}
+                    onChange={(e) => setRegName(e.target.value)}
+                    placeholder="Nome completo do cliente"
+                    className={`w-full px-3 py-2.5 rounded-xl border text-xs font-medium outline-none ${
+                      !regName.trim() ? 'border-rose-300 bg-rose-50/30 focus:border-rose-500' : 'border-slate-300 bg-white focus:border-[#439346]'
+                    }`}
                   />
                 </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-600">WhatsApp / Telefone *</label>
+                      {!regPhone.trim() && <span className="text-[10px] text-rose-600 font-bold">Obrigatório</span>}
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={regPhone}
+                      onChange={(e) => setRegPhone(e.target.value)}
+                      placeholder="(00) 00000-0000"
+                      className={`w-full px-3 py-2.5 rounded-xl border text-xs font-medium outline-none ${
+                        !regPhone.trim() ? 'border-rose-300 bg-rose-50/30 focus:border-rose-500' : 'border-slate-300 bg-white focus:border-[#439346]'
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-600">E-mail *</label>
+                      {!regEmail.trim() && <span className="text-[10px] text-rose-600 font-bold">Obrigatório</span>}
+                    </div>
+                    <input
+                      type="email"
+                      required
+                      value={regEmail}
+                      onChange={(e) => setRegEmail(e.target.value)}
+                      placeholder="cliente@email.com"
+                      className={`w-full px-3 py-2.5 rounded-xl border text-xs font-medium outline-none ${
+                        !regEmail.trim() ? 'border-rose-300 bg-rose-50/30 focus:border-rose-500' : 'border-slate-300 bg-white focus:border-[#439346]'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-600">CPF do Cliente *</label>
+                      {!regCpf.trim() && <span className="text-[10px] text-rose-600 font-bold">Obrigatório</span>}
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={regCpf}
+                      onChange={(e) => setRegCpf(e.target.value)}
+                      placeholder="000.000.000-00"
+                      className={`w-full px-3 py-2.5 rounded-xl border text-xs font-medium outline-none ${
+                        !regCpf.trim() ? 'border-rose-300 bg-rose-50/30 focus:border-rose-500' : 'border-slate-300 bg-white focus:border-[#439346]'
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-slate-600 block mb-1">RG do Cliente</label>
+                    <input
+                      type="text"
+                      value={regRg}
+                      onChange={(e) => setRegRg(e.target.value)}
+                      placeholder="00.000.000-0"
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-[#439346] outline-none bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-slate-600 block mb-1">Data de Nascimento</label>
+                    <input
+                      type="date"
+                      value={regBirthDate}
+                      onChange={(e) => setRegBirthDate(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-[#439346] outline-none bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Endereços e Prazos */}
+              <div className="space-y-3 pt-3 border-t border-slate-100">
+                <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 block">
+                  Endereços & Prazos Contratuais
+                </span>
+
                 <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-500 block mb-1">Data de Nascimento</label>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-[10px] uppercase font-bold text-slate-600">Endereço de Cobrança / Moradia *</label>
+                    {!regBillingAddress.trim() && <span className="text-[10px] text-rose-600 font-bold">Obrigatório</span>}
+                  </div>
                   <input
-                    type="date"
-                    value={regBirthDate}
-                    onChange={(e) => setRegBirthDate(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-[#439346] outline-none"
+                    type="text"
+                    required
+                    value={regBillingAddress}
+                    onChange={(e) => setRegBillingAddress(e.target.value)}
+                    placeholder="Rua, número, complemento, bairro, cidade - UF"
+                    className={`w-full px-3 py-2.5 rounded-xl border text-xs font-medium outline-none ${
+                      !regBillingAddress.trim() ? 'border-rose-300 bg-rose-50/30 focus:border-rose-500' : 'border-slate-300 bg-white focus:border-[#439346]'
+                    }`}
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="text-[10px] uppercase font-bold text-slate-500 block mb-1">Endereço de Cobrança / Moradia</label>
-                <input
-                  type="text"
-                  value={regBillingAddress}
-                  onChange={(e) => setRegBillingAddress(e.target.value)}
-                  placeholder="Rua, número, complemento, bairro, cidade - UF"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-[#439346] outline-none"
-                />
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="text-[10px] uppercase font-bold text-slate-500">Endereço de Instalação</label>
-                  {regBillingAddress && (
-                    <button
-                      type="button"
-                      onClick={() => setRegInstallationAddress(regBillingAddress)}
-                      className="text-[10px] text-blue-600 hover:text-blue-800 font-bold underline cursor-pointer"
-                    >
-                      Copiar da cobrança
-                    </button>
-                  )}
-                </div>
-                <input
-                  type="text"
-                  value={regInstallationAddress}
-                  onChange={(e) => setRegInstallationAddress(e.target.value)}
-                  placeholder="Endereço onde os móveis serão montados"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-[#439346] outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] uppercase font-bold text-slate-500 block mb-1">
-                  Prazo Desejado (Quantidade de dias)
-                </label>
-                <div className="relative">
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <div className="flex items-center space-x-2">
+                      <label className="text-[10px] uppercase font-bold text-slate-600">Endereço de Instalação *</label>
+                      {regBillingAddress && (
+                        <button
+                          type="button"
+                          onClick={() => setRegInstallationAddress(regBillingAddress)}
+                          className="text-[10px] text-blue-600 hover:text-blue-800 font-bold underline cursor-pointer"
+                        >
+                          (Copiar da cobrança)
+                        </button>
+                      )}
+                    </div>
+                    {!regInstallationAddress.trim() && <span className="text-[10px] text-rose-600 font-bold">Obrigatório</span>}
+                  </div>
                   <input
-                    type="number"
-                    min="1"
-                    max="365"
-                    value={regDesiredDays}
-                    onChange={(e) => setRegDesiredDays(e.target.value)}
-                    placeholder="Ex: 45"
-                    className="w-full pl-3 pr-14 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-[#439346] outline-none"
+                    type="text"
+                    required
+                    value={regInstallationAddress}
+                    onChange={(e) => setRegInstallationAddress(e.target.value)}
+                    placeholder="Endereço onde os móveis serão instalados"
+                    className={`w-full px-3 py-2.5 rounded-xl border text-xs font-medium outline-none ${
+                      !regInstallationAddress.trim() ? 'border-rose-300 bg-rose-50/30 focus:border-rose-500' : 'border-slate-300 bg-white focus:border-[#439346]'
+                    }`}
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
-                    dias
-                  </span>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-[10px] uppercase font-bold text-slate-600">Prazo Desejado (Quantidade de dias) *</label>
+                    {!regDesiredDays.trim() && <span className="text-[10px] text-rose-600 font-bold">Obrigatório</span>}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      max="365"
+                      value={regDesiredDays}
+                      onChange={(e) => setRegDesiredDays(e.target.value)}
+                      placeholder="Ex: 45"
+                      className={`w-full pl-3.5 pr-14 py-2.5 rounded-xl border text-xs font-bold outline-none ${
+                        !regDesiredDays.trim() ? 'border-rose-300 bg-rose-50/30 focus:border-rose-500' : 'border-slate-300 bg-white focus:border-[#439346]'
+                      }`}
+                    />
+                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
+                      dias
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => {
@@ -1059,24 +1303,24 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
                     setRegistrationMessage(null);
                   }}
                   disabled={isSavingRegistration}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingRegistration}
-                  className="px-5 py-2 rounded-xl text-xs font-bold bg-[#439346] hover:bg-[#387F3B] text-white flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                  className="px-6 py-2.5 rounded-xl text-xs font-bold bg-[#439346] hover:bg-[#387F3B] text-white flex items-center gap-1.5 shadow-md shadow-emerald-700/20 transition-colors cursor-pointer"
                 >
                   {isSavingRegistration ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Salvando...</span>
+                      <span>Salvando Dados...</span>
                     </>
                   ) : (
                     <>
                       <Save className="w-3.5 h-3.5" />
-                      <span>Salvar Dados Cadastrais</span>
+                      <span>Salvar Ficha Cadastral</span>
                     </>
                   )}
                 </button>
@@ -1084,6 +1328,19 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
             </form>
           </div>
         </div>
+      )}
+
+      {/* Modal de Emissão e Assinatura do Contrato Comercial */}
+      {isContractModalOpen && contractModalOrder && (
+        <CustomerContractModal
+          isOpen={isContractModalOpen}
+          onClose={() => setIsContractModalOpen(false)}
+          order={contractModalOrder}
+          lead={lead}
+          onContractIssued={() => {
+            onLeadUpdated?.();
+          }}
+        />
       )}
 
       {/* Visualizador Estruturado Promob XML */}

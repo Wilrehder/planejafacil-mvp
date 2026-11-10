@@ -12,7 +12,12 @@ import {
   Pencil, 
   ShieldCheck, 
   HelpCircle,
-  X
+  X,
+  FileText,
+  Building2,
+  Calendar,
+  Save,
+  RotateCcw
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { 
@@ -26,6 +31,12 @@ import {
   deleteFinancialPartner, 
   FinancialPartner 
 } from '../../lib/conventionalFurnitureService';
+import {
+  fetchStoreContractTemplate,
+  saveStoreContractTemplate,
+  DEFAULT_CONTRACT_CLAUSES
+} from '../../lib/customerContractService';
+import { StoreContractTemplate, ContractClause } from '../../types';
 
 interface MerchantSettingsViewProps {
   tenantId: string;
@@ -63,6 +74,20 @@ export const MerchantSettingsView: React.FC<MerchantSettingsViewProps> = ({ tena
   // Feedback Toast
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Modelo de Contrato Comercial da Loja
+  const [contractTemplate, setContractTemplate] = useState<StoreContractTemplate>({
+    tenantId,
+    companyName: '',
+    tradeName: '',
+    cnpj: '',
+    address: '',
+    phone: '',
+    email: '',
+    defaultDeliveryDays: 45,
+    clauses: DEFAULT_CONTRACT_CLAUSES
+  });
+  const [isSavingContractTemplate, setIsSavingContractTemplate] = useState(false);
+
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
     setFeedback({ type, text });
     setTimeout(() => setFeedback(null), 3500);
@@ -72,9 +97,10 @@ export const MerchantSettingsView: React.FC<MerchantSettingsViewProps> = ({ tena
     if (!tenantId) return;
     setIsLoading(true);
     try {
-      const [settings, partnersList] = await Promise.all([
+      const [settings, partnersList, template] = await Promise.all([
         fetchStoreCommercialSettings(tenantId),
-        fetchFinancialPartners(tenantId)
+        fetchFinancialPartners(tenantId),
+        fetchStoreContractTemplate(tenantId)
       ]);
 
       setCommercialSettings(settings);
@@ -82,10 +108,34 @@ export const MerchantSettingsView: React.FC<MerchantSettingsViewProps> = ({ tena
       setCardInstallment(String(settings.installment_tax_percentage ?? 8.0));
       setMaxDiscount(String(settings.max_discount_percentage ?? 10.0));
       setPartners(partnersList);
+      setContractTemplate(template);
     } catch (err: any) {
       showToast('Erro ao carregar configurações da loja.', 'error');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSaveContract = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isOwnerOrManager) {
+      showToast('Apenas a gerência ou proprietário pode personalizar o contrato.', 'error');
+      return;
+    }
+
+    setIsSavingContractTemplate(true);
+    try {
+      const res = await saveStoreContractTemplate({
+        ...contractTemplate,
+        tenantId
+      });
+
+      if (!res.success) throw new Error(res.error || 'Erro ao salvar modelo.');
+      showToast('Modelo de contrato do cliente salvo com sucesso!');
+    } catch (err: any) {
+      showToast(err.message || 'Falha ao salvar modelo de contrato.', 'error');
+    } finally {
+      setIsSavingContractTemplate(false);
     }
   };
 
@@ -243,7 +293,8 @@ export const MerchantSettingsView: React.FC<MerchantSettingsViewProps> = ({ tena
           <p className="text-xs font-bold text-slate-500">Carregando parâmetros comerciais da loja...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
           {/* CARD 1: TAXAS DA MAQUININHA & DESCONTO (Lado Esquerdo - 5 colunas) */}
           <div className="lg:col-span-5 bg-white p-6 sm:p-7 rounded-3xl border border-slate-200 shadow-sm space-y-5 flex flex-col justify-between">
@@ -468,6 +519,171 @@ export const MerchantSettingsView: React.FC<MerchantSettingsViewProps> = ({ tena
           </div>
 
         </div>
+
+        {/* CARD 3: MODELO E CLÁUSULAS CONTRATUAIS DO CLIENTE */}
+        <div className="bg-white p-6 sm:p-7 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black">
+                <FileText className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900">Modelo de Contrato Comercial do Cliente</h3>
+                <p className="text-xs text-slate-400 font-medium">
+                  Personalize os dados da sua empresa e as cláusulas aplicadas aos contratos gerados no CRM.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => setContractTemplate(prev => ({ ...prev, clauses: DEFAULT_CONTRACT_CLAUSES }))}
+                className="px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 flex items-center space-x-1.5 transition-colors cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Restaurar Cláusulas Padrão</span>
+              </button>
+            </div>
+          </div>
+
+          <form onSubmit={handleSaveContract} className="space-y-6">
+            {/* Dados Empresariais */}
+            <div className="space-y-3">
+              <span className="text-xs font-black uppercase tracking-wider text-[#1B2B48] block">
+                1. Identificação da Loja no Contrato
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-slate-500 block mb-1">Razão Social</label>
+                  <input
+                    type="text"
+                    value={contractTemplate.companyName || ''}
+                    onChange={(e) => setContractTemplate(prev => ({ ...prev, companyName: e.target.value }))}
+                    placeholder="Ex: Marcenaria Arte Moderna Ltda"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-emerald-600 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-slate-500 block mb-1">Nome Fantasia</label>
+                  <input
+                    type="text"
+                    value={contractTemplate.tradeName || ''}
+                    onChange={(e) => setContractTemplate(prev => ({ ...prev, tradeName: e.target.value }))}
+                    placeholder="Ex: Arte Moderna Planejados"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-emerald-600 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-slate-500 block mb-1">CNPJ</label>
+                  <input
+                    type="text"
+                    value={contractTemplate.cnpj || ''}
+                    onChange={(e) => setContractTemplate(prev => ({ ...prev, cnpj: e.target.value }))}
+                    placeholder="00.000.000/0001-00"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-emerald-600 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-slate-500 block mb-1">Telefone Comercial</label>
+                  <input
+                    type="text"
+                    value={contractTemplate.phone || ''}
+                    onChange={(e) => setContractTemplate(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="(11) 99999-9999"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-emerald-600 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-slate-500 block mb-1">E-mail Comercial</label>
+                  <input
+                    type="email"
+                    value={contractTemplate.email || ''}
+                    onChange={(e) => setContractTemplate(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="contato@sualoja.com.br"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-emerald-600 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-slate-500 block mb-1">Prazo Padrão de Entrega (Dias Úteis)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="180"
+                    value={contractTemplate.defaultDeliveryDays || 45}
+                    onChange={(e) => setContractTemplate(prev => ({ ...prev, defaultDeliveryDays: parseInt(e.target.value) || 45 }))}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-bold focus:border-emerald-600 outline-none"
+                  />
+                </div>
+
+                <div className="sm:col-span-2 lg:col-span-3">
+                  <label className="text-[10px] uppercase font-bold text-slate-500 block mb-1">Endereço Comercial Completo</label>
+                  <input
+                    type="text"
+                    value={contractTemplate.address || ''}
+                    onChange={(e) => setContractTemplate(prev => ({ ...prev, address: e.target.value }))}
+                    placeholder="Rua, número, complemento, bairro, cidade - UF, CEP"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-emerald-600 outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Cláusulas Contratuais */}
+            <div className="space-y-3 pt-3 border-t border-slate-100">
+              <span className="text-xs font-black uppercase tracking-wider text-[#1B2B48] block">
+                2. Cláusulas e Termos do Contrato ({contractTemplate.clauses?.length || 12} Cláusulas)
+              </span>
+
+              <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                {(contractTemplate.clauses || []).map((clause, idx) => (
+                  <div key={clause.id || idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                    <span className="font-extrabold text-xs text-[#1B2B48] block">
+                      {clause.number} - {clause.title}
+                    </span>
+                    <textarea
+                      rows={2}
+                      value={clause.text}
+                      onChange={(e) => {
+                        const updated = [...(contractTemplate.clauses || [])];
+                        updated[idx] = { ...updated[idx], text: e.target.value };
+                        setContractTemplate(prev => ({ ...prev, clauses: updated }));
+                      }}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-normal text-slate-800 bg-white focus:border-emerald-600 outline-none"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-3 border-t border-slate-100">
+              <button
+                type="submit"
+                disabled={isSavingContractTemplate}
+                className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-black flex items-center space-x-1.5 shadow-md shadow-emerald-700/20 transition-colors cursor-pointer"
+              >
+                {isSavingContractTemplate ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Salvando Modelo...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Salvar Modelo de Contrato</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
       )}
 
       {/* MODAL NOVA / EDITAR FINANCEIRA */}
@@ -572,3 +788,4 @@ export const MerchantSettingsView: React.FC<MerchantSettingsViewProps> = ({ tena
     </div>
   );
 };
+
