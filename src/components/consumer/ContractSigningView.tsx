@@ -300,3 +300,4 @@ export const ContractSigningView: React.FC<ContractSigningViewProps> = ({ token,
     </div>
   );
 };
+

@@ -70,7 +70,7 @@ export async function fetchStoreOrders(storeIdOrTenantUuid: string): Promise<{
   error?: string;
 }> {
   const tenantUuid =
-    STORE_ID_TO_TENANT_UUID[storeIdOrTenantUuid] || storeIdOrTenantUuid;
+    STORE_ID_TO_TENANT_UUID[storeIdOrTenantUuid] || (storeIdOrTenantUuid === 'all' ? null : storeIdOrTenantUuid);
 
   try {
     const { data, error } = await supabase.rpc('get_store_orders', {
@@ -123,9 +123,19 @@ export async function fetchStoreOrders(storeIdOrTenantUuid: string): Promise<{
         montagemDone: Boolean(raw.montagemDone || slots.montagemDone),
         clientConfirmedAceite: Boolean(raw.clientConfirmedAceite || slots.clientConfirmedAceite),
         clientCpf: raw.clientCpf,
+        clientRg: raw.clientRg,
         billingAddress: raw.billingAddress,
         installationAddress: raw.installationAddress,
         desiredDeadline: raw.desiredDeadline,
+        paymentAllocations: raw.paymentAllocations,
+        commercialProposal: raw.commercialProposal,
+        orderNotes: raw.orderNotes,
+        contractStatus: raw.contractStatus,
+        contractToken: raw.contractToken,
+        contractSignedAt: raw.contractSignedAt,
+        contractSignedByName: raw.contractSignedByName,
+        contractSignedByCpf: raw.contractSignedByCpf,
+        contractPdfUrl: raw.contractPdfUrl,
         createdAt: raw.createdAt,
         updatedAt: raw.updatedAt,
         storeId: TENANT_UUID_TO_STORE_ID[raw.tenantId] || raw.tenantId,
@@ -342,7 +352,7 @@ export async function fetchERPMetrics(storeIdOrTenantUuid: string): Promise<{
   error?: string;
 }> {
   const tenantUuid =
-    STORE_ID_TO_TENANT_UUID[storeIdOrTenantUuid] || storeIdOrTenantUuid;
+    STORE_ID_TO_TENANT_UUID[storeIdOrTenantUuid] || (storeIdOrTenantUuid === 'all' ? null : storeIdOrTenantUuid);
 
   try {
     const { data, error } = await supabase.rpc('get_erp_metrics', {

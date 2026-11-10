@@ -155,3 +155,4 @@ describe('Customer Contract Generation & Structure (jsPDF & QR Code)', () => {
     expect(qrCode).toContain('data:image/png;base64,');
   });
 });
+
