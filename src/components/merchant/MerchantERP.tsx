@@ -141,105 +141,105 @@ export const MerchantERP: React.FC<MerchantERPProps> = ({ merchantPlan, storeId 
   return (
     <div className="space-y-6">
       
-      {/* CARDS DE INDICADORES / KPIS DO ERP */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* CARDS DE INDICADORES / KPIS DO ERP (COMPACTOS E MODERNOS) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         
         {/* VOLUME TOTAL CONTRATADO */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs flex items-center justify-between">
           <div>
-            <span className="text-xs font-bold text-slate-500 block uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">
               Volume Contratado
             </span>
-            <span className="text-xl font-black text-slate-900 mt-1 block">
+            <span className="text-lg font-black text-slate-900 mt-0.5 block">
               R$ {totalContractVolume.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </span>
-            <span className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
-              <TrendingUp className="w-3 h-3" /> Faturamento Contratado Real
+            <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
+              <TrendingUp className="w-3 h-3" /> Faturamento Contratado
             </span>
           </div>
-          <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center border border-emerald-100">
-            <DollarSign className="w-6 h-6" />
+          <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center border border-emerald-100/80 shrink-0">
+            <DollarSign className="w-5 h-5" />
           </div>
         </div>
 
         {/* PEDIDOS ATIVOS */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs flex items-center justify-between">
           <div>
-            <span className="text-xs font-bold text-slate-500 block uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">
               Pedidos Ativos
             </span>
-            <span className="text-xl font-black text-slate-900 mt-1 block">
+            <span className="text-lg font-black text-slate-900 mt-0.5 block">
               {activeOrdersCount}
             </span>
-            <span className="text-[11px] text-blue-600 font-semibold flex items-center gap-1 mt-0.5">
+            <span className="text-[10px] text-blue-600 font-semibold flex items-center gap-1 mt-0.5">
               <Package className="w-3 h-3" /> Em esteira de produção
             </span>
           </div>
-          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center border border-blue-100">
-            <Package className="w-6 h-6" />
+          <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center border border-blue-100/80 shrink-0">
+            <Package className="w-5 h-5" />
           </div>
         </div>
 
         {/* PEDIDOS CONCLUÍDOS */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs flex items-center justify-between">
           <div>
-            <span className="text-xs font-bold text-slate-500 block uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">
               Pedidos Concluídos
             </span>
-            <span className="text-xl font-black text-slate-900 mt-1 block">
+            <span className="text-lg font-black text-slate-900 mt-0.5 block">
               {completedOrdersCount}
             </span>
-            <span className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
+            <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
               <CheckCircle2 className="w-3 h-3" /> Entregues com Aceite
             </span>
           </div>
-          <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center border border-emerald-100">
-            <CheckCircle2 className="w-6 h-6" />
+          <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center border border-emerald-100/80 shrink-0">
+            <CheckCircle2 className="w-5 h-5" />
           </div>
         </div>
 
         {/* PENDÊNCIAS / PRAZOS */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs flex items-center justify-between">
           <div>
-            <span className="text-xs font-bold text-slate-500 block uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">
               Pendências / Alertas
             </span>
-            <span className="text-xl font-black text-slate-900 mt-1 block">
+            <span className="text-lg font-black text-slate-900 mt-0.5 block">
               {delayedOrdersCount}
             </span>
-            <span className={`text-[11px] font-semibold flex items-center gap-1 mt-0.5 ${delayedOrdersCount > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
-              <AlertTriangle className="w-3 h-3" /> {delayedOrdersCount > 0 ? 'Atenção operacional requerida' : 'Nenhuma pendência'}
+            <span className={`text-[10px] font-semibold flex items-center gap-1 mt-0.5 ${delayedOrdersCount > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
+              <AlertTriangle className="w-3 h-3" /> {delayedOrdersCount > 0 ? 'Atenção requerida' : 'Nenhuma pendência'}
             </span>
           </div>
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${delayedOrdersCount > 0 ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
-            <AlertTriangle className="w-6 h-6" />
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${delayedOrdersCount > 0 ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>
+            <AlertTriangle className="w-5 h-5" />
           </div>
         </div>
 
       </div>
 
       {/* FILTROS E BUSCA DE PEDIDOS */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white p-3 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
         
         {/* BUSCA */}
         <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
           <input
             type="text"
-            placeholder="Buscar por Pedido (#PED-XXXX), nome do cliente ou ambiente..."
+            placeholder="Buscar por Pedido (#PED-XXXX), cliente ou ambiente..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+            className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
           />
         </div>
 
         {/* FILTRO POR ETAPA E REFRESH */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <div className="w-full md:w-auto shrink-0 relative">
             <select
               value={stageFilter}
               onChange={(e) => setStageFilter(e.target.value)}
-              className="w-full md:w-auto px-4 py-2 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer appearance-none pr-8"
+              className="w-full md:w-auto px-3.5 py-2 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none cursor-pointer appearance-none pr-8 transition-all"
             >
               <option value="todos">Filtrar: Todas as Etapas</option>
               {Object.entries(STAGE_LABELS).map(([key, item]) => (
@@ -248,8 +248,8 @@ export const MerchantERP: React.FC<MerchantERPProps> = ({ merchantPlan, storeId 
                 </option>
               ))}
             </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
-              <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400">
+              <svg className="fill-current h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                 <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
               </svg>
             </div>
@@ -258,27 +258,27 @@ export const MerchantERP: React.FC<MerchantERPProps> = ({ merchantPlan, storeId 
           <button
             onClick={loadOrdersAndMetrics}
             disabled={isLoading}
-            title="Recarregar pedidos do banco de dados"
-            className="p-2 text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+            title="Recarregar pedidos"
+            className="p-2 text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors cursor-pointer"
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-blue-600' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-blue-600' : ''}`} />
           </button>
         </div>
 
       </div>
 
       {/* TABELA DE PEDIDOS OPERACIONAIS DO ERP */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 text-slate-500 text-[11px] font-bold uppercase tracking-wider border-b border-slate-200">
-                <th className="py-3.5 px-4">Pedido / Cliente</th>
-                <th className="py-3.5 px-4">Ambiente</th>
-                <th className="py-3.5 px-4 text-center">Etapa Atual do Pedido</th>
-                <th className="py-3.5 px-4 text-right">Valor Contratado</th>
-                <th className="py-3.5 px-4 text-center">Última Atualização</th>
-                <th className="py-3.5 px-4 text-center">Ações</th>
+              <tr className="bg-slate-50/80 text-slate-500 text-[10px] font-bold uppercase tracking-wider border-b border-slate-200">
+                <th className="py-3 px-4">Pedido / Cliente</th>
+                <th className="py-3 px-4">Ambiente</th>
+                <th className="py-3 px-4 text-center">Etapa Atual</th>
+                <th className="py-3 px-4 text-right">Valor Contratado</th>
+                <th className="py-3 px-4 text-center">Última Atualização</th>
+                <th className="py-3 px-4 text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
@@ -290,23 +290,23 @@ export const MerchantERP: React.FC<MerchantERPProps> = ({ merchantPlan, storeId 
                   const contractedVal = order.contractedValue || order.totalValue;
 
                   return (
-                    <tr key={order.id} className="hover:bg-slate-50/80 transition-colors">
+                    <tr key={order.id} className="hover:bg-slate-50/70 transition-colors">
                       {/* PEDIDO & CLIENTE */}
-                      <td className="py-4 px-4">
+                      <td className="py-3 px-4">
                         <div className="flex items-center gap-2.5">
-                          <span className="font-mono text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200/60">
+                          <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-200/70 shrink-0">
                             {order.id}
                           </span>
-                          <div>
-                            <span className="font-bold text-slate-800 block text-sm flex items-center gap-1.5">
+                          <div className="min-w-0">
+                            <span className="font-bold text-slate-900 block text-xs flex items-center gap-1.5 truncate">
                               {order.clientName}
                               {order.hasPendingIssues && (
-                                <span className="bg-amber-100 text-amber-700 text-[9px] font-bold px-1.5 py-0.2 rounded border border-amber-300">
+                                <span className="bg-amber-100 text-amber-800 text-[9px] font-extrabold px-1.5 py-0.2 rounded border border-amber-300">
                                   Pendência
                                 </span>
                               )}
                             </span>
-                            <span className="text-[11px] text-slate-400 block">
+                            <span className="text-[11px] text-slate-400 block truncate">
                               {order.city} / {order.state} • {order.phone}
                             </span>
                           </div>
@@ -314,23 +314,23 @@ export const MerchantERP: React.FC<MerchantERPProps> = ({ merchantPlan, storeId 
                       </td>
 
                       {/* AMBIENTE */}
-                      <td className="py-4 px-4">
-                        <span className="font-medium text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md text-xs inline-block">
+                      <td className="py-3 px-4">
+                        <span className="font-semibold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-md text-xs inline-block">
                           {order.environment}
                         </span>
                       </td>
 
                       {/* ETAPA ATUAL */}
-                      <td className="py-4 px-4 text-center">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${stageInfo.bg} ${stageInfo.text}`}>
-                          <IconComp className="w-3.5 h-3.5" />
+                      <td className="py-3 px-4 text-center">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${stageInfo.bg} ${stageInfo.text}`}>
+                          <IconComp className="w-3 h-3" />
                           {stageInfo.label}
                         </span>
                       </td>
 
                       {/* VALOR CONTRATADO */}
-                      <td className="py-4 px-4 text-right">
-                        <span className="font-bold text-slate-900 block">
+                      <td className="py-3 px-4 text-right">
+                        <span className="font-black text-slate-900 block text-xs">
                           R$ {contractedVal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </span>
                         {order.estimatedBudget && order.estimatedBudget !== contractedVal && (
@@ -341,11 +341,11 @@ export const MerchantERP: React.FC<MerchantERPProps> = ({ merchantPlan, storeId 
                       </td>
 
                       {/* ÚLTIMA ATUALIZAÇÃO */}
-                      <td className="py-4 px-4 text-center">
+                      <td className="py-3 px-4 text-center">
                         {lastAudit ? (
-                          <div className="text-left inline-block max-w-[180px] truncate">
+                          <div className="text-left inline-block max-w-[160px] truncate">
                             <span className="text-[11px] font-semibold text-slate-700 block truncate">
-                              {lastAudit.user} ({lastAudit.userRole})
+                              {lastAudit.user}
                             </span>
                             <span className="text-[10px] text-slate-400 block truncate">
                               {new Date(lastAudit.timestamp).toLocaleDateString('pt-BR')}
@@ -357,16 +357,16 @@ export const MerchantERP: React.FC<MerchantERPProps> = ({ merchantPlan, storeId 
                       </td>
 
                       {/* AÇÃO: ABRIR PASTA DO PEDIDO */}
-                      <td className="py-4 px-4 text-center">
+                      <td className="py-3 px-4 text-center">
                         <button
                           onClick={() => {
                             setActiveModalOrder(order);
                             setSelectedOrderForFolder(order);
                           }}
-                          className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg shadow-sm transition-all flex items-center justify-center gap-1.5 mx-auto"
+                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-2xs transition-colors inline-flex items-center gap-1.5 cursor-pointer"
                         >
                           <FolderCheck className="w-3.5 h-3.5" />
-                          Abrir Pasta
+                          <span>Abrir Pasta</span>
                         </button>
                       </td>
                     </tr>

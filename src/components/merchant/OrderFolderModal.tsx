@@ -882,60 +882,82 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
 
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-5xl my-8 overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-200">
 
-        {/* MODAL HEADER */}
-        <div className="bg-slate-900 text-white p-6 flex items-start justify-between border-b border-slate-800">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <span className="bg-blue-600 text-white font-mono text-sm px-2.5 py-0.5 rounded-md font-bold tracking-wide">
-                {order.id}
-              </span>
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-                {order.environment}
-              </span>
-              {order.hasPendingIssues && (
-                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" /> Pendência Ativa
+        {/* MODAL HEADER REFINADO E PROFISSIONAL */}
+        <div className="bg-slate-900 text-white p-5 sm:p-6 border-b border-slate-800">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            
+            {/* INFORMAÇÕES DO PEDIDO E CLIENTE */}
+            <div className="space-y-1.5 min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="bg-blue-600 text-white font-mono text-xs px-2.5 py-1 rounded-lg font-bold tracking-wide shrink-0">
+                  {order.id}
                 </span>
-              )}
-            </div>
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              {order.clientName}
-            </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {order.address} • Tel: {order.phone}
-            </p>
-            {(order.clientCpf || order.installationAddress || order.desiredDeadline) && (
-              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-300 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700/60">
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700 shrink-0">
+                  {order.environment}
+                </span>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${
+                  order.contractStatus === 'assinado' || order.contractStatus === 'assinado_eletronico'
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                    : order.contractStatus === 'assinado_externo'
+                      ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+                      : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                }`}>
+                  {order.contractStatus === 'assinado' || order.contractStatus === 'assinado_eletronico'
+                    ? 'Contrato Assinado'
+                    : order.contractStatus === 'assinado_externo'
+                      ? 'Contrato Físico'
+                      : 'Aguardando Formalização'}
+                </span>
+                {order.hasPendingIssues && (
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1 shrink-0">
+                    <AlertTriangle className="w-3 h-3 text-amber-400" /> Pendência Ativa
+                  </span>
+                )}
+              </div>
+
+              <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight truncate">
+                {order.clientName}
+              </h2>
+
+              {/* Detalhes de Contato, Instalação e Prazo */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-300 pt-0.5">
+                {order.phone && <span>Tel: <strong className="text-white">{order.phone}</strong></span>}
                 {order.clientCpf && <span>CPF: <strong className="text-white">{order.clientCpf}</strong></span>}
-                {order.installationAddress && <span>Instalação: <strong className="text-white">{order.installationAddress}</strong></span>}
-                {order.desiredDeadline && <span>Prazo Desejado: <strong className="text-emerald-400">{order.desiredDeadline}</strong></span>}
+                {(order.installationAddress || order.address) && (
+                  <span className="truncate max-w-sm">
+                    Instalação: <strong className="text-white">{order.installationAddress || order.address}</strong>
+                  </span>
+                )}
+                {order.desiredDeadline && (
+                  <span>Prazo: <strong className="text-emerald-400">{order.desiredDeadline}</strong></span>
+                )}
               </div>
-            )}
-          </div>
+            </div>
 
-          <div className="flex items-center gap-6">
-            <div className="text-right">
-              <div className="flex items-center justify-end gap-1.5">
-                <span className="text-xs text-slate-400 block uppercase font-medium">Valor Contratado</span>
-                <button
-                  type="button"
-                  onClick={() => setIsEditingValue(!isEditingValue)}
-                  className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors"
-                  title="Ajustar preço, desconto e taxas de pagamento"
-                >
-                  <Sliders className="w-3.5 h-3.5 text-amber-400" />
-                </button>
-              </div>
+            <div className="flex items-center gap-4 shrink-0 sm:self-start">
+              <div className="text-left sm:text-right">
+                <div className="flex items-center sm:justify-end gap-1.5">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Valor Contratado</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingValue(!isEditingValue)}
+                    className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors cursor-pointer"
+                    title="Ajustar condições comerciais"
+                  >
+                    <Sliders className="w-3.5 h-3.5 text-amber-400" />
+                  </button>
+                </div>
 
-              <span className="text-xl font-bold text-emerald-400 block">
-                R$ {currentContractedValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </span>
-
-              {order.estimatedBudget && order.estimatedBudget !== currentContractedValue && (
-                <span className="text-[10px] text-slate-400 block">
-                  Orçamento Original: R$ {order.estimatedBudget.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                <span className="text-xl font-black text-emerald-400 block mt-0.5">
+                  R$ {currentContractedValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </span>
-              )}
+
+                {order.estimatedBudget && order.estimatedBudget !== currentContractedValue && (
+                  <span className="text-[10px] text-slate-400 block">
+                    Orçamento: R$ {order.estimatedBudget.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                )}
+              </div>
 
               {/* Popover / Calculadora Comercial com Teto de Desconto & Taxa de Cartão */}
               {isEditingValue && (
@@ -1085,9 +1107,9 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
           </div>
         )}
 
-        {/* TIMELINE DE ESTÁGIOS DO PEDIDO */}
-        <div className="bg-slate-50 border-b border-slate-200 px-6 py-4">
-          <div className="flex items-center justify-between relative">
+        {/* JORNADA DO PEDIDO (RÉGUA OPERACIONAL COMPACTA E ELEGANTE) */}
+        <div className="bg-slate-50 border-b border-slate-200/90 px-4 sm:px-6 py-3">
+          <div className="flex items-center justify-between relative max-w-4xl mx-auto">
             {STAGES.map((s, idx) => {
               const IconComp = s.icon;
               const isCompleted = idx < currentIndex;
@@ -1096,22 +1118,24 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
               return (
                 <div key={s.key} className="flex-1 flex flex-col items-center relative z-10">
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-200 ${isCompleted
-                      ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
-                      : isCurrent
-                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 ring-4 ring-blue-100'
-                        : 'bg-slate-200 text-slate-400'
-                      }`}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-200 ${
+                      isCompleted
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : isCurrent
+                          ? 'bg-blue-600 text-white shadow-md ring-3 ring-blue-100'
+                          : 'bg-slate-200 text-slate-400'
+                    }`}
                   >
-                    {isCompleted ? <Check className="w-5 h-5 stroke-[3]" /> : <IconComp className="w-5 h-5" />}
+                    {isCompleted ? <Check className="w-4 h-4 stroke-[3]" /> : <IconComp className="w-4 h-4" />}
                   </div>
                   <span
-                    className={`text-xs mt-2 font-medium text-center ${isCurrent
-                      ? 'text-blue-700 font-bold'
-                      : isCompleted
-                        ? 'text-emerald-700 font-semibold'
-                        : 'text-slate-400'
-                      }`}
+                    className={`text-[11px] mt-1.5 font-medium text-center truncate max-w-[90px] ${
+                      isCurrent
+                        ? 'text-blue-700 font-bold'
+                        : isCompleted
+                          ? 'text-emerald-700 font-semibold'
+                          : 'text-slate-400'
+                    }`}
                   >
                     {s.label}
                   </span>
@@ -1127,39 +1151,93 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
           {/* COLUNA ESQUERDA: FORMULÁRIO E DOCUMENTOS DA ETAPA */}
           <div className="lg:col-span-7 space-y-6">
 
-            {/* PASTA DIGITAL DO PEDIDO */}
-            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
+            {/* PASTA DIGITAL DO PEDIDO (ORGANIZAÇÃO EM 3 NÍVEIS) */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-blue-600" />
-                    Pasta Digital do Pedido (Storage Seguro)
+                  <FileText className="w-4 h-4 text-blue-600" />
+                  <h3 className="text-sm font-bold text-slate-800">
+                    Pasta Digital do Pedido
                   </h3>
-                  <span className="text-[10px] text-slate-400 font-medium">
-                    Bucket: order-documents
-                  </span>
                 </div>
                 {order.contractStatus === 'assinado' ? (
-                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                     Contrato Formalizado
                   </span>
                 ) : (
-                  <span className="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5 text-amber-600" />
                     Aguardando Assinatura
                   </span>
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* NÍVEL 1: CONTRATO PRINCIPAL COMERCIAL */}
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">
+                  1. Contrato Comercial Formalizado
+                </span>
                 {renderContractRow()}
-                {renderFileRow('2. Medição', 'medicao', medicaoFileName || order.medicaoFile, undefined, localDocuments.find(d => d.stage === 'medicao') || order.documents?.find(d => d.stage === 'medicao'))}
-                {renderFileRow('3. Projeto', 'projeto', projectFileName || order.projectFile, undefined, localDocuments.find(d => d.stage === 'projeto') || order.documents?.find(d => d.stage === 'projeto'))}
-                {renderFileRow('4. Documentos de Produção', 'producao', producaoFileName || order.producaoFile, undefined, localDocuments.find(d => d.stage === 'producao') || order.documents?.find(d => d.stage === 'producao'))}
-                {renderFileRow('5. Fotos da Montagem', 'montagem', montagemFotoName || order.montagemFoto, undefined, localDocuments.find(d => d.stage === 'montagem') || order.documents?.find(d => d.stage === 'montagem'))}
-                {renderFileRow('6. Aceite', 'aceite', aceiteFileName || order.aceiteFile || (clientConfirmedAceite ? '(Confirmação via Sistema)' : undefined), undefined, localDocuments.find(d => d.stage === 'aceite') || order.documents?.find(d => d.stage === 'aceite'))}
               </div>
+
+              {/* NÍVEL 2: DOCUMENTO DA FASE OPERACIONAL EM ANDAMENTO */}
+              {order.currentStage !== 'formalizacao_contratual' && order.currentStage !== 'concluido' && (
+                <div className="bg-blue-50/40 p-3 rounded-xl border border-blue-200/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700 flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-blue-600" />
+                      Documento da Etapa Atual em Execução
+                    </span>
+                    <span className="text-[10px] font-bold text-blue-700 bg-blue-100/70 px-2 py-0.2 rounded-full">
+                      Fase Ativa
+                    </span>
+                  </div>
+
+                  {order.currentStage === 'medicao' && (
+                    renderFileRow('2. Medição', 'medicao', medicaoFileName || order.medicaoFile, undefined, localDocuments.find(d => d.stage === 'medicao') || order.documents?.find(d => d.stage === 'medicao'))
+                  )}
+                  {order.currentStage === 'projeto_aprovacao' && (
+                    renderFileRow('3. Projeto & Aprovação', 'projeto', projectFileName || order.projectFile, undefined, localDocuments.find(d => d.stage === 'projeto') || order.documents?.find(d => d.stage === 'projeto'))
+                  )}
+                  {order.currentStage === 'producao' && (
+                    renderFileRow('4. Documentos de Produção', 'producao', producaoFileName || order.producaoFile, undefined, localDocuments.find(d => d.stage === 'producao') || order.documents?.find(d => d.stage === 'producao'))
+                  )}
+                  {order.currentStage === 'montagem' && (
+                    renderFileRow('5. Fotos da Montagem', 'montagem', montagemFotoName || order.montagemFoto, undefined, localDocuments.find(d => d.stage === 'montagem') || order.documents?.find(d => d.stage === 'montagem'))
+                  )}
+                  {order.currentStage === 'entrega_aceite' && (
+                    renderFileRow('6. Termo de Aceite', 'aceite', aceiteFileName || order.aceiteFile || (clientConfirmedAceite ? '(Confirmação via Sistema)' : undefined), undefined, localDocuments.find(d => d.stage === 'aceite') || order.documents?.find(d => d.stage === 'aceite'))
+                  )}
+                </div>
+              )}
+
+              {/* NÍVEL 3: DOCUMENTOS COMPLEMENTARES DAS DEMAIS ETAPAS */}
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">
+                  {order.currentStage !== 'formalizacao_contratual' && order.currentStage !== 'concluido'
+                    ? 'Documentos Complementares das Demais Fases'
+                    : 'Documentos das Etapas Operacionais'}
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {order.currentStage !== 'medicao' && (
+                    renderFileRow('2. Medição', 'medicao', medicaoFileName || order.medicaoFile, undefined, localDocuments.find(d => d.stage === 'medicao') || order.documents?.find(d => d.stage === 'medicao'))
+                  )}
+                  {order.currentStage !== 'projeto_aprovacao' && (
+                    renderFileRow('3. Projeto', 'projeto', projectFileName || order.projectFile, undefined, localDocuments.find(d => d.stage === 'projeto') || order.documents?.find(d => d.stage === 'projeto'))
+                  )}
+                  {order.currentStage !== 'producao' && (
+                    renderFileRow('4. Documentos de Produção', 'producao', producaoFileName || order.producaoFile, undefined, localDocuments.find(d => d.stage === 'producao') || order.documents?.find(d => d.stage === 'producao'))
+                  )}
+                  {order.currentStage !== 'montagem' && (
+                    renderFileRow('5. Fotos da Montagem', 'montagem', montagemFotoName || order.montagemFoto, undefined, localDocuments.find(d => d.stage === 'montagem') || order.documents?.find(d => d.stage === 'montagem'))
+                  )}
+                  {order.currentStage !== 'entrega_aceite' && (
+                    renderFileRow('6. Aceite', 'aceite', aceiteFileName || order.aceiteFile || (clientConfirmedAceite ? '(Confirmação via Sistema)' : undefined), undefined, localDocuments.find(d => d.stage === 'aceite') || order.documents?.find(d => d.stage === 'aceite'))
+                  )}
+                </div>
+              </div>
+
             </div>
 
             {/* FORMULÁRIO DA ETAPA ATUAL */}
@@ -1572,37 +1650,37 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
           </div>
 
           {/* COLUNA DIREITA: TIMELINE DE AUDITORIA */}
-          <div className="lg:col-span-5 bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+          <div className="lg:col-span-5 bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
               <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
                 <Clock className="w-4 h-4 text-blue-600" />
-                Timeline de Auditoria
+                Histórico & Auditoria
               </h3>
-              <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
                 {order.timeline?.length || 0} Registros
               </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-4 pr-1 max-h-[500px]">
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[520px]">
               {order.timeline && order.timeline.length > 0 ? (
                 order.timeline.map((log) => (
-                  <div key={log.id} className="relative pl-5 border-l-2 border-slate-200 group hover:border-blue-500 transition-colors">
-                    <div className="absolute -left-[5px] top-0.5 w-2 h-2 rounded-full bg-slate-400 group-hover:bg-blue-600 transition-colors" />
+                  <div key={log.id} className="relative pl-4 border-l-2 border-slate-200 hover:border-blue-500 transition-colors">
+                    <div className="absolute -left-[5px] top-1 w-2 h-2 rounded-full bg-slate-400 group-hover:bg-blue-600 transition-colors" />
 
-                    <div className="flex items-center justify-between text-[11px] mb-1">
-                      <span className="font-bold text-slate-800">
+                    <div className="flex items-center justify-between text-[11px] mb-0.5">
+                      <span className="font-bold text-slate-800 truncate pr-2">
                         {log.user}
                       </span>
-                      <span className="text-[10px] font-medium text-slate-400">
+                      <span className="text-[10px] font-medium text-slate-400 shrink-0">
                         {new Date(log.timestamp).toLocaleDateString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
 
-                    <span className="inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 mb-1">
+                    <span className="inline-block text-[9px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 mb-1">
                       {log.userRole}
                     </span>
 
-                    <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-2.5 rounded-lg border border-slate-100 mt-1">
+                    <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-2 rounded-lg border border-slate-100/80">
                       {log.action}
                     </p>
                   </div>

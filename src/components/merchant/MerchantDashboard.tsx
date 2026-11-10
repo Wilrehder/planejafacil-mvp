@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   CheckCircle2, 
   Download, 
@@ -66,6 +66,19 @@ export const MerchantDashboard: React.FC = () => {
   const [activeStatusTab, setActiveStatusTab] = useState<string>('todos');
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('kanban');
   const [sourceFilter, setSourceFilter] = useState<'todos' | 'plataforma' | 'externo'>('todos');
+  const [kanbanView, setKanbanView] = useState<'pipeline' | 'resultados'>('pipeline');
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
+        setIsMoreMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Modal States
   const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false);
@@ -372,13 +385,18 @@ export const MerchantDashboard: React.FC = () => {
     window.open(`https://wa.me/${phoneWithCountry}?text=${text}`, '_blank');
   };
 
-  const KANBAN_STAGES: { id: LeadStatus; label: string; color: string }[] = [
-    { id: 'novo', label: 'Novos Leads', color: 'border-blue-500 bg-blue-50/50' },
-    { id: 'em_atendimento', label: 'Em Atendimento', color: 'border-amber-500 bg-amber-50/50' },
-    { id: 'orcado', label: 'Orçados', color: 'border-purple-500 bg-purple-50/50' },
-    { id: 'convertido', label: 'Vendas Fechadas', color: 'border-emerald-500 bg-emerald-50/50' },
-    { id: 'perdido', label: 'Perdidos', color: 'border-slate-300 bg-slate-100/50' },
+  const ACTIVE_PIPELINE_STAGES: { id: LeadStatus; label: string; color: string; badgeColor: string }[] = [
+    { id: 'novo', label: 'Novos Leads', color: 'border-blue-500 bg-blue-50/60', badgeColor: 'bg-blue-100 text-blue-800' },
+    { id: 'em_atendimento', label: 'Em Atendimento', color: 'border-amber-500 bg-amber-50/60', badgeColor: 'bg-amber-100 text-amber-800' },
+    { id: 'orcado', label: 'Orçados', color: 'border-purple-500 bg-purple-50/60', badgeColor: 'bg-purple-100 text-purple-800' },
   ];
+
+  const RESULTS_STAGES: { id: LeadStatus; label: string; color: string; badgeColor: string }[] = [
+    { id: 'convertido', label: 'Vendas Fechadas', color: 'border-emerald-500 bg-emerald-50/60', badgeColor: 'bg-emerald-100 text-emerald-800' },
+    { id: 'perdido', label: 'Perdidos', color: 'border-slate-400 bg-slate-100/60', badgeColor: 'bg-slate-200 text-slate-700' },
+  ];
+
+  const currentKanbanStages = kanbanView === 'pipeline' ? ACTIVE_PIPELINE_STAGES : RESULTS_STAGES;
 
   // SE FOR MONTADOR: Carregar direto a Interface 100% Mobile
   if (isStoreAssembler) {
@@ -390,136 +408,164 @@ export const MerchantDashboard: React.FC = () => {
       
 
 
-      {/* SELETOR PRINCIPAL DE MÓDULO: CRM vs ERP e Controles Globais */}
-      <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex flex-col xl:flex-row items-center justify-between gap-4">
+      {/* SELETOR PRINCIPAL DE MÓDULO: NAVEGAÇÃO REFINADA E PROFISSIONAL */}
+      <div className="bg-white p-2.5 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         
-        <div className="flex items-center gap-1.5 w-full xl:w-auto overflow-x-auto">
+        {/* NAVEGAÇÃO DOS MÓDULOS */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {/* 1. CRM */}
           <button
-            onClick={() => setMerchantTab('dashboard')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+            onClick={() => {
+              setMerchantTab('dashboard');
+              setIsMoreMenuOpen(false);
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
               merchantTab === 'dashboard' || (!['erp', 'analytics', 'meta', 'moveis_convencionais', 'settings'].includes(merchantTab))
-                ? 'bg-[#1B2B48] text-white shadow-md'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
-            <Users className={`w-3.5 h-3.5 ${merchantTab === 'dashboard' || (!['erp', 'analytics', 'meta', 'moveis_convencionais', 'settings'].includes(merchantTab)) ? 'text-blue-400' : ''}`} />
-            CRM
+            <Users className="w-3.5 h-3.5 text-blue-500" />
+            <span>CRM</span>
           </button>
-          
+
+          {/* 2. ERP */}
           <button
-            onClick={() => setMerchantTab('moveis_convencionais')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-              merchantTab === 'moveis_convencionais'
-                ? 'bg-[#1B2B48] text-white shadow-md'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
-            }`}
-          >
-            <Armchair className={`w-3.5 h-3.5 ${merchantTab === 'moveis_convencionais' ? 'text-amber-400' : ''}`} />
-            Móveis Convencionais
-          </button>
-          
-          <button
-            onClick={() => setMerchantTab('erp')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+            onClick={() => {
+              setMerchantTab('erp');
+              setIsMoreMenuOpen(false);
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
               merchantTab === 'erp'
-                ? 'bg-[#1B2B48] text-white shadow-md'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
-            <Package className={`w-3.5 h-3.5 ${merchantTab === 'erp' ? 'text-emerald-400' : ''}`} />
-            ERP
-            {isProPlan && (
-              <span className="bg-emerald-500/20 text-emerald-300 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-emerald-500/30 uppercase ml-1">
-                Pro ⭐
-              </span>
-            )}
+            <Package className="w-3.5 h-3.5 text-emerald-500" />
+            <span>ERP</span>
           </button>
-          
+
+          {/* 3. MÓVEIS CONVENCIONAIS */}
           <button
-            onClick={() => setMerchantTab('analytics')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+            onClick={() => {
+              setMerchantTab('moveis_convencionais');
+              setIsMoreMenuOpen(false);
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+              merchantTab === 'moveis_convencionais'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <Armchair className="w-3.5 h-3.5 text-amber-500" />
+            <span>Móveis Convencionais</span>
+          </button>
+
+          {/* 4. ANALYTICS */}
+          <button
+            onClick={() => {
+              setMerchantTab('analytics');
+              setIsMoreMenuOpen(false);
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
               merchantTab === 'analytics'
-                ? 'bg-[#1B2B48] text-white shadow-md'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
-            <BarChart2 className={`w-3.5 h-3.5 ${merchantTab === 'analytics' ? 'text-purple-400' : ''}`} />
-            Analytics
-            {isProPlan && (
-              <span className="bg-purple-500/20 text-purple-300 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-purple-500/30 uppercase ml-1">
-                Pro ⭐
-              </span>
+            <BarChart2 className="w-3.5 h-3.5 text-purple-500" />
+            <span>Analytics</span>
+          </button>
+
+          {/* 5. MENU "MAIS" (MÓDULOS SECUNDÁRIOS E CONFIGURAÇÕES) */}
+          <div className="relative" ref={moreMenuRef}>
+            <button
+              onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 border ${
+                ['meta', 'settings'].includes(merchantTab)
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                  : isMoreMenuOpen
+                    ? 'bg-slate-100 text-slate-900 border-slate-300'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border-slate-200/80'
+              }`}
+            >
+              <span>Mais</span>
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isMoreMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isMoreMenuOpen && (
+              <div className="absolute left-0 top-full mt-1.5 z-40 bg-white border border-slate-200 rounded-2xl shadow-xl w-60 p-1.5 space-y-0.5 animate-in fade-in zoom-in-95">
+                <button
+                  onClick={() => {
+                    setMerchantTab('meta');
+                    setIsMoreMenuOpen(false);
+                  }}
+                  className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors text-left cursor-pointer ${
+                    merchantTab === 'meta' ? 'bg-slate-100 text-slate-900 font-bold' : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <Share2 className="w-4 h-4 text-pink-600" />
+                  <span>Meta Omni-Channel</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setMerchantTab('settings');
+                    setIsMoreMenuOpen(false);
+                  }}
+                  className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors text-left cursor-pointer ${
+                    merchantTab === 'settings' ? 'bg-slate-100 text-slate-900 font-bold' : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <SlidersHorizontal className="w-4 h-4 text-emerald-600" />
+                  <span>Configurações & Taxas</span>
+                </button>
+
+                {isStoreOwner && (
+                  <>
+                    <div className="border-t border-slate-100 my-1" />
+
+                    <button
+                      onClick={() => {
+                        setIsFinancialModalOpen(true);
+                        setIsMoreMenuOpen(false);
+                      }}
+                      className="w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 transition-colors text-left cursor-pointer"
+                    >
+                      <CreditCard className="w-4 h-4 text-emerald-600" />
+                      <span>Faturas B2B</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setIsViewContractModalOpen(true);
+                        setIsMoreMenuOpen(false);
+                      }}
+                      className="w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 transition-colors text-left cursor-pointer"
+                    >
+                      <FileText className="w-4 h-4 text-blue-600" />
+                      <span>{currentStore.contractSignedAt ? 'Meu Contrato B2B ✓' : 'Assinar Contrato B2B ⚠️'}</span>
+                    </button>
+                  </>
+                )}
+              </div>
             )}
-          </button>
-
-          <button
-            onClick={() => setMerchantTab('meta')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-              merchantTab === 'meta'
-                ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 text-white shadow-md'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-            }`}
-          >
-            <Share2 className={`w-3.5 h-3.5 ${merchantTab === 'meta' ? 'text-white' : 'text-purple-600'}`} />
-            <span>Meta Omni-Channel</span>
-            <span className="bg-purple-500/20 text-purple-700 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-purple-500/30 uppercase ml-1">
-              Pro ⭐
-            </span>
-          </button>
-
-          {/* Configurações Comerciais & Taxas da Loja */}
-          <button
-            onClick={() => setMerchantTab('settings')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-              merchantTab === 'settings'
-                ? 'bg-[#1B2B48] text-white shadow-md'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-            }`}
-          >
-            <SlidersHorizontal className={`w-3.5 h-3.5 ${merchantTab === 'settings' ? 'text-emerald-400' : 'text-slate-500'}`} />
-            <span>Configurações & Taxas</span>
-          </button>
-
-          {/* Faturas B2B e Contrato exclusivos do Gerente / Dono da Loja */}
-          {isStoreOwner && (
-            <>
-              <button
-                onClick={() => setIsFinancialModalOpen(true)}
-                className="px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200/60"
-              >
-                <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Faturas B2B</span>
-              </button>
-
-              <button
-                onClick={() => setIsViewContractModalOpen(true)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 border ${
-                  currentStore.contractSignedAt
-                    ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300'
-                    : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300 animate-pulse'
-                }`}
-                title="Consultar termos do contrato B2B firmado com a plataforma"
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>{currentStore.contractSignedAt ? 'Meu Contrato B2B ✓' : 'Assinar Contrato ⚠️'}</span>
-              </button>
-            </>
-          )}
+          </div>
         </div>
 
-        {/* Identificação Segura da Loja Conectada e Ações */}
-        <div className="flex flex-wrap items-center gap-2.5 pr-2 shrink-0">
+        {/* IDENTIFICAÇÃO DA LOJA E ATUALIZAÇÃO */}
+        <div className="flex items-center gap-2.5 shrink-0">
           {isMultiStoreOwner ? (
-            <div className="flex items-center gap-2 bg-white border border-slate-200/90 rounded-xl px-3 py-1.5 shadow-xs">
-              <StoreIcon className="w-3.5 h-3.5 text-[#439346]" />
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
+              <StoreIcon className="w-3.5 h-3.5 text-emerald-600" />
               <div className="flex flex-col">
-                <span className="text-[9px] font-extrabold uppercase text-slate-400">Minhas Unidades:</span>
+                <span className="text-[9px] font-bold uppercase text-slate-400">Unidade:</span>
                 <select
                   value={selectedStoreId}
                   onChange={(e) => setSelectedStoreId(e.target.value)}
-                  className="text-xs font-black text-[#1B2B48] bg-transparent outline-none cursor-pointer pr-1"
+                  className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer pr-1"
                 >
-                  <option value="all">Todas as Minhas Lojas (Consolidado)</option>
+                  <option value="all">Todas as Unidades (Consolidado)</option>
                   {ownedStores.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name} ({s.city})
@@ -529,15 +575,15 @@ export const MerchantDashboard: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="bg-white border border-slate-200/90 text-slate-800 text-xs font-bold py-2 px-3.5 rounded-xl flex items-center gap-2 shadow-xs">
-              <StoreIcon className="w-3.5 h-3.5 text-[#439346]" />
-              <span className="font-extrabold text-[#1B2B48]">{currentStore.name}</span>
-              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md ${
+            <div className="bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold py-1.5 px-3 rounded-xl flex items-center gap-2">
+              <StoreIcon className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="font-bold text-slate-900">{currentStore.name}</span>
+              <span className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-md ${
                 isProPlan 
-                  ? 'bg-amber-50 text-amber-800 border border-amber-300/80' 
-                  : 'bg-slate-100 text-slate-700 border border-slate-200'
+                  ? 'bg-amber-100 text-amber-800 border border-amber-300' 
+                  : 'bg-slate-200 text-slate-700'
               }`}>
-                Plano {currentStore.plan} {isProPlan ? '⭐' : ''}
+                {isProPlan ? 'Pro ⭐' : 'Básico'}
               </span>
             </div>
           )}
@@ -545,10 +591,10 @@ export const MerchantDashboard: React.FC = () => {
           <button
             onClick={syncStoreAuthAndFetch}
             disabled={loadingRealLeads}
-            title="Sincronizar leads com o PostgreSQL"
-            className="p-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-slate-600 transition-colors flex items-center justify-center shrink-0 cursor-pointer shadow-xs"
+            title="Sincronizar dados em tempo real"
+            className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-600 transition-colors flex items-center justify-center shrink-0 cursor-pointer shadow-2xs"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loadingRealLeads ? 'animate-spin text-[#439346]' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${loadingRealLeads ? 'animate-spin text-emerald-600' : ''}`} />
           </button>
         </div>
 
@@ -845,79 +891,157 @@ export const MerchantDashboard: React.FC = () => {
         )}
 
         {/* ========================================================================= */}
-        {/* VISÃO 2: QUADRO KANBAN (PLANO PRO) */}
+        {/* VISÃO 2: QUADRO KANBAN (PLANO PRO) COM DUAS VISUALIZAÇÕES */}
         {/* ========================================================================= */}
         {viewMode === 'kanban' && isProPlan && (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 pt-2 overflow-x-auto min-w-[900px]">
-            {KANBAN_STAGES.map((stage) => {
-              const stageLeads = filteredLeads.filter((l) => l.status === stage.id);
+          <div className="space-y-4 pt-2">
+            
+            {/* SELETOR DE VISUALIZAÇÃO: PIPELINE ATIVO VS RESULTADOS */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-2 rounded-2xl border border-slate-200/80">
+              <div className="inline-flex items-center p-1 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => setKanbanView('pipeline')}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                    kanbanView === 'pipeline'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  }`}
+                >
+                  <Kanban className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Pipeline Ativo</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                    kanbanView === 'pipeline' ? 'bg-blue-500/30 text-blue-200' : 'bg-slate-100 text-slate-700'
+                  }`}>
+                    {filteredLeads.filter((l) => ['novo', 'em_atendimento', 'orcado'].includes(l.status)).length}
+                  </span>
+                </button>
 
-              return (
-                <div key={stage.id} className="bg-slate-100/70 rounded-2xl p-3 border border-slate-200/80 space-y-3 flex flex-col justify-start min-h-[450px]">
-                  
-                  {/* Header Coluna */}
-                  <div className={`p-2.5 rounded-xl border-l-4 font-black text-xs text-[#1B2B48] flex justify-between items-center bg-white shadow-sm ${stage.color}`}>
-                    <span>{stage.label}</span>
-                    <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full text-[10px]">
-                      {stageLeads.length}
-                    </span>
-                  </div>
+                <button
+                  type="button"
+                  onClick={() => setKanbanView('resultados')}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                    kanbanView === 'resultados'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  }`}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Resultados</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                    kanbanView === 'resultados' ? 'bg-emerald-500/30 text-emerald-200' : 'bg-slate-100 text-slate-700'
+                  }`}>
+                    {filteredLeads.filter((l) => ['convertido', 'perdido'].includes(l.status)).length}
+                  </span>
+                </button>
+              </div>
 
-                  {/* Cards de Lead na Coluna */}
-                  <div className="space-y-2.5 flex-1 overflow-y-auto">
-                    {stageLeads.map((lead) => (
-                      <div 
-                        key={lead.assignmentId || lead.id} 
-                        onClick={() => setSelectedLeadForDetail(lead)}
-                        className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-2.5 hover:shadow-md transition-all cursor-pointer"
-                      >
-                        <div className="flex justify-between items-start">
-                          <h4 className="font-extrabold text-xs text-[#1B2B48]">{lead.name}</h4>
-                          <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
-                            {lead.source || 'Plataforma'}
-                          </span>
-                        </div>
+              <span className="text-[11px] text-slate-500 font-medium px-2">
+                {kanbanView === 'pipeline'
+                  ? 'Foco nas negociações ativas (Novos Leads, Em Atendimento e Orçados)'
+                  : 'Desfecho das negociações (Vendas Fechadas e Perdidos)'}
+              </span>
+            </div>
 
-                        <p className="text-[11px] font-medium text-slate-600 line-clamp-1">
-                          {lead.environment}
-                        </p>
+            {/* COLUNAS KANBAN */}
+            <div className={`grid grid-cols-1 ${kanbanView === 'pipeline' ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}>
+              {currentKanbanStages.map((stage) => {
+                const stageLeads = filteredLeads.filter((l) => l.status === stage.id);
 
-                        <div className="text-xs font-black text-[#439346]">
-                          {formatCurrency(lead.estimatedMin)}
-                        </div>
+                return (
+                  <div key={stage.id} className="bg-slate-100/70 rounded-2xl p-3 border border-slate-200/80 space-y-3 flex flex-col justify-start min-h-[460px]">
+                    
+                    {/* Header Coluna */}
+                    <div className={`p-2.5 rounded-xl border-l-4 font-black text-xs text-slate-800 flex justify-between items-center bg-white shadow-2xs ${stage.color}`}>
+                      <span>{stage.label}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${stage.badgeColor}`}>
+                        {stageLeads.length}
+                      </span>
+                    </div>
 
-                        {/* Fast Select Status in Kanban Card */}
-                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-1" onClick={(e) => e.stopPropagation()}>
-                          <select
-                            value={lead.status}
-                            onChange={(e) => {
-                              const targetStatus = e.target.value as LeadStatus;
-                              handleStageChange(lead, targetStatus);
-                            }}
-                            className="text-[10px] font-bold border border-slate-200 rounded px-1.5 py-1 bg-slate-50 text-slate-700 focus:outline-none"
+                    {/* Cards de Lead na Coluna */}
+                    <div className="space-y-2.5 flex-1 overflow-y-auto">
+                      {stageLeads.length > 0 ? (
+                        stageLeads.map((lead) => (
+                          <div 
+                            key={lead.assignmentId || lead.id} 
+                            onClick={() => setSelectedLeadForDetail(lead)}
+                            className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs hover:shadow-md hover:border-slate-300 transition-all cursor-pointer space-y-2.5 group"
                           >
-                            <option value="novo">Mover: Novo</option>
-                            <option value="em_atendimento">Mover: Atendimento</option>
-                            <option value="orcado">Mover: Orçado</option>
-                            <option value="convertido">Mover: Venda Fechada</option>
-                            <option value="perdido">Mover: Perdido</option>
-                          </select>
+                            <div className="flex justify-between items-start gap-2">
+                              <div className="min-w-0 flex-1">
+                                <h4 className="font-extrabold text-xs text-slate-900 truncate group-hover:text-blue-600 transition-colors">
+                                  {lead.name}
+                                </h4>
+                                <p className="text-[11px] font-medium text-slate-500 truncate mt-0.5">
+                                  {lead.environment}
+                                </p>
+                              </div>
+                              <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded shrink-0 ${
+                                lead.source && lead.source !== 'plataforma'
+                                  ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                                  : 'bg-slate-100 text-slate-600 border border-slate-200'
+                              }`}>
+                                {lead.source || 'Plataforma'}
+                              </span>
+                            </div>
 
-                          <button
-                            onClick={() => openWhatsApp(lead.phone, lead.name, lead.environment)}
-                            className="p-1 rounded bg-[#439346] text-white hover:bg-[#387F3B]"
-                            title="WhatsApp"
-                          >
-                            <MessageCircle className="w-3.5 h-3.5" />
-                          </button>
+                            <div className="flex items-baseline justify-between pt-0.5">
+                              <div>
+                                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Valor Estimado</span>
+                                <span className="text-sm font-black text-emerald-700">
+                                  {formatCurrency(lead.estimatedMin)}
+                                </span>
+                              </div>
+                              {lead.city && (
+                                <span className="text-[10px] text-slate-400 font-medium">
+                                  {lead.city}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Ações do Card */}
+                            <div 
+                              className="pt-2 border-t border-slate-100 flex items-center justify-between gap-1.5" 
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <select
+                                value={lead.status}
+                                onChange={(e) => {
+                                  const targetStatus = e.target.value as LeadStatus;
+                                  handleStageChange(lead, targetStatus);
+                                }}
+                                className="text-[10px] font-bold border border-slate-200 rounded-lg px-2 py-1 bg-slate-50 hover:bg-slate-100 text-slate-700 focus:outline-none cursor-pointer flex-1"
+                              >
+                                <option value="novo">Mover: Novo</option>
+                                <option value="em_atendimento">Mover: Atendimento</option>
+                                <option value="orcado">Mover: Orçado</option>
+                                <option value="convertido">Mover: Venda Fechada</option>
+                                <option value="perdido">Mover: Perdido</option>
+                              </select>
+
+                              <button
+                                onClick={() => openWhatsApp(lead.phone, lead.name, lead.environment)}
+                                className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors cursor-pointer shrink-0"
+                                title="Iniciar conversa no WhatsApp"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="h-32 flex items-center justify-center border-2 border-dashed border-slate-200 rounded-xl text-center p-3">
+                          <p className="text-xs text-slate-400 italic">Nenhum lead nesta etapa</p>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      )}
+                    </div>
 
-                </div>
-              );
-            })}
+                  </div>
+                );
+              })}
+            </div>
+
           </div>
         )}
 
