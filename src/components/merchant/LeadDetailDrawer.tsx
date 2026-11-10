@@ -734,13 +734,30 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
                 )
               ) : (
                 <>
-                  {/* Botão de Visualização / Emissão de Contrato Comercial */}
+                  {/* Botão de Emissão e Assinatura de Contrato Comercial */}
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
+                      let targetOrderId = lead.orderId;
+                      let targetOrderNumber = lead.orderNumber;
+                      let targetToken = lead.contractToken;
+                      let targetStatus = lead.contractStatus || 'formalizacao_pendente';
+                      const orderFinalValue = lead.commercialProposal?.finalOrderTotal || lead.estimatedMax || 0;
+
+                      // Se o pedido ainda não foi persistido no ERP, converte e gera token oficial imediatamente
+                      if (!targetOrderId && assignmentId) {
+                        const convRes = await convertLeadToOrderOnServer(assignmentId, orderFinalValue);
+                        if (convRes.success) {
+                          targetOrderId = convRes.orderId;
+                          targetOrderNumber = convRes.orderNumber;
+                          targetToken = convRes.contractToken;
+                          targetStatus = convRes.contractStatus || 'formalizacao_pendente';
+                        }
+                      }
+
                       setContractModalOrder({
-                        id: lead.orderId || `ord_${lead.id}`,
-                        orderNumber: lead.orderNumber || '#PED-1000',
+                        id: targetOrderId || `ord_${lead.id}`,
+                        orderNumber: targetOrderNumber || '#PED-1000',
                         clientName: lead.name,
                         phone: lead.phone,
                         clientCpf: lead.cpf,
@@ -748,20 +765,20 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
                         billingAddress: lead.billingAddress,
                         installationAddress: lead.installationAddress,
                         environment: lead.environment,
-                        totalValue: lead.commercialProposal?.finalOrderTotal || lead.estimatedMax || 0,
-                        contractedValue: lead.commercialProposal?.finalOrderTotal || lead.estimatedMax || 0,
-                        contractToken: lead.contractToken,
-                        contractStatus: (lead.contractStatus as any) || 'rascunho',
+                        totalValue: orderFinalValue,
+                        contractedValue: orderFinalValue,
+                        contractToken: targetToken,
+                        contractStatus: targetStatus as any,
                         storeId: lead.assignedStoreId,
                         commercialProposal: lead.commercialProposal,
                         paymentAllocations: lead.commercialProposal?.paymentAllocations,
                       });
                       setIsContractModalOpen(true);
                     }}
-                    className="w-full py-3 px-4 rounded-2xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-900 font-bold text-xs flex items-center justify-center space-x-2 transition-colors cursor-pointer"
+                    className="w-full py-3.5 px-4 rounded-2xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-900 font-extrabold text-xs flex items-center justify-center space-x-2 transition-colors cursor-pointer shadow-xs"
                   >
                     <FileSignature className="w-4 h-4 text-indigo-600" />
-                    <span>Visualizar / Emitir Contrato Comercial</span>
+                    <span>Emitir / Assinar Contrato Comercial</span>
                   </button>
                   {/* Composição Consolidada do Pedido (Promob + Móveis Convencionais + Taxa de Pagamento) */}
                   {lead.commercialProposal && (

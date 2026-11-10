@@ -434,6 +434,8 @@ DECLARE
     v_order RECORD;
     v_template RECORD;
     v_clauses JSONB;
+    v_lead_id_str TEXT;
+    v_asgn_id UUID;
 BEGIN
     IF p_token IS NULL OR trim(p_token) = '' THEN
         RETURN jsonb_build_object('success', false, 'error', 'Token de contrato não fornecido.');
@@ -443,7 +445,25 @@ BEGIN
     FROM orders 
     WHERE contract_token = p_token;
 
-    IF NOT FOUND THEN
+    -- Fallback de resiliência: se o token veio com prefixo de lead (ex: ctk_ord_<lead_id>)
+    IF NOT FOUND AND (p_token LIKE 'ctk_ord_%' OR p_token LIKE 'ctk_%') THEN
+        v_lead_id_str := replace(p_token, 'ctk_ord_', '');
+        v_lead_id_str := replace(v_lead_id_str, 'ctk_', '');
+        
+        IF v_lead_id_str ~ '^[0-9a-fA-F-]{36}$' THEN
+            SELECT id INTO v_asgn_id FROM lead_assignments WHERE lead_id = v_lead_id_str::UUID LIMIT 1;
+            IF v_asgn_id IS NOT NULL THEN
+                SELECT * INTO v_order FROM orders WHERE lead_assignment_id = v_asgn_id LIMIT 1;
+                IF NOT FOUND THEN
+                    -- Se o lojista abriu o contrato antes de clicar em Fechado, converte automaticamente em Formalização
+                    PERFORM public.convert_lead_to_order(v_asgn_id);
+                    SELECT * INTO v_order FROM orders WHERE lead_assignment_id = v_asgn_id LIMIT 1;
+                END IF;
+            END IF;
+        END IF;
+    END IF;
+
+    IF v_order.id IS NULL THEN
         RETURN jsonb_build_object('success', false, 'error', 'Contrato não encontrado ou link expirado.');
     END IF;
 
@@ -545,7 +565,18 @@ BEGIN
     WHERE contract_token = p_token 
     FOR UPDATE;
 
-    IF NOT FOUND THEN
+    IF NOT FOUND AND (p_token LIKE 'ctk_ord_%' OR p_token LIKE 'ctk_%') THEN
+        v_lead_id_str := replace(p_token, 'ctk_ord_', '');
+        v_lead_id_str := replace(v_lead_id_str, 'ctk_', '');
+        IF v_lead_id_str ~ '^[0-9a-fA-F-]{36}$' THEN
+            SELECT id INTO v_asgn_id FROM lead_assignments WHERE lead_id = v_lead_id_str::UUID LIMIT 1;
+            IF v_asgn_id IS NOT NULL THEN
+                SELECT * INTO v_order FROM orders WHERE lead_assignment_id = v_asgn_id LIMIT 1 FOR UPDATE;
+            END IF;
+        END IF;
+    END IF;
+
+    IF v_order.id IS NULL THEN
         RETURN jsonb_build_object('success', false, 'error', 'Contrato não localizado para o token fornecido.');
     END IF;
 
@@ -741,3 +772,4 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.confirm_physical_contract_and_advance(UUID, TEXT) TO authenticated, anon, service_role;
+

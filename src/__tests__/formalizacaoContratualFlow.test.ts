@@ -76,3 +76,4 @@ describe('Fluxo Completo CRM -> Contrato -> ERP (Formalização Contratual)', ()
     expect(canAdvanceToMedicao).toBe(true);
   });
 });
+
