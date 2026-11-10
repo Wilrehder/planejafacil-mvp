@@ -1,20 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
+import {
   X, Ruler, FileCheck, Wrench, CheckCircle2, Upload, FileText, Clock, ShieldCheck, Sparkles, Check, Package,
-  ExternalLink, AlertCircle, Edit2, AlertTriangle, Percent, CreditCard, Sliders
+  ExternalLink, AlertCircle, Edit2, AlertTriangle, Percent, CreditCard, Sliders, Eye, Download
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { OrderStage, StoreOrder, OrderDocumentItem } from '../../types';
-import { 
-  advanceOrderStageOnServer, 
-  uploadAndAttachOrderDocument, 
+import {
+  advanceOrderStageOnServer,
+  uploadAndAttachOrderDocument,
   getOrderDocumentSignedUrl,
   updateOrderContractedValueOnServer,
   updateOrderPendencyOnServer
 } from '../../lib/erpService';
 import { fetchStoreCommercialSettings, StoreCommercialSettings } from '../../lib/expenseService';
 import { CustomerContractModal } from './CustomerContractModal';
-import { confirmPhysicalContractOnServer } from '../../lib/customerContractService';
+import { 
+  confirmPhysicalContractOnServer,
+  downloadContractPdf,
+  generateContractPdfBlob,
+  ensureOrderSignedContractArchived
+} from '../../lib/customerContractService';
 
 interface OrderFolderModalProps {
   order: StoreOrder;
@@ -71,12 +76,12 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
 
   const discountAmount = (basePriceInput * discountPercentInput) / 100;
   const subtotalAfterDiscount = Math.max(0, basePriceInput - discountAmount);
-  const appliedCardTaxPercent = 
-    paymentMethod === 'cartao_vista' 
-      ? commercialSettings.card_tax_percentage 
-      : paymentMethod === 'cartao_parcelado' 
-      ? commercialSettings.installment_tax_percentage 
-      : 0;
+  const appliedCardTaxPercent =
+    paymentMethod === 'cartao_vista'
+      ? commercialSettings.card_tax_percentage
+      : paymentMethod === 'cartao_parcelado'
+        ? commercialSettings.installment_tax_percentage
+        : 0;
   const cardTaxAmount = (subtotalAfterDiscount * appliedCardTaxPercent) / 100;
   const calculatedFinalTotal = Math.round(subtotalAfterDiscount + cardTaxAmount);
   const isDiscountOverCeiling = discountPercentInput > commercialSettings.max_discount_percentage;
@@ -91,6 +96,78 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
   const [isContractModalOpen, setIsContractModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Estados do Visualizador de PDF do Contrato Assinado
+  const [viewingPdfUrl, setViewingPdfUrl] = useState<string | null>(null);
+  const [viewingPdfTitle, setViewingPdfTitle] = useState<string>('');
+  const [isGeneratingPdfView, setIsGeneratingPdfView] = useState(false);
+
+  // Sincronização automática para arquivamento de pedidos assinados
+  useEffect(() => {
+    if (order.contractStatus === 'assinado' && !order.documents?.some(d => d.stage === 'contrato')) {
+      ensureOrderSignedContractArchived(order).then((res) => {
+        if (res.success && onOrderUpdated) {
+          onOrderUpdated();
+        }
+      });
+    }
+  }, [order.id, order.contractStatus]);
+
+  // Visualizar PDF do contrato assinado
+  const handleViewContractPdf = async () => {
+    setIsGeneratingPdfView(true);
+    setErrorMessage(null);
+    try {
+      const contractDoc = order.documents?.find(d => d.stage === 'contrato' || d.docType === 'contrato_assinado');
+      if (contractDoc?.filePath) {
+        const url = await getOrderDocumentSignedUrl(contractDoc.filePath);
+        if (url) {
+          setViewingPdfUrl(url);
+          setViewingPdfTitle(`Contrato Assinado — ${order.orderNumber || order.id}`);
+          return;
+        }
+      }
+
+      // Fallback: gera na hora com o snapshot e assinatura
+      const blob = await generateContractPdfBlob({
+        order,
+        isSigned: true,
+        signatureImage: order.contractSignatureImage,
+        signerName: order.contractSignedByName || order.clientName,
+        signerCpf: order.contractSignedByCpf || order.clientCpf,
+        signedAt: order.contractSignedAt,
+        signatureIp: order.contractSignatureIp
+      });
+      const objectUrl = URL.createObjectURL(blob);
+      setViewingPdfUrl(objectUrl);
+      setViewingPdfTitle(`Contrato Assinado — ${order.orderNumber || order.id}`);
+    } catch (err: any) {
+      console.error('Erro ao visualizar contrato:', err);
+      setErrorMessage('Não foi possível carregar a pré-visualização do contrato assinado.');
+    } finally {
+      setIsGeneratingPdfView(false);
+    }
+  };
+
+  // Baixar PDF do contrato assinado
+  const handleDownloadContractPdf = async () => {
+    try {
+      await downloadContractPdf(
+        {
+          order,
+          isSigned: true,
+          signatureImage: order.contractSignatureImage,
+          signerName: order.contractSignedByName || order.clientName,
+          signerCpf: order.contractSignedByCpf || order.clientCpf,
+          signedAt: order.contractSignedAt,
+          signatureIp: order.contractSignatureIp
+        },
+        `CONTRATO_ASSINADO_${order.orderNumber || order.id}.pdf`
+      );
+    } catch (e) {
+      alert('Erro ao realizar download do contrato assinado.');
+    }
+  };
 
   // File input refs para upload real
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -195,7 +272,7 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
     setContractedValueInput(finalValue);
     setIsEditingValue(false);
     setSuccessMessage(`Valor contratado atualizado para R$ ${finalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
-    
+
     updateOrder(
       order.id,
       { totalValue: finalValue, contractedValue: finalValue },
@@ -311,7 +388,7 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
 
     setIsSubmitting(true);
     const targetUuid = order.uuid || order.id;
-    
+
     // Avançar etapa no servidor
     const res = await advanceOrderStageOnServer(
       targetUuid,
@@ -495,10 +572,93 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
     if (onOrderUpdated) onOrderUpdated();
   };
 
+  const renderContractRow = () => {
+    const contractDoc = order.documents?.find(d => d.stage === 'contrato' || d.docType === 'contrato_assinado');
+    const isSigned = order.contractStatus === 'assinado' || Boolean(contractDoc);
+    const fileName = contractDoc?.fileName || order.contractFile || `contrato_assinado_${order.orderNumber || order.id}.pdf`;
+
+    return (
+      <div className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between col-span-2 gap-3 transition-all ${
+        isSigned ? 'bg-emerald-50/60 border-emerald-200 shadow-2xs' : 'bg-slate-50 border-slate-200'
+      }`}>
+        <div className="truncate pr-2 flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              1. CONTRATO COMERCIAL
+            </span>
+            {isSigned ? (
+              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
+                Assinado Eletronicamente
+              </span>
+            ) : (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                Pendente no CRM
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <FileText className={`w-4 h-4 shrink-0 ${isSigned ? 'text-emerald-700' : 'text-slate-400'}`} />
+            <span className={`text-xs font-bold truncate ${isSigned ? 'text-slate-900' : 'text-slate-500 italic'}`}>
+              {fileName}
+            </span>
+          </div>
+
+          {isSigned && (order.contractSignedByName || order.contractSignedByCpf) && (
+            <p className="text-[11px] text-slate-600 mt-1 truncate">
+              Signatário: <strong className="text-slate-800">{order.contractSignedByName || order.clientName}</strong>
+              {order.contractSignedByCpf ? ` (CPF: ${order.contractSignedByCpf})` : ''}
+              {order.contractSignedAt ? ` • Assinado em ${new Date(order.contractSignedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}` : ''}
+            </p>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {isSigned ? (
+            <>
+              <button
+                type="button"
+                onClick={handleViewContractPdf}
+                disabled={isGeneratingPdfView}
+                title="Abrir e ler o contrato completo com todas as páginas e assinaturas"
+                className="px-3 py-1.5 text-xs font-bold text-blue-700 bg-white hover:bg-blue-50 border border-blue-200 rounded-lg shadow-2xs transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                <Eye className="w-3.5 h-3.5 text-blue-600" />
+                <span>{isGeneratingPdfView ? 'Carregando...' : 'Visualizar PDF'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDownloadContractPdf}
+                title="Baixar cópia oficial em PDF"
+                className="px-3 py-1.5 text-xs font-bold text-emerald-700 bg-white hover:bg-emerald-50 border border-emerald-200 rounded-lg shadow-2xs transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Baixar</span>
+              </button>
+            </>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={() => triggerFileInput('contrato')}
+            disabled={uploadingStage === 'contrato'}
+            title="Anexar ou atualizar documento do contrato"
+            className="px-2 py-1.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-300 transition-colors flex items-center gap-1 cursor-pointer"
+          >
+            <Upload className="w-3 h-3" />
+            <span className="text-[11px]">{isSigned ? 'Substituir' : 'Anexar'}</span>
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   const renderFileRow = (
-    label: string, 
+    label: string,
     stageKey: string,
-    filename?: string, 
+    filename?: string,
     fallbackText: string = '—',
     doc?: OrderDocumentItem
   ) => (
@@ -509,7 +669,7 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
           {filename || fallbackText}
         </span>
       </div>
-      
+
       <div className="flex items-center gap-1.5 shrink-0">
         {filename ? (
           <>
@@ -559,7 +719,7 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
       />
 
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-5xl my-8 overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-200">
-        
+
         {/* MODAL HEADER */}
         <div className="bg-slate-900 text-white p-6 flex items-start justify-between border-b border-slate-800">
           <div>
@@ -659,9 +819,8 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
                         step="0.5"
                         value={discountPercentInput}
                         onChange={(e) => setDiscountPercentInput(Number(e.target.value))}
-                        className={`w-full px-3 py-1.5 rounded-lg bg-slate-800 border text-xs font-bold text-white outline-none ${
-                          isDiscountOverCeiling ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-700'
-                        }`}
+                        className={`w-full px-3 py-1.5 rounded-lg bg-slate-800 border text-xs font-bold text-white outline-none ${isDiscountOverCeiling ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-700'
+                          }`}
                       />
                       <span className="absolute right-3 top-1.5 text-xs font-extrabold text-slate-400">%</span>
                     </div>
@@ -722,11 +881,10 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
                       type="button"
                       disabled={isDiscountOverCeiling || isSubmitting}
                       onClick={handleSaveContractedValue}
-                      className={`px-3.5 py-1.5 rounded-lg text-xs font-black transition-all ${
-                        isDiscountOverCeiling || isSubmitting
-                          ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                          : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md cursor-pointer'
-                      }`}
+                      className={`px-3.5 py-1.5 rounded-lg text-xs font-black transition-all ${isDiscountOverCeiling || isSubmitting
+                        ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                        : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md cursor-pointer'
+                        }`}
                     >
                       Aplicar e Salvar
                     </button>
@@ -776,24 +934,22 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
               return (
                 <div key={s.key} className="flex-1 flex flex-col items-center relative z-10">
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-200 ${
-                      isCompleted
-                        ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
-                        : isCurrent
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-200 ${isCompleted
+                      ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
+                      : isCurrent
                         ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 ring-4 ring-blue-100'
                         : 'bg-slate-200 text-slate-400'
-                    }`}
+                      }`}
                   >
                     {isCompleted ? <Check className="w-5 h-5 stroke-[3]" /> : <IconComp className="w-5 h-5" />}
                   </div>
                   <span
-                    className={`text-xs mt-2 font-medium text-center ${
-                      isCurrent
-                        ? 'text-blue-700 font-bold'
-                        : isCompleted
+                    className={`text-xs mt-2 font-medium text-center ${isCurrent
+                      ? 'text-blue-700 font-bold'
+                      : isCompleted
                         ? 'text-emerald-700 font-semibold'
                         : 'text-slate-400'
-                    }`}
+                      }`}
                   >
                     {s.label}
                   </span>
@@ -805,10 +961,10 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
 
         {/* CORPO DO MODAL (2 COLUNAS) */}
         <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 bg-slate-50/50">
-          
+
           {/* COLUNA ESQUERDA: FORMULÁRIO E DOCUMENTOS DA ETAPA */}
           <div className="lg:col-span-7 space-y-6">
-            
+
             {/* PASTA DIGITAL DO PEDIDO */}
             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
               <div className="flex items-center justify-between mb-3">
@@ -821,18 +977,21 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
                     Bucket: order-documents
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsContractModalOpen(true)}
-                  className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-bold flex items-center space-x-1.5 transition-colors cursor-pointer"
-                >
-                  <FileCheck className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>Gerar / Assinar Contrato Comercial</span>
-                </button>
+                {order.contractStatus === 'assinado' ? (
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    Contrato Formalizado
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-amber-600" />
+                    Aguardando Assinatura
+                  </span>
+                )}
               </div>
-              
+
               <div className="grid grid-cols-2 gap-3">
-                {renderFileRow('1. Contrato', 'contrato', order.contractFile, 'contrato_venda.pdf', order.documents?.find(d => d.stage === 'contrato'))}
+                {renderContractRow()}
                 {renderFileRow('2. Medição', 'medicao', medicaoFileName || order.medicaoFile, undefined, order.documents?.find(d => d.stage === 'medicao'))}
                 {renderFileRow('3. Projeto', 'projeto', projectFileName || order.projectFile, undefined, order.documents?.find(d => d.stage === 'projeto'))}
                 {renderFileRow('4. Documentos de Produção', 'producao', producaoFileName || order.producaoFile, undefined, order.documents?.find(d => d.stage === 'producao'))}
@@ -855,13 +1014,12 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
               {order.currentStage === 'formalizacao_contratual' && (
                 <div className="space-y-5 animate-in fade-in">
                   {/* Status Banner */}
-                  <div className={`p-4 rounded-2xl border flex items-start space-x-3.5 ${
-                    order.contractStatus === 'assinado' || order.contractStatus === 'assinado_eletronico'
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-950'
-                      : order.contractStatus === 'assinado_externo'
+                  <div className={`p-4 rounded-2xl border flex items-start space-x-3.5 ${order.contractStatus === 'assinado' || order.contractStatus === 'assinado_eletronico'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-950'
+                    : order.contractStatus === 'assinado_externo'
                       ? 'bg-blue-50 border-blue-200 text-blue-950'
                       : 'bg-amber-50 border-amber-200 text-amber-950'
-                  }`}>
+                    }`}>
                     {order.contractStatus === 'assinado' || order.contractStatus === 'assinado_eletronico' || order.contractStatus === 'assinado_externo' ? (
                       <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
                     ) : (
@@ -872,26 +1030,25 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
                         <span className="font-extrabold uppercase tracking-wider text-[11px]">
                           Situação do Contrato:
                         </span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                          order.contractStatus === 'assinado' || order.contractStatus === 'assinado_eletronico'
-                            ? 'bg-emerald-200 text-emerald-900'
-                            : order.contractStatus === 'assinado_externo'
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${order.contractStatus === 'assinado' || order.contractStatus === 'assinado_eletronico'
+                          ? 'bg-emerald-200 text-emerald-900'
+                          : order.contractStatus === 'assinado_externo'
                             ? 'bg-blue-200 text-blue-900'
                             : 'bg-amber-200 text-amber-900'
-                        }`}>
+                          }`}>
                           {order.contractStatus === 'assinado' || order.contractStatus === 'assinado_eletronico'
                             ? 'Assinado Eletronicamente'
                             : order.contractStatus === 'assinado_externo'
-                            ? 'Assinado Fisicamente'
-                            : 'Aguardando Formalização'}
+                              ? 'Assinado Fisicamente'
+                              : 'Aguardando Formalização'}
                         </span>
                       </div>
                       <p className="text-[11px] leading-relaxed opacity-90">
                         {order.contractStatus === 'assinado' || order.contractStatus === 'assinado_eletronico'
                           ? `Contrato assinado eletronicamente por ${order.contractSignedByName || order.clientName} (CPF ${order.contractSignedByCpf || 'conferido'}) em ${order.contractSignedAt ? new Date(order.contractSignedAt).toLocaleString('pt-BR') : 'recente'}. Pedido apto para Medição Fina.`
                           : order.contractStatus === 'assinado_externo'
-                          ? 'Contrato assinado em meio físico validado e anexado à pasta digital. Pedido apto para Medição Fina.'
-                          : 'O contrato comercial precisa ser assinado pelo cliente (digitalmente via Link/QR Code) ou fisicamente (impresso e anexado) para liberar a etapa de Medição Fina.'}
+                            ? 'Contrato assinado em meio físico validado e anexado à pasta digital. Pedido apto para Medição Fina.'
+                            : 'O contrato comercial precisa ser assinado pelo cliente (digitalmente via Link/QR Code) ou fisicamente (impresso e anexado) para liberar a etapa de Medição Fina.'}
                       </p>
                     </div>
                   </div>
@@ -1269,7 +1426,7 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
                 order.timeline.map((log) => (
                   <div key={log.id} className="relative pl-5 border-l-2 border-slate-200 group hover:border-blue-500 transition-colors">
                     <div className="absolute -left-[5px] top-0.5 w-2 h-2 rounded-full bg-slate-400 group-hover:bg-blue-600 transition-colors" />
-                    
+
                     <div className="flex items-center justify-between text-[11px] mb-1">
                       <span className="font-bold text-slate-800">
                         {log.user}
@@ -1311,6 +1468,73 @@ export const OrderFolderModal: React.FC<OrderFolderModalProps> = ({ order, onClo
             Fechar Pasta
           </button>
         </div>
+
+        {/* Modal Visualizador Integrado do Contrato Assinado */}
+        {viewingPdfUrl && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-3 sm:p-5 animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl w-full max-w-5xl h-[92vh] flex flex-col overflow-hidden shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-200">
+              
+              <div className="bg-[#1B2B48] text-white p-4 sm:p-5 flex items-center justify-between border-b border-slate-800">
+                <div className="flex items-center space-x-3 truncate pr-2">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold shrink-0">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div className="truncate">
+                    <div className="flex items-center space-x-2">
+                      <h3 className="font-extrabold text-sm sm:text-base text-white truncate">{viewingPdfTitle}</h3>
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
+                        ✓ Assinatura Válida
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 truncate mt-0.5">
+                      Contrato definitivo com todas as cláusulas, produtos, valores e evidências forenses
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleDownloadContractPdf}
+                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-colors cursor-pointer shadow-xs"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Baixar PDF</span>
+                  </button>
+                  <a
+                    href={viewingPdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl transition-colors cursor-pointer"
+                    title="Abrir em Nova Aba"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (viewingPdfUrl.startsWith('blob:')) {
+                        URL.revokeObjectURL(viewingPdfUrl);
+                      }
+                      setViewingPdfUrl(null);
+                    }}
+                    className="p-2 hover:bg-slate-800 text-slate-400 hover:text-white rounded-xl transition-colors cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 bg-slate-100 p-2 sm:p-3 overflow-hidden">
+                <iframe
+                  src={viewingPdfUrl}
+                  className="w-full h-full rounded-2xl border border-slate-300 bg-white shadow-inner"
+                  title="Visualizador de Contrato Assinado"
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Modal do Contrato Comercial do Cliente */}
         {isContractModalOpen && (

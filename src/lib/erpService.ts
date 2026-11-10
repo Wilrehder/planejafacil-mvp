@@ -25,8 +25,12 @@ export interface AttachDocumentResult {
 function mapDocumentsToOrderSlots(order: any, rawDocs: any[] = []): Partial<StoreOrder> {
   const result: Partial<StoreOrder> = {};
 
-  const contractDoc = rawDocs.find((d) => d.stage === 'contrato' || d.docType === 'contrato');
-  if (contractDoc) result.contractFile = contractDoc.fileName;
+  const contractDoc = rawDocs.find((d) => d.stage === 'contrato' || d.docType === 'contrato' || d.docType === 'contrato_assinado');
+  if (contractDoc) {
+    result.contractFile = contractDoc.fileName;
+  } else if (order.contractStatus === 'assinado' || order.contract_status === 'assinado') {
+    result.contractFile = `contrato_assinado_${order.orderNumber || order.order_number || order.id}.pdf`;
+  }
 
   const medicaoDoc = rawDocs.find((d) => d.stage === 'medicao');
   if (medicaoDoc) {
@@ -132,9 +136,13 @@ export async function fetchStoreOrders(storeIdOrTenantUuid: string): Promise<{
         orderNotes: raw.orderNotes,
         contractStatus: raw.contractStatus,
         contractToken: raw.contractToken,
+        contractVersion: raw.contractVersion,
+        contractSnapshot: raw.contractSnapshot,
         contractSignedAt: raw.contractSignedAt,
         contractSignedByName: raw.contractSignedByName,
         contractSignedByCpf: raw.contractSignedByCpf,
+        contractSignatureIp: raw.contractSignatureIp,
+        contractSignatureImage: raw.contractSignatureImage,
         contractPdfUrl: raw.contractPdfUrl,
         createdAt: raw.createdAt,
         updatedAt: raw.updatedAt,

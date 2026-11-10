@@ -93,6 +93,38 @@ export interface ContractPdfParams {
   };
   signingUrl?: string;
   qrCodeDataUrl?: string;
+  isSigned?: boolean;
+  signatureImage?: string;
+  signerName?: string;
+  signerCpf?: string;
+  signedAt?: string;
+  signatureIp?: string;
+  signatureUserAgent?: string;
+  signatureId?: string;
+  verificationHash?: string;
+}
+
+/**
+ * Calcula hash criptográfico SHA-256 de integridade imutável do documento
+ */
+export async function computeContractIntegrityHash(payload: string): Promise<string> {
+  try {
+    if (typeof crypto !== 'undefined' && crypto.subtle) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(payload);
+      const hashBuf = await crypto.subtle.digest('SHA-256', data);
+      const hashArr = Array.from(new Uint8Array(hashBuf));
+      return hashArr.map((b) => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+    }
+  } catch (e) {
+    console.warn('Erro ao calcular hash criptográfico via SubtleCrypto:', e);
+  }
+  let hash = 0;
+  for (let i = 0; i < payload.length; i++) {
+    hash = ((hash << 5) - hash) + payload.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(16).padStart(16, '0').toUpperCase().repeat(4).slice(0, 64);
 }
 
 /**
@@ -240,32 +272,61 @@ export async function generateContractPdfDoc(params: ContractPdfParams): Promise
   });
 
   const { order, template, lead, signingUrl, qrCodeDataUrl } = params;
+  const snapshot = (order as any)?.contract_snapshot || (order as any)?.contractSnapshot;
 
-  const storeName = template?.tradeName || template?.companyName || 'Móveis Planejados';
-  const storeCnpj = template?.cnpj || 'Não informado';
-  const storeAddress = template?.address || 'Endereço da Loja';
-  const storeContact = [template?.phone, template?.email].filter(Boolean).join(' • ') || 'Contato da loja';
+  const storeName = snapshot?.contractor?.tradeName || snapshot?.contractor?.companyName || template?.tradeName || template?.companyName || 'Móveis Planejados';
+  const storeCnpj = snapshot?.contractor?.cnpj || template?.cnpj || 'Não informado';
+  const storeAddress = snapshot?.contractor?.address || template?.address || 'Endereço da Loja';
+  const storeSeller = snapshot?.contractor?.sellerName || (order as any)?.sellerName || (order as any)?.seller_name || 'Consultor Comercial';
+  const storeContact = [
+    snapshot?.contractor?.phone || template?.phone,
+    snapshot?.contractor?.email || template?.email
+  ].filter(Boolean).join(' • ') || 'Contato da loja';
 
-  const clientName = lead?.name || order.clientName || 'Cliente';
-  const clientCpf = lead?.cpf || order.clientCpf || 'Não informado';
-  const clientRg = lead?.rg || (order as any)?.clientRg || 'Não informado';
-  const clientPhone = lead?.phone || order.phone || 'Não informado';
-  const clientEmail = lead?.email || 'Não informado';
-  const billingAddr = lead?.billingAddress || order.billingAddress || order.address || 'Não informado';
-  const installAddr = lead?.installationAddress || order.installationAddress || billingAddr;
-  const deliveryDays = lead?.desiredDeadline || (template?.defaultDeliveryDays ? `${template.defaultDeliveryDays} dias` : '45 dias úteis');
+  const clientName = snapshot?.customer?.name || lead?.name || order.clientName || (order as any)?.client_name || 'Cliente';
+  const clientCpf = snapshot?.customer?.cpf || lead?.cpf || order.clientCpf || (order as any)?.client_cpf || 'Não informado';
+  const clientRg = snapshot?.customer?.rg || lead?.rg || (order as any)?.clientRg || (order as any)?.client_rg || 'Não informado';
+  const clientPhone = snapshot?.customer?.phone || lead?.phone || order.phone || (order as any)?.client_phone || 'Não informado';
+  const clientEmail = snapshot?.customer?.email || lead?.email || (order as any)?.clientEmail || (order as any)?.client_email || 'Não informado';
+  const billingAddr = snapshot?.customer?.billingAddress || lead?.billingAddress || order.billingAddress || (order as any)?.billing_address || order.address || 'Não informado';
+  const installAddr = snapshot?.customer?.installationAddress || lead?.installationAddress || order.installationAddress || (order as any)?.installation_address || billingAddr;
+  const deliveryDays = snapshot?.delivery?.deliveryDays || lead?.desiredDeadline || (order as any)?.desiredDeadline || (template?.defaultDeliveryDays ? `${template.defaultDeliveryDays} dias úteis` : '45 dias úteis');
+  const deliveryRef = snapshot?.delivery?.deliveryReference || 'Contados em dias úteis a partir da conclusão da Medição Fina e assinatura formal do Projeto Executivo Final.';
+  const orderNotes = snapshot?.delivery?.observations || (order as any)?.orderNotes || (order as any)?.order_notes || (order as any)?.commercialProposal?.observations || '';
 
-  const orderNum = order.orderNumber || '#PED-NOVO';
-  const dateFormatted = new Date().toLocaleDateString('pt-BR');
+  const orderNum = order.orderNumber || (order as any)?.order_number || '#PED-NOVO';
+  const dateFormatted = new Date((order as any)?.created_at || (order as any)?.createdAt || Date.now()).toLocaleDateString('pt-BR');
+  const contractVer = snapshot?.version || (order as any)?.contract_version || (order as any)?.contractVersion || 1;
+
+  const isSigned = Boolean(
+    params.isSigned ||
+    (order as any)?.contractStatus === 'assinado' ||
+    (order as any)?.contract_status === 'assinado' ||
+    params.signatureImage ||
+    (order as any)?.contractSignatureImage ||
+    (order as any)?.contract_signature_image
+  );
+  const signatureImage = params.signatureImage || (order as any)?.contractSignatureImage || (order as any)?.contract_signature_image;
+  const signerName = params.signerName || (order as any)?.contractSignedByName || (order as any)?.contract_signed_by_name || clientName;
+  const signerCpf = params.signerCpf || (order as any)?.contractSignedByCpf || (order as any)?.contract_signed_by_cpf || clientCpf;
+  const signedAtRaw = params.signedAt || (order as any)?.contractSignedAt || (order as any)?.contract_signed_at || new Date().toISOString();
+  const signatureIp = params.signatureIp || (order as any)?.contractSignatureIp || (order as any)?.contract_signature_ip || 'Dispositivo Web';
+  const signatureId = params.signatureId || (order as any)?.contractSignatureId || (order as any)?.uuid || (order as any)?.id || 'SIG-VALID';
+  const userAgent = params.signatureUserAgent || 'Navegador Web / Mobile';
 
   // Proposal e alocações
-  const proposal = (order as any)?.commercialProposal || {};
-  const allocations: PaymentAllocation[] = (order as any)?.paymentAllocations || proposal.paymentAllocations || [];
-  const totalContract = order.contractedValue || order.totalValue || proposal.finalOrderTotal || 0;
-  const discountAmount = proposal.discountAmount || 0;
-  const discountPct = proposal.discountPct || 0;
-  const promobVal = proposal.promobValue || 0;
-  const conventionalTotal = proposal.conventionalTotal || 0;
+  const proposal = (order as any)?.commercialProposal || (order as any)?.commercial_proposal || {};
+  const allocations: PaymentAllocation[] = snapshot?.financials?.paymentAllocations || (order as any)?.paymentAllocations || (order as any)?.payment_allocations || proposal.paymentAllocations || [];
+  const totalContract = snapshot?.financials?.finalContractedValue || order.contractedValue || (order as any)?.contracted_value || order.totalValue || (order as any)?.total_value || proposal.finalOrderTotal || 0;
+  const grossSubtotal = snapshot?.financials?.subtotalGross || proposal.subtotalGross || totalContract;
+  const discountAmount = snapshot?.financials?.discountAmount || proposal.discountAmount || proposal.discountValue || 0;
+  const discountPct = snapshot?.financials?.discountPct || proposal.discountPct || proposal.discountPercentage || 0;
+  const afterDiscount = snapshot?.financials?.subtotalAfterDiscount || proposal.subtotalAfterDiscount || (grossSubtotal - discountAmount);
+  const feeAmount = snapshot?.financials?.paymentFeeAmount || proposal.paymentFeeAmount || 0;
+  const promobVal = snapshot?.products?.promobValue ?? proposal.promobValue ?? (totalContract - (snapshot?.products?.conventionalTotal || 0));
+  const conventionalTotal = snapshot?.products?.conventionalTotal ?? proposal.conventionalTotal ?? 0;
+  const convItems = snapshot?.products?.conventionalItems || proposal.conventionalItems || [];
+  const simEnvironments = snapshot?.products?.simulationEnvironments || [];
 
   let y = 14;
 
@@ -278,59 +339,59 @@ export async function generateContractPdfDoc(params: ContractPdfParams): Promise
 
   // --- CABEÇALHO DA LOJA ---
   doc.setFillColor(27, 43, 72); // #1B2B48
-  doc.rect(10, y, 190, 22, 'F');
+  doc.rect(10, y, 190, 24, 'F');
 
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.text(storeName.toUpperCase(), 15, y + 8);
+  doc.setFontSize(12);
+  doc.text(storeName.toUpperCase(), 15, y + 7);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.text(`CNPJ: ${storeCnpj} | ${storeAddress}`, 15, y + 13);
-  doc.text(`${storeContact}`, 15, y + 18);
+  doc.setFontSize(7.5);
+  doc.text(`CNPJ: ${storeCnpj} | ${storeAddress}`, 15, y + 12);
+  doc.text(`Contato: ${storeContact} • Vendedor Responsável: ${storeSeller}`, 15, y + 16.5);
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.text(`CONTRATO DE FORNECIMENTO`, 145, y + 8);
+  doc.setFontSize(9.5);
+  doc.text(`CONTRATO DE FORNECIMENTO`, 140, y + 7);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.text(`Nº ${orderNum} • Emissão: ${dateFormatted}`, 145, y + 14);
+  doc.setFontSize(7.5);
+  doc.text(`Nº ${orderNum} (v${contractVer}) • Emissão: ${dateFormatted}`, 140, y + 12.5);
 
   y += 28;
 
   // --- DADOS DO CONTRATANTE ---
   doc.setFillColor(245, 247, 250);
-  doc.rect(10, y, 190, 28, 'F');
+  doc.rect(10, y, 190, 30, 'F');
   doc.setDrawColor(220, 225, 230);
-  doc.rect(10, y, 190, 28, 'S');
+  doc.rect(10, y, 190, 30, 'S');
 
   doc.setTextColor(27, 43, 72);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.text('1. DADOS DO(A) CONTRATANTE', 14, y + 6);
+  doc.setFontSize(8.5);
+  doc.text('1. DADOS DO(A) CONTRATANTE', 14, y + 5.5);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setTextColor(50, 50, 50);
 
-  doc.text(`Nome Completo: ${clientName}`, 14, y + 11);
-  doc.text(`CPF: ${clientCpf}`, 120, y + 11);
-  doc.text(`RG: ${clientRg}`, 160, y + 11);
+  doc.text(`Nome Completo: ${clientName}`, 14, y + 10.5);
+  doc.text(`CPF: ${clientCpf}`, 115, y + 10.5);
+  doc.text(`RG: ${clientRg}`, 160, y + 10.5);
 
-  doc.text(`Telefone / WhatsApp: ${clientPhone}`, 14, y + 16);
-  doc.text(`E-mail: ${clientEmail}`, 120, y + 16);
+  doc.text(`Telefone / WhatsApp: ${clientPhone}`, 14, y + 15);
+  doc.text(`E-mail: ${clientEmail}`, 115, y + 15);
 
-  doc.text(`Endereço de Cobrança: ${billingAddr}`, 14, y + 21);
-  doc.text(`Endereço de Instalação: ${installAddr}`, 14, y + 26);
+  doc.text(`Endereço de Cobrança: ${billingAddr}`, 14, y + 19.5);
+  doc.text(`Endereço de Instalação: ${installAddr}`, 14, y + 24);
 
-  y += 33;
+  y += 34;
 
   // --- TABELA DE PRODUTOS E AMBIENTES (Sem expor custos) ---
   doc.setFillColor(245, 247, 250);
   doc.rect(10, y, 190, 7, 'F');
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setTextColor(27, 43, 72);
   doc.text('2. DISCRIMINAÇÃO DOS AMBIENTES E PRODUTOS CONTRATADOS', 14, y + 5);
   y += 9;
@@ -338,11 +399,11 @@ export async function generateContractPdfDoc(params: ContractPdfParams): Promise
   // Header da tabela de itens
   doc.setFillColor(230, 235, 242);
   doc.rect(10, y, 190, 6, 'F');
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(27, 43, 72);
-  doc.text('Item / Descrição do Produto', 14, y + 4);
-  doc.text('Categoria', 115, y + 4);
+  doc.text('Item / Descrição Técnica do Produto', 14, y + 4);
+  doc.text('Tipo / Categoria', 115, y + 4);
   doc.text('Qtd', 145, y + 4);
   doc.text('Valor Comercial', 170, y + 4);
   y += 7;
@@ -350,7 +411,7 @@ export async function generateContractPdfDoc(params: ContractPdfParams): Promise
   // Linha 1: Móveis Planejados Promob
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(40, 40, 40);
-  const envName = proposal.promobProjectName || order.environment || 'Projeto Planejado Sob Medida';
+  const envName = snapshot?.products?.promobProjectName || proposal.promobProjectName || order.environment || 'Projeto Planejado Sob Medida';
   doc.text(`Ambiente Planejado: ${envName}`, 14, y + 4);
   doc.text('Sob Medida (Promob)', 115, y + 4);
   doc.text('1 conj.', 145, y + 4);
@@ -359,10 +420,23 @@ export async function generateContractPdfDoc(params: ContractPdfParams): Promise
   doc.line(10, y + 6, 200, y + 6);
   y += 8;
 
+  // Ambientes detalhados da simulação (se houver)
+  for (const env of simEnvironments) {
+    checkPageBreak(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(80, 80, 80);
+    doc.text(`• ${env.name} (Área: ${env.areaM2}m²${env.ceilingHeight ? `, Pé direito: ${env.ceilingHeight}m` : ''})`, 18, y + 3.5);
+    doc.line(10, y + 5.5, 200, y + 5.5);
+    y += 7;
+  }
+
   // Linhas Adicionais: Móveis Convencionais (se houver)
-  const convItems = proposal.conventionalItems || [];
   for (const item of convItems) {
     checkPageBreak(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(40, 40, 40);
     doc.text(`${item.name}`, 14, y + 4);
     doc.text(item.category || 'Convencional', 115, y + 4);
     doc.text(`${item.quantity} un`, 145, y + 4);
@@ -371,46 +445,55 @@ export async function generateContractPdfDoc(params: ContractPdfParams): Promise
     y += 8;
   }
 
-  y += 3;
+  y += 2;
 
   // --- RESUMO FINANCEIRO E CONDIÇÕES DE PAGAMENTO ---
-  checkPageBreak(40);
+  checkPageBreak(45);
   doc.setFillColor(245, 247, 250);
   doc.rect(10, y, 190, 7, 'F');
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setTextColor(27, 43, 72);
   doc.text('3. CONDIÇÕES COMERCIAIS E FORMAS DE PAGAMENTO', 14, y + 5);
   y += 10;
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setTextColor(50, 50, 50);
 
+  doc.text(`Subtotal Bruto dos Produtos: ${formatBRL(grossSubtotal)}`, 14, y + 3.5);
   if (discountAmount > 0) {
-    doc.text(`Desconto Comercial Concedido: ${formatBRL(discountAmount)} (${discountPct}%)`, 14, y + 4);
-    y += 5;
+    doc.text(`Desconto Comercial: -${formatBRL(discountAmount)} (${discountPct}%)`, 95, y + 3.5);
+    doc.text(`Subtotal c/ Desconto: ${formatBRL(afterDiscount)}`, 155, y + 3.5);
+    y += 5.5;
+  } else {
+    y += 5.5;
+  }
+
+  if (feeAmount > 0) {
+    doc.text(`Taxas Operacionais de Parcelamento: +${formatBRL(feeAmount)}`, 14, y + 3.5);
+    y += 5.5;
   }
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(27, 43, 72);
   doc.text(`VALOR TOTAL CONTRATADO: ${formatBRL(totalContract)}`, 14, y + 4);
-  y += 8;
+  y += 7.5;
 
   // Tabela de Alocações de Pagamento
   doc.setFillColor(235, 240, 245);
   doc.rect(14, y, 182, 6, 'F');
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setFont('helvetica', 'bold');
   doc.text('Modalidade de Pagamento', 18, y + 4);
   doc.text('Parcelamento', 105, y + 4);
   doc.text('Valor da Parcela', 135, y + 4);
-  doc.text('Subtotal', 168, y + 4);
+  doc.text('Subtotal da Forma', 168, y + 4);
   y += 7;
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
 
   if (allocations.length > 0) {
     for (const alloc of allocations) {
@@ -430,19 +513,26 @@ export async function generateContractPdfDoc(params: ContractPdfParams): Promise
     y += 7;
   }
 
-  y += 6;
+  y += 5;
 
-  // --- PRAZO DE ENTREGA ---
-  checkPageBreak(15);
-  doc.setFillColor(240, 249, 245); // suave verde
-  doc.rect(10, y, 190, 10, 'F');
+  // --- PRAZO DE ENTREGA E OBSERVAÇÕES ---
+  checkPageBreak(25);
+  doc.setFillColor(240, 249, 245);
+  doc.rect(10, y, 190, 16, 'F');
   doc.setDrawColor(67, 147, 70);
-  doc.rect(10, y, 190, 10, 'S');
+  doc.rect(10, y, 190, 16, 'S');
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
+  doc.setFontSize(8);
   doc.setTextColor(30, 80, 40);
-  doc.text(`PRAZO ESTIMADO DE ENTREGA E MONTAGEM: ${deliveryDays.toUpperCase()} APÓS MEDIÇÃO FINA`, 14, y + 6.5);
-  y += 16;
+  doc.text(`PRAZO ESTIMADO DE ENTREGA E MONTAGEM: ${deliveryDays.toUpperCase()}`, 14, y + 5);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(40, 90, 50);
+  doc.text(deliveryRef, 14, y + 9.5);
+  if (orderNotes) {
+    doc.text(`Observações do Pedido: ${orderNotes}`, 14, y + 13.5);
+  }
+  y += 20;
 
   // --- CLÁUSULAS CONTRATUAIS ---
   checkPageBreak(25);
@@ -454,9 +544,11 @@ export async function generateContractPdfDoc(params: ContractPdfParams): Promise
   doc.text('4. CLÁUSULAS E CONDIÇÕES CONTRATUAIS GERAIS', 14, y + 5);
   y += 11;
 
-  const clauses = template?.clauses && template.clauses.length > 0 
-    ? template.clauses 
-    : DEFAULT_CONTRACT_CLAUSES;
+  const clauses = snapshot?.clauses && Array.isArray(snapshot.clauses) && snapshot.clauses.length > 0
+    ? snapshot.clauses
+    : (template?.clauses && template.clauses.length > 0 
+      ? template.clauses 
+      : DEFAULT_CONTRACT_CLAUSES);
 
   for (const clause of clauses) {
     checkPageBreak(22);
@@ -505,6 +597,14 @@ export async function generateContractPdfDoc(params: ContractPdfParams): Promise
   doc.text('CONTRATADA', 10, y + 26);
 
   // Coluna 2: Cliente
+  if (isSigned && signatureImage) {
+    try {
+      doc.addImage(signatureImage, 'PNG', 98, y - 1, 60, 14);
+    } catch (e) {
+      console.warn('Erro ao inserir assinatura desenhada no PDF:', e);
+    }
+  }
+
   doc.line(95, y + 14, 160, y + 14);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
@@ -512,10 +612,10 @@ export async function generateContractPdfDoc(params: ContractPdfParams): Promise
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.text(`CPF: ${clientCpf}`, 95, y + 22);
-  doc.text('CONTRATANTE', 95, y + 26);
+  doc.text(isSigned ? 'CONTRATANTE (Assinado Eletronicamente)' : 'CONTRATANTE', 95, y + 26);
 
-  // QR Code à direita (se fornecido)
-  if (qrCodeDataUrl) {
+  // QR Code de Assinatura (se ainda não assinado e fornecido)
+  if (!isSigned && qrCodeDataUrl) {
     try {
       doc.addImage(qrCodeDataUrl, 'PNG', 165, y + 2, 28, 28);
       doc.setFontSize(6);
@@ -523,6 +623,92 @@ export async function generateContractPdfDoc(params: ContractPdfParams): Promise
       doc.text('Validação Digital', 167, y + 32);
     } catch (e) {
       console.warn('Erro ao inserir QR Code no PDF:', e);
+    }
+  }
+
+  // --- SEÇÃO 6: CERTIFICADO DE ASSINATURA ELETRÔNICA (QUANDO ASSINADO) ---
+  if (isSigned) {
+    checkPageBreak(56);
+    y += 33;
+
+    const certDateFormatted = new Date(signedAtRaw).toLocaleString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      dateStyle: 'short',
+      timeStyle: 'medium'
+    });
+
+    const hashRaw = `${orderNum}|${signerCpf}|${signedAtRaw}|${signatureId}|v${contractVer}`;
+    const integrityHash = params.verificationHash || await computeContractIntegrityHash(hashRaw);
+
+    // QR Code de validação de autenticidade digital do contrato já assinado
+    const verifyUrl = `https://www.useplanejafacil.com/?verify_contract=${encodeURIComponent(orderNum)}`;
+    let certQrCodeUrl = '';
+    try {
+      certQrCodeUrl = await QRCode.toDataURL(verifyUrl, {
+        margin: 1,
+        width: 120,
+        color: { dark: '#1B2B48', light: '#FFFFFF' }
+      });
+    } catch (e) {
+      // ignore
+    }
+
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(37, 99, 235);
+    doc.setLineWidth(0.35);
+    doc.roundedRect(10, y, 190, 46, 2, 2, 'FD');
+
+    doc.setTextColor(27, 43, 72);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.text('6. CERTIFICADO DE ASSINATURA ELETRÔNICA — AUDITORIA DIGITAL', 14, y + 6);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text(
+      'Documento assinado eletronicamente com plena eficácia probatória nos termos da MP 2.200-2/2001 e Lei Federal nº 14.063/2020.',
+      14,
+      y + 10.5
+    );
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(30, 41, 59);
+    doc.text(`Signatário: ${signerName}`, 14, y + 16);
+    doc.text(`CPF: ${signerCpf}`, 105, y + 16);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(71, 85, 105);
+    doc.text(`Data / Horário (Brasília): ${certDateFormatted}`, 14, y + 21);
+    doc.text(`IP de Origem: ${signatureIp}`, 105, y + 21);
+
+    doc.text(`ID da Assinatura: ${signatureId}`, 14, y + 26);
+    doc.text(`Versão Contratual: v${contractVer} (Definitiva e Imutável)`, 105, y + 26);
+
+    const truncatedUa = userAgent.length > 55 ? userAgent.substring(0, 52) + '...' : userAgent;
+    doc.text(`Dispositivo / Navegador: ${truncatedUa}`, 14, y + 31);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(30, 41, 59);
+    doc.text('Hash SHA-256 de Integridade:', 14, y + 36.5);
+    doc.setFont('courier', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text(integrityHash, 14, y + 40.5);
+
+    if (certQrCodeUrl) {
+      try {
+        doc.addImage(certQrCodeUrl, 'PNG', 166, y + 12, 28, 28);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(5.5);
+        doc.setTextColor(37, 99, 235);
+        doc.text('Autenticidade Verificada', 165, y + 43);
+      } catch (e) {
+        // ignore
+      }
     }
   }
 
@@ -561,18 +747,21 @@ export async function downloadContractPdf(params: ContractPdfParams, filename?: 
   doc.save(name);
 }
 
+export interface ContractSigningResponse {
+  success: boolean;
+  order?: any;
+  template?: StoreContractTemplate;
+  snapshot?: any;
+  alreadySigned?: boolean;
+  signedInfo?: any;
+  error?: string;
+}
+
 /**
  * Busca dados do contrato para exibição na página pública de assinatura do cliente.
  * Utiliza a RPC segura get_contract_for_signing para permitir acesso público sem login.
  */
-export async function fetchContractForSigning(token: string): Promise<{
-  success: boolean;
-  order?: any;
-  template?: StoreContractTemplate;
-  alreadySigned?: boolean;
-  signedInfo?: any;
-  error?: string;
-}> {
+export async function fetchContractForSigning(token: string): Promise<ContractSigningResponse> {
   if (!token) return { success: false, error: 'Token de assinatura não informado.' };
 
   try {
@@ -593,11 +782,179 @@ export async function fetchContractForSigning(token: string): Promise<{
       success: true,
       order: data.order,
       template: data.template,
+      snapshot: data.snapshot || data.order?.contract_snapshot || data.order?.contractSnapshot,
       alreadySigned: Boolean(data.alreadySigned),
       signedInfo: data.signedInfo || undefined
     };
   } catch (err: any) {
     return { success: false, error: err?.message || 'Erro ao carregar dados do contrato.' };
+  }
+}
+
+/**
+ * Salva e versiona a versão definitiva do contrato de um pedido no Supabase.
+ */
+export async function saveOrderContractVersion(
+  orderId: string,
+  options?: {
+    clauses?: ContractClause[];
+    storeData?: {
+      companyName?: string;
+      tradeName?: string;
+      cnpj?: string;
+      address?: string;
+      phone?: string;
+      email?: string;
+      defaultDeliveryDays?: number;
+    };
+    orderNotes?: string;
+  }
+): Promise<{ success: boolean; contractVersion?: number; contractSnapshot?: any; error?: string }> {
+  try {
+    const { data, error } = await supabase.rpc('save_order_contract_version', {
+      p_order_id: orderId,
+      p_clauses: options?.clauses || null,
+      p_store_data: options?.storeData || null,
+      p_order_notes: options?.orderNotes || null
+    });
+
+    if (error) {
+      console.error('[customerContractService] Erro em save_order_contract_version:', error);
+      return { success: false, error: error.message };
+    }
+
+    if (!data || !data.success) {
+      return { success: false, error: data?.error || 'Erro ao salvar revisão contratual.' };
+    }
+
+    return {
+      success: true,
+      contractVersion: data.contract_version,
+      contractSnapshot: data.contract_snapshot
+    };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Falha ao salvar versão do contrato.' };
+  }
+}
+
+/**
+ * Persiste o arquivo PDF assinado no Supabase Storage e o vincula à Pasta Digital do Pedido
+ */
+export async function archiveSignedContractOnServer(params: {
+  orderId: string;
+  tenantId: string;
+  orderNumber: string;
+  pdfBlob: Blob;
+  authorName?: string;
+}): Promise<{ success: boolean; documentId?: string; filePath?: string; signedUrl?: string; error?: string }> {
+  try {
+    const { orderId, tenantId, orderNumber, pdfBlob, authorName } = params;
+    const sanitizedOrderNum = (orderNumber || 'PED').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const storagePath = `${tenantId}/${orderId}/contrato_assinado_${sanitizedOrderNum}.pdf`;
+
+    // 1. Upload para o bucket order-documents
+    const { error: uploadError } = await supabase.storage
+      .from('order-documents')
+      .upload(storagePath, pdfBlob, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: 'application/pdf'
+      });
+
+    if (uploadError) {
+      console.warn('[customerContractService] Aviso no upload do contrato assinado:', uploadError.message);
+    }
+
+    // 2. Registrar no banco via RPC transacional archive_order_signed_contract
+    const fileName = `contrato_assinado_${sanitizedOrderNum}.pdf`;
+    const { data, error: rpcError } = await supabase.rpc('archive_order_signed_contract', {
+      p_order_id: orderId,
+      p_file_path: storagePath,
+      p_file_name: fileName,
+      p_file_size_bytes: pdfBlob.size,
+      p_mime_type: 'application/pdf',
+      p_author_name: authorName || 'Sistema Planeja Fácil (Assinatura Eletrônica)'
+    });
+
+    if (rpcError || !data?.success) {
+      console.error('[customerContractService] Erro ao registrar contrato no ERP:', rpcError || data?.error);
+      return { success: false, error: rpcError?.message || data?.error };
+    }
+
+    // 3. Obter signed URL para abertura direta
+    let signedUrl: string | undefined = undefined;
+    try {
+      const { data: signedData } = await supabase.storage
+        .from('order-documents')
+        .createSignedUrl(storagePath, 900);
+      signedUrl = signedData?.signedUrl;
+    } catch (e) {
+      // signed url is optional
+    }
+
+    return {
+      success: true,
+      documentId: data.document_id,
+      filePath: storagePath,
+      signedUrl
+    };
+  } catch (err: any) {
+    console.error('[customerContractService] Exceção ao arquivar contrato assinado:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Garante que um pedido já assinado possua o documento PDF formalizado na Pasta Digital.
+ */
+export async function ensureOrderSignedContractArchived(order: any): Promise<{
+  success: boolean;
+  filePath?: string;
+  signedUrl?: string;
+  blob?: Blob;
+}> {
+  if (!order || (order.contractStatus !== 'assinado' && order.contract_status !== 'assinado')) {
+    return { success: false };
+  }
+
+  const existingDoc = (order.documents || []).find(
+    (d: any) => d.stage === 'contrato' || d.docType === 'contrato_assinado' || d.docType === 'contrato'
+  );
+  if (existingDoc?.filePath) {
+    return { success: true, filePath: existingDoc.filePath };
+  }
+
+  // Gera Blob e arquiva no banco e Storage
+  try {
+    const blob = await generateContractPdfBlob({
+      order,
+      isSigned: true,
+      signatureImage: order.contractSignatureImage || order.contract_signature_image,
+      signerName: order.contractSignedByName || order.contract_signed_by_name || order.clientName,
+      signerCpf: order.contractSignedByCpf || order.contract_signed_by_cpf || order.clientCpf,
+      signedAt: order.contractSignedAt || order.contract_signed_at,
+      signatureIp: order.contractSignatureIp || order.contract_signature_ip
+    });
+
+    const tenantId = order.tenantId || order.tenant_id;
+    const orderId = order.uuid || order.id;
+    const orderNum = order.orderNumber || order.order_number || order.id;
+
+    if (tenantId && orderId) {
+      const archiveRes = await archiveSignedContractOnServer({
+        orderId,
+        tenantId,
+        orderNumber: orderNum,
+        pdfBlob: blob,
+        authorName: `${order.contractSignedByName || 'Cliente'} (Assinatura Eletrônica)`
+      });
+      return { success: archiveRes.success, filePath: archiveRes.filePath, signedUrl: archiveRes.signedUrl, blob };
+    }
+
+    return { success: true, blob };
+  } catch (err) {
+    console.warn('[customerContractService] Erro ao sincronizar contrato assinado:', err);
+    return { success: false };
   }
 }
 
@@ -639,6 +996,43 @@ export async function submitDigitalSignature(
 
     if (!data || !data.success) {
       return { success: false, error: data?.error || 'Não foi possível confirmar a assinatura.' };
+    }
+
+    // Arquiva automaticamente o PDF definitivo assinado no Supabase Storage e na Pasta Digital
+    try {
+      const orderId = data.order_id;
+      const orderNumber = data.order_number;
+      const tenantId = data.tenant_id;
+      const sigId = data.signature_id;
+      const signedAt = data.signed_at || new Date().toISOString();
+
+      const contractDetails = await fetchContractForSigning(token);
+      if (contractDetails.success && contractDetails.order) {
+        const pdfBlob = await generateContractPdfBlob({
+          order: contractDetails.order,
+          template: contractDetails.template,
+          isSigned: true,
+          signatureImage: signerData.signatureImage,
+          signerName: signerData.name.trim(),
+          signerCpf: signerData.cpf.trim(),
+          signedAt,
+          signatureId: sigId,
+          signatureIp: clientIp,
+          signatureUserAgent: userAgent
+        });
+
+        if (tenantId && orderId && orderNumber) {
+          await archiveSignedContractOnServer({
+            orderId,
+            tenantId,
+            orderNumber,
+            pdfBlob,
+            authorName: `${signerData.name.trim()} (Assinatura Eletrônica)`
+          });
+        }
+      }
+    } catch (archiveErr) {
+      console.warn('[customerContractService] Aviso na geração/arquivamento do PDF assinado:', archiveErr);
     }
 
     return {

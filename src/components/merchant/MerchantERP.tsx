@@ -79,10 +79,13 @@ export const MerchantERP: React.FC<MerchantERPProps> = ({ merchantPlan, storeId 
   const displayedOrders = liveOrders;
 
   const filteredOrders = displayedOrders.filter((order) => {
+    const query = searchQuery.trim().toLowerCase();
     const matchesSearch =
-      order.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.environment.toLowerCase().includes(searchQuery.toLowerCase());
+      !query ||
+      (order.clientName || '').toLowerCase().includes(query) ||
+      (order.id || '').toLowerCase().includes(query) ||
+      (order.orderNumber || '').toLowerCase().includes(query) ||
+      (order.environment || '').toLowerCase().includes(query);
     
     const matchesStage = stageFilter === 'todos' || order.currentStage === stageFilter;
 

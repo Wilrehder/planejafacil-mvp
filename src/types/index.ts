@@ -128,6 +128,8 @@ export interface StoreOrder {
   orderNotes?: string;
   contractStatus?: 'rascunho' | 'formalizacao_pendente' | 'aguardando_assinatura' | 'emitido' | 'assinado' | 'assinado_eletronico' | 'assinado_externo';
   contractToken?: string;
+  contractVersion?: number;
+  contractSnapshot?: any;
   contractSignedAt?: string;
   contractSignedByName?: string;
   contractSignedByCpf?: string;
