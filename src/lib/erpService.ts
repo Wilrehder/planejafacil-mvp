@@ -85,7 +85,7 @@ export function classifyERPError(rawMessage?: string, rawCode?: string): { messa
     };
   }
 
-  if (code === 'FORBIDDEN' || msg.includes('acesso negado') || msg.includes('não autorizado') || msg.includes('42501')) {
+  if (code === 'FORBIDDEN' || code === '42501' || msg.includes('acesso negado') || msg.includes('não autorizado') || msg.includes('permission denied') || msg.includes('42501')) {
     return {
       message: 'Acesso negado: sua conta não possui autorização para os pedidos desta loja.',
       code: 'FORBIDDEN',

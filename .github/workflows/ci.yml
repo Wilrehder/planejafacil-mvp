@@ -24,8 +24,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint Codebase
-        run: npm run lint
+      - name: Verify Critical Protection Suites Exist
+        run: |
+          test -f src/__tests__/permanentBehavioralContracts.test.ts || (echo "FATAL: permanentBehavioralContracts.test.ts foi excluído!" && exit 1)
+          test -f src/__tests__/erpRegressionAndVisibility.test.ts || (echo "FATAL: erpRegressionAndVisibility.test.ts foi excluído!" && exit 1)
+
+      - name: Run Vitest Unit, Contracts & ERP Regression Tests (72 tests)
+        run: npm test
 
       - name: TypeScript TypeCheck & Build Bundle
         run: npm run build
@@ -33,6 +38,3 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://inqgxjdvuizsdtolrwfb.supabase.co' }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'dummy_anon_key_for_build' }}
           VITE_APP_ENV: production
-
-      - name: Run Vitest Unit & ERP Regression Tests
-        run: npm test

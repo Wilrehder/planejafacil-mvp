@@ -7,10 +7,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "vitest run src/__tests__/validation.test.ts src/__tests__/pricing.test.ts src/__tests__/routing.test.ts src/__tests__/promobParser.test.ts src/__tests__/erpRegressionAndVisibility.test.ts src/__tests__/formalizacaoContratualFlow.test.ts src/__tests__/erpContractIntakeAndArchive.test.ts",
+    "test": "vitest run src/__tests__/validation.test.ts src/__tests__/pricing.test.ts src/__tests__/routing.test.ts src/__tests__/promobParser.test.ts src/__tests__/erpRegressionAndVisibility.test.ts src/__tests__/formalizacaoContratualFlow.test.ts src/__tests__/erpContractIntakeAndArchive.test.ts src/__tests__/customerContractsAndBudgetWizard.test.ts src/__tests__/contractFullViewAndSigning.test.ts src/__tests__/commercialProposalAggregation.test.ts src/__tests__/leadRegistrationData.test.ts src/__tests__/permanentBehavioralContracts.test.ts",
+    "test:contracts": "vitest run src/__tests__/permanentBehavioralContracts.test.ts",
     "test:unit": "vitest run src/__tests__/validation.test.ts src/__tests__/pricing.test.ts src/__tests__/routing.test.ts src/__tests__/promobParser.test.ts",
     "test:erp": "vitest run src/__tests__/erpRegressionAndVisibility.test.ts src/__tests__/formalizacaoContratualFlow.test.ts src/__tests__/erpContractIntakeAndArchive.test.ts",
-    "test:live": "vitest run",
+    "test:all": "vitest run",
     "preview": "vite preview"
   },
   "dependencies": {
