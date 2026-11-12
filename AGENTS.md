@@ -129,3 +129,4 @@ Ao finalizar qualquer implementação, o agente deve apresentar este resumo simp
 - **Partes que não puderam ser testadas automaticamente:** [Ex.: comportamento visual específico, webhook de terceiro]
 - **Veredito de Segurança:** [Pronto para publicação OU Exige revisão manual prévia]
 ```
+

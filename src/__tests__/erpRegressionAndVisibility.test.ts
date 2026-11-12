@@ -295,4 +295,29 @@ describe('PLANEJAFÁCIL — Bateria Permanente de Proteção contra Regressões 
     expect(doc.getNumberOfPages()).toBeGreaterThanOrEqual(1);
   });
 
+  // ---------------------------------------------------------------------------
+  // Teste K — Resolução de Assinatura Única no PostgREST (Anti-PGRST203)
+  // ---------------------------------------------------------------------------
+  it('Teste K — RPC do ERP no PostgREST não deve sofrer ambiguidade de assinatura (PGRST203)', async () => {
+    const { supabase } = await import('../lib/supabase');
+
+    const { data: ordersData, error: ordersError } = await supabase.rpc('get_store_orders', {
+      p_tenant_id: 'a8596096-d97e-4248-a7b8-5f6f9de0cb10'
+    });
+
+    expect(ordersError?.code).not.toBe('PGRST203');
+    expect(ordersError?.message || '').not.toMatch(/Could not choose the best candidate function/i);
+    expect(ordersError).toBeNull();
+    expect(ordersData).toBeDefined();
+
+    const { data: metricsData, error: metricsError } = await supabase.rpc('get_erp_metrics', {
+      p_tenant_id: 'a8596096-d97e-4248-a7b8-5f6f9de0cb10'
+    });
+
+    expect(metricsError?.code).not.toBe('PGRST203');
+    expect(metricsError?.message || '').not.toMatch(/Could not choose the best candidate function/i);
+    expect(metricsError).toBeNull();
+    expect(metricsData).toBeDefined();
+  });
+
 });
