@@ -38,6 +38,7 @@ import {
   updateOrderPendencyOnServer
 } from '../../lib/erpService';
 import { fetchStoreCommercialSettings, StoreCommercialSettings } from '../../lib/expenseService';
+import { formatBusinessDays } from '../../lib/customerContractService';
 import { CustomerContractModal } from './CustomerContractModal';
 import {
   confirmPhysicalContractOnServer,
@@ -892,7 +893,7 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({ order, onBack,
               {order.desiredDeadline && (
                 <span className="flex items-center gap-1.5 text-emerald-700 font-semibold">
                   <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-                  Prazo: {order.desiredDeadline}
+                  Prazo: {formatBusinessDays(order.desiredDeadline)}
                 </span>
               )}
             </div>
@@ -1302,7 +1303,7 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({ order, onBack,
                 </p>
                 <p>
                   <strong className="text-slate-800">Prazo Desejado: </strong>
-                  <span className="text-emerald-700 font-semibold">{order.desiredDeadline || 'A combinar'}</span>
+                  <span className="text-emerald-700 font-semibold">{order.desiredDeadline ? formatBusinessDays(order.desiredDeadline) : 'A combinar'}</span>
                 </p>
               </div>
             </div>

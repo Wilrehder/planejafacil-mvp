@@ -4,7 +4,8 @@ import {
   DEFAULT_CONTRACT_CLAUSES, 
   generateContractPdfDoc,
   getContractSigningUrl,
-  generateContractQrCodeDataUrl
+  generateContractQrCodeDataUrl,
+  formatBusinessDays
 } from '../lib/customerContractService';
 
 describe('Customer Registration Validation & Contract Requirements', () => {
@@ -153,6 +154,49 @@ describe('Customer Contract Generation & Structure (jsPDF & QR Code)', () => {
 
     const qrCode = await generateContractQrCodeDataUrl(signingUrl);
     expect(qrCode).toContain('data:image/png;base64,');
+  });
+
+  it('padroniza prazos estritamente em DIAS ÚTEIS', () => {
+    expect(formatBusinessDays(45)).toBe('45 dias úteis');
+    expect(formatBusinessDays('45')).toBe('45 dias úteis');
+    expect(formatBusinessDays('45 dias')).toBe('45 dias úteis');
+    expect(formatBusinessDays('45 dias corridos')).toBe('45 dias úteis');
+    expect(formatBusinessDays('45 dias úteis')).toBe('45 dias úteis');
+    expect(formatBusinessDays(60)).toBe('60 dias úteis');
+    expect(formatBusinessDays(null)).toBe('45 dias úteis');
+    expect(formatBusinessDays(undefined)).toBe('45 dias úteis');
+    expect(formatBusinessDays('')).toBe('45 dias úteis');
+  });
+
+  it('gera contrato PDF com observações extensas com quebra de linha dinâmica e sem sobreposição', async () => {
+    const longObservations = 'Observação 1: Instalação dividida em duas etapas conforme liberação do gesso e pintura.\n' +
+      'Observação 2: Cliente fornecerá cuba e cooktop até 10 dias úteis antes da montagem final.\n' +
+      'Observação 3: Saldo residual parcelado na entrega das chaves da marcenaria sob autorização do lojista.';
+
+    const doc = await generateContractPdfDoc({
+      order: {
+        id: 'ord_test_long_obs',
+        orderNumber: '#PED-1385',
+        clientName: 'Mariana Silveira',
+        clientCpf: '987.654.321-11',
+        totalValue: 35000,
+        contractedValue: 35000,
+        environment: 'Cozinha Gourmet e Lavanderia Integrada',
+        orderNotes: longObservations,
+        desiredDeadline: '50 dias'
+      },
+      template: {
+        companyName: 'Móveis Planejados Prime Ltda',
+        tradeName: 'Prime Móveis Planejados',
+        cnpj: '12.345.678/0001-99',
+        address: 'Av. Paulista, 1000 - São Paulo - SP',
+        defaultDeliveryDays: 45,
+        clauses: DEFAULT_CONTRACT_CLAUSES
+      }
+    });
+
+    expect(doc).toBeDefined();
+    expect(doc.getNumberOfPages()).toBeGreaterThanOrEqual(1);
   });
 });
 

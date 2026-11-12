@@ -26,7 +26,8 @@ import {
   fetchContractForSigning, 
   submitDigitalSignature,
   downloadContractPdf,
-  ContractSigningResponse 
+  ContractSigningResponse,
+  formatBusinessDays
 } from '../../lib/customerContractService';
 import { StoreContractTemplate, ContractClause, PaymentAllocation } from '../../types';
 
@@ -277,9 +278,10 @@ export const ContractSigningView: React.FC<ContractSigningViewProps> = ({ token,
   const paymentAllocations: PaymentAllocation[] = snapshot?.financials?.paymentAllocations || order.paymentAllocations || order.payment_allocations || order.commercialProposal?.paymentAllocations || [];
 
   // Prazos e Observações
-  const deliveryDays = snapshot?.delivery?.deliveryDays || order.desiredDeadline || order.desired_deadline || (template?.defaultDeliveryDays ? `${template.defaultDeliveryDays} dias úteis` : '45 dias úteis');
-  const deliveryReference = snapshot?.delivery?.deliveryReference || 'Contados em dias úteis a partir da conclusão da Medição Fina presencial e da assinatura formal do Projeto Executivo Final.';
-  const orderNotes = snapshot?.delivery?.observations || order.orderNotes || order.order_notes || order.commercialProposal?.observations || '';
+  const rawDeliveryDays = snapshot?.delivery?.deliveryDays || order.desiredDeadline || order.desired_deadline || (template?.defaultDeliveryDays ? `${template.defaultDeliveryDays} dias úteis` : '45 dias úteis');
+  const deliveryDays = formatBusinessDays(rawDeliveryDays);
+  const deliveryReference = snapshot?.delivery?.deliveryReference || 'Contados expressamente em dias úteis a partir da conclusão da Medição Fina presencial e da assinatura formal do Projeto Executivo Final.';
+  const orderNotes = (snapshot?.delivery?.observations || order.orderNotes || order.order_notes || order.commercialProposal?.observations || '').trim();
 
   // Cláusulas
   const clauses: ContractClause[] = snapshot?.clauses && Array.isArray(snapshot.clauses) && snapshot.clauses.length > 0
@@ -635,7 +637,8 @@ export const ContractSigningView: React.FC<ContractSigningViewProps> = ({ token,
               </p>
               {orderNotes && (
                 <div className="pt-2 border-t border-emerald-200/60 text-[11px] text-emerald-950">
-                  <strong>Observações Comerciais do Pedido:</strong> {orderNotes}
+                  <strong className="block mb-0.5">Observações Comerciais do Pedido:</strong>
+                  <p className="whitespace-pre-wrap leading-relaxed text-emerald-950/90">{orderNotes}</p>
                 </div>
               )}
             </div>

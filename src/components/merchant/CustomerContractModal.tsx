@@ -34,7 +34,8 @@ import {
   getContractSigningUrl, 
   generateContractQrCodeDataUrl,
   saveOrderContractVersion,
-  DEFAULT_CONTRACT_CLAUSES
+  DEFAULT_CONTRACT_CLAUSES,
+  formatBusinessDays
 } from '../../lib/customerContractService';
 import { STORE_ID_TO_TENANT_UUID } from '../../lib/crmService';
 
@@ -141,7 +142,8 @@ export const CustomerContractModal: React.FC<CustomerContractModalProps> = ({
   const promobValue = snapshot?.products?.promobValue ?? ((order as any)?.commercialProposal?.promobValue || (totalValue - (snapshot?.products?.conventionalTotal || 0)));
   const conventionalItems = snapshot?.products?.conventionalItems || (order as any)?.commercialProposal?.conventionalItems || [];
   const simulationEnvironments = snapshot?.products?.simulationEnvironments || [];
-  const deliveryDays = snapshot?.delivery?.deliveryDays || lead?.desiredDeadline || (template?.defaultDeliveryDays ? `${template.defaultDeliveryDays} dias úteis` : '45 dias úteis');
+  const rawDeliveryDays = snapshot?.delivery?.deliveryDays || lead?.desiredDeadline || (template?.defaultDeliveryDays ? `${template.defaultDeliveryDays} dias úteis` : '45 dias úteis');
+  const deliveryDays = formatBusinessDays(rawDeliveryDays);
 
   const hasMissingStoreData = !storeCnpj.trim() || !storeAddress.trim();
 
@@ -504,12 +506,23 @@ export const CustomerContractModal: React.FC<CustomerContractModalProps> = ({
                       )}
                     </div>
 
-                    {/* Prazo */}
-                    <div className="p-3 bg-emerald-50/70 rounded-xl border border-emerald-200 text-xs font-medium text-emerald-950 flex justify-between">
-                      <span>Prazo de Entrega e Montagem:</span>
-                      <strong className="text-emerald-900">
-                        {deliveryDays.toUpperCase()} (a partir da medição fina e aprovação técnica)
-                      </strong>
+                    {/* Prazo e Observações */}
+                    <div className="p-3.5 bg-emerald-50/70 rounded-xl border border-emerald-200 text-xs text-emerald-950 space-y-2">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 font-medium">
+                        <span>Prazo Estimado de Entrega e Montagem:</span>
+                        <strong className="text-emerald-900 font-bold">
+                          {deliveryDays.toUpperCase()}
+                        </strong>
+                      </div>
+                      <p className="text-[11px] text-emerald-800 leading-relaxed">
+                        Contados expressamente em dias úteis a partir da conclusão da medição fina e aprovação técnica do projeto executivo.
+                      </p>
+                      {orderNotes && orderNotes.trim().length > 0 && (
+                        <div className="pt-2 border-t border-emerald-200/80 text-[11px] text-emerald-900">
+                          <span className="font-bold block mb-0.5">Observações Comerciais do Pedido:</span>
+                          <p className="whitespace-pre-wrap leading-relaxed text-emerald-950/90">{orderNotes.trim()}</p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Cláusulas Preview */}
@@ -708,11 +721,12 @@ export const CustomerContractModal: React.FC<CustomerContractModalProps> = ({
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] font-bold uppercase text-slate-500 block mb-1">Prazo Padrão (dias úteis)</label>
+                        <label className="text-[10px] font-bold uppercase text-slate-500 block mb-1">Prazo Padrão (Dias Úteis)</label>
                         <input
                           type="number"
                           value={storeDeliveryDays}
                           onChange={(e) => setStoreDeliveryDays(Number(e.target.value))}
+                          placeholder="Ex: 45"
                           className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900"
                         />
                       </div>
@@ -722,7 +736,7 @@ export const CustomerContractModal: React.FC<CustomerContractModalProps> = ({
                   {/* Seção 2: Observações do Pedido */}
                   <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-2">
                     <label className="text-xs font-black uppercase text-[#1B2B48] block">
-                      Observações e Condições Particulares deste Pedido
+                      Observações e Condições Particulares deste Pedido (Exibidas no Contrato)
                     </label>
                     <textarea
                       rows={2}

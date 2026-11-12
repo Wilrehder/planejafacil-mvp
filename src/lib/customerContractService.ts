@@ -262,6 +262,29 @@ const formatBRL = (val: number) => {
 };
 
 /**
+ * Padroniza a representação do prazo sempre na unidade DIAS ÚTEIS.
+ * Exemplo: 45 -> "45 dias úteis", "45 dias" -> "45 dias úteis", "45 dias corridos" -> "45 dias úteis".
+ */
+export function formatBusinessDays(val: string | number | undefined | null): string {
+  if (val === undefined || val === null) return '45 dias úteis';
+  const str = String(val).trim();
+  if (!str) return '45 dias úteis';
+
+  // Extrair quantidade numérica se presente
+  const numMatch = str.match(/\d+/);
+  if (numMatch) {
+    return `${numMatch[0]} dias úteis`;
+  }
+
+  // Se for texto descritivo sem dígitos
+  const cleaned = str.replace(/dias\s+corridos/gi, 'dias úteis');
+  if (!/dias\s+úteis/i.test(cleaned)) {
+    return `${cleaned} (dias úteis)`;
+  }
+  return cleaned;
+}
+
+/**
  * Gera documento PDF do Contrato Comercial estruturado com base no modelo do PEDIDO 1384
  */
 export async function generateContractPdfDoc(params: ContractPdfParams): Promise<jsPDF> {
@@ -290,9 +313,10 @@ export async function generateContractPdfDoc(params: ContractPdfParams): Promise
   const clientEmail = snapshot?.customer?.email || lead?.email || (order as any)?.clientEmail || (order as any)?.client_email || 'Não informado';
   const billingAddr = snapshot?.customer?.billingAddress || lead?.billingAddress || order.billingAddress || (order as any)?.billing_address || order.address || 'Não informado';
   const installAddr = snapshot?.customer?.installationAddress || lead?.installationAddress || order.installationAddress || (order as any)?.installation_address || billingAddr;
-  const deliveryDays = snapshot?.delivery?.deliveryDays || lead?.desiredDeadline || (order as any)?.desiredDeadline || (template?.defaultDeliveryDays ? `${template.defaultDeliveryDays} dias úteis` : '45 dias úteis');
-  const deliveryRef = snapshot?.delivery?.deliveryReference || 'Contados em dias úteis a partir da conclusão da Medição Fina e assinatura formal do Projeto Executivo Final.';
-  const orderNotes = snapshot?.delivery?.observations || (order as any)?.orderNotes || (order as any)?.order_notes || (order as any)?.commercialProposal?.observations || '';
+  const rawDeliveryDays = snapshot?.delivery?.deliveryDays || lead?.desiredDeadline || (order as any)?.desiredDeadline || (template?.defaultDeliveryDays ? `${template.defaultDeliveryDays} dias úteis` : '45 dias úteis');
+  const deliveryDays = formatBusinessDays(rawDeliveryDays);
+  const deliveryRef = snapshot?.delivery?.deliveryReference || 'Contados expressamente em dias úteis a partir da conclusão da Medição Fina presencial e da assinatura formal do Projeto Executivo Final.';
+  const orderNotes = (snapshot?.delivery?.observations || (order as any)?.orderNotes || (order as any)?.order_notes || (order as any)?.commercialProposal?.observations || '').trim();
 
   const orderNum = order.orderNumber || (order as any)?.order_number || '#PED-NOVO';
   const dateFormatted = new Date((order as any)?.created_at || (order as any)?.createdAt || Date.now()).toLocaleDateString('pt-BR');
@@ -516,23 +540,59 @@ export async function generateContractPdfDoc(params: ContractPdfParams): Promise
   y += 5;
 
   // --- PRAZO DE ENTREGA E OBSERVAÇÕES ---
-  checkPageBreak(25);
+  const deliveryTitle = `PRAZO ESTIMADO DE ENTREGA E MONTAGEM: ${deliveryDays.toUpperCase()}`;
+
+  // Quebra de texto automática para referência e observações
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  const refLines: string[] = doc.splitTextToSize(deliveryRef, 180);
+
+  let notesLines: string[] = [];
+  if (orderNotes && orderNotes.length > 0) {
+    notesLines = doc.splitTextToSize(`Observações do Pedido: ${orderNotes}`, 180);
+  }
+
+  // Altura dinâmica calculada com precisão para acomodar o texto integralmente sem sobreposição
+  const refBlockHeight = refLines.length * 3.4;
+  const notesBlockHeight = notesLines.length > 0 ? (2.5 + notesLines.length * 3.4) : 0;
+  const boxHeight = Math.max(16, 5 + 4 + refBlockHeight + notesBlockHeight + 3);
+
+  // Garantir que cabe na página ou quebra limpa
+  checkPageBreak(boxHeight + 6);
+
   doc.setFillColor(240, 249, 245);
-  doc.rect(10, y, 190, 16, 'F');
+  doc.rect(10, y, 190, boxHeight, 'F');
   doc.setDrawColor(67, 147, 70);
-  doc.rect(10, y, 190, 16, 'S');
+  doc.rect(10, y, 190, boxHeight, 'S');
+
+  let curBoxY = y + 5;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.setTextColor(30, 80, 40);
-  doc.text(`PRAZO ESTIMADO DE ENTREGA E MONTAGEM: ${deliveryDays.toUpperCase()}`, 14, y + 5);
+  doc.text(deliveryTitle, 14, curBoxY);
+
+  curBoxY += 4;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(40, 90, 50);
-  doc.text(deliveryRef, 14, y + 9.5);
-  if (orderNotes) {
-    doc.text(`Observações do Pedido: ${orderNotes}`, 14, y + 13.5);
+  for (const line of refLines) {
+    doc.text(line, 14, curBoxY);
+    curBoxY += 3.4;
   }
-  y += 20;
+
+  if (notesLines.length > 0) {
+    curBoxY += 1.5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(30, 75, 35);
+    for (const line of notesLines) {
+      doc.text(line, 14, curBoxY);
+      curBoxY += 3.4;
+    }
+  }
+
+  // O cursor avança rigorosamente pelo tamanho real do box + margem inferior
+  y += boxHeight + 6;
 
   // --- CLÁUSULAS CONTRATUAIS ---
   checkPageBreak(25);

@@ -53,6 +53,7 @@ import { PromobNegotiationModal } from './PromobNegotiationModal';
 import { PromobViewerModal } from './PromobViewerModal';
 import { CustomerContractModal } from './CustomerContractModal';
 import { updateLeadConventionalItems } from '../../lib/conventionalFurnitureService';
+import { formatBusinessDays } from '../../lib/customerContractService';
 
 interface LeadDetailDrawerProps {
   onLeadUpdated?: () => void;
@@ -152,7 +153,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
     setIsSavingRegistration(true);
     setRegistrationMessage(null);
 
-    const formattedDeadline = regDesiredDays.trim() ? `${regDesiredDays.trim()} dias` : '';
+    const formattedDeadline = regDesiredDays.trim() ? formatBusinessDays(regDesiredDays.trim()) : '';
 
     try {
       const res = await updateLeadRegistrationData(assignmentId, {
@@ -1289,7 +1290,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
 
                 <div>
                   <div className="flex justify-between items-center mb-1">
-                    <label className="text-[10px] uppercase font-bold text-slate-600">Prazo Desejado (Quantidade de dias) *</label>
+                    <label className="text-[10px] uppercase font-bold text-slate-600">Prazo Desejado (Dias Úteis de Entrega/Montagem) *</label>
                     {!regDesiredDays.trim() && <span className="text-[10px] text-rose-600 font-bold">Obrigatório</span>}
                   </div>
                   <div className="relative">
@@ -1301,12 +1302,12 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ onLeadUpdate
                       value={regDesiredDays}
                       onChange={(e) => setRegDesiredDays(e.target.value)}
                       placeholder="Ex: 45"
-                      className={`w-full pl-3.5 pr-14 py-2.5 rounded-xl border text-xs font-bold outline-none ${
+                      className={`w-full pl-3.5 pr-20 py-2.5 rounded-xl border text-xs font-bold outline-none ${
                         !regDesiredDays.trim() ? 'border-rose-300 bg-rose-50/30 focus:border-rose-500' : 'border-slate-300 bg-white focus:border-[#439346]'
                       }`}
                     />
-                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
-                      dias
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-400 pointer-events-none">
+                      dias úteis
                     </span>
                   </div>
                 </div>
