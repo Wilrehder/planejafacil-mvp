@@ -543,42 +543,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateLeadStatus = (id: string, status: LeadStatus) => {
     setLeads((prev) =>
-      prev.map((lead) => {
-        if (lead.id === id) {
-          if (status === 'convertido') {
-            const existingOrder = orders.find((o) => o.leadId === id);
-            if (!existingOrder) {
-              const newOrder: StoreOrder = {
-                id: `PED-${Math.floor(4000 + Math.random() * 900)}`,
-                leadId: lead.id,
-                clientName: lead.name,
-                phone: lead.phone,
-                address: `Rua Principal, 100 - ${lead.city} / ${lead.state}`,
-                city: lead.city,
-                state: lead.state,
-                environment: lead.environment || 'Projeto Sob Medida',
-                totalValue: lead.estimatedMax ? Math.round((lead.estimatedMin + lead.estimatedMax) / 2) : 25000,
-                currentStage: 'medicao',
-                createdAt: new Date().toISOString(),
-                storeId: lead.assignedStoreId,
-                contractFile: lead.attachmentName || 'contrato_venda_fechada.pdf',
-                timeline: [
-                  {
-                    id: `log-${Date.now()}`,
-                    user: 'Integração CRM-ERP',
-                    userRole: 'Sistema CRM',
-                    action: `Venda Fechada no CRM! Pedido gerado e encaminhado para Medição Técnica no ERP.`,
-                    timestamp: new Date().toISOString(),
-                  },
-                ],
-              };
-              setOrders((oPrev) => [newOrder, ...oPrev]);
-            }
-          }
-          return { ...lead, status };
-        }
-        return lead;
-      })
+      prev.map((lead) => (lead.id === id ? { ...lead, status } : lead))
     );
 
     if (selectedLeadForDetail && selectedLeadForDetail.id === id) {

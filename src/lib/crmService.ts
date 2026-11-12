@@ -3,19 +3,22 @@ import { Lead, LeadStatus, StoreOrder } from '../types';
 
 export const STORE_ID_TO_TENANT_UUID: Record<string, string> = {
   'store-mogi': 'b1010000-0000-0000-0000-000000000001',
-  'store-suzano': '202bb2d5-00d4-426b-a72a-aacfe776977a',
+  'store-suzano': 'a8596096-d97e-4248-a7b8-5f6f9de0cb10',
+  'store-suzano-legacy': '202bb2d5-00d4-426b-a72a-aacfe776977a',
   'store-guarulhos': 'b1030000-0000-0000-0000-000000000003',
   'store-sjc': 'b1040000-0000-0000-0000-000000000004',
   'store-arujah': 'b1050000-0000-0000-0000-000000000005',
   'store-sorocaba': 'b1060000-0000-0000-0000-000000000006',
 };
 
-export const TENANT_UUID_TO_STORE_ID: Record<string, string> = Object.entries(
-  STORE_ID_TO_TENANT_UUID
-).reduce((acc, [storeId, uuid]) => {
-  acc[uuid] = storeId;
-  return acc;
-}, {} as Record<string, string>);
+export const TENANT_UUID_TO_STORE_ID: Record<string, string> = {
+  ...Object.entries(STORE_ID_TO_TENANT_UUID).reduce((acc, [storeId, uuid]) => {
+    acc[uuid] = storeId;
+    return acc;
+  }, {} as Record<string, string>),
+  '202bb2d5-00d4-426b-a72a-aacfe776977a': 'store-suzano',
+  'a8596096-d97e-4248-a7b8-5f6f9de0cb10': 'store-suzano',
+};
 
 /**
  * Autentica o operador/dono da loja parceira com Supabase Auth.

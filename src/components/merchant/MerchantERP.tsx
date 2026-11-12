@@ -13,6 +13,7 @@ import {
   DollarSign,
   Package,
   AlertTriangle,
+  AlertCircle,
   RefreshCw,
   TrendingUp
 } from 'lucide-react';
@@ -37,13 +38,16 @@ const STAGE_LABELS: Record<OrderStage, { label: string; bg: string; text: string
 };
 
 export const MerchantERP: React.FC<MerchantERPProps> = ({ merchantPlan, storeId = 'store-suzano' }) => {
-  const { orders: contextOrders, selectedOrderForFolder, setSelectedOrderForFolder } = useApp();
+  const { selectedOrderForFolder, setSelectedOrderForFolder } = useApp();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [stageFilter, setStageFilter] = useState<string>('todos');
   const [liveOrders, setLiveOrders] = useState<StoreOrder[]>([]);
   const [erpMetrics, setErpMetrics] = useState<ERPMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [isStale, setIsStale] = useState<boolean>(false);
   const [activeModalOrder, setActiveModalOrder] = useState<StoreOrder | null>(null);
 
   // Carrega pedidos e métricas do banco de dados
@@ -57,16 +61,24 @@ export const MerchantERP: React.FC<MerchantERPProps> = ({ merchantPlan, storeId 
 
       if (ordersRes.success) {
         setLiveOrders(ordersRes.orders);
+        setErrorMessage(null);
+        setErrorCode(null);
+        setIsStale(false);
       } else {
-        setLiveOrders([]);
+        setErrorMessage(ordersRes.error || 'Erro ao carregar pedidos.');
+        setErrorCode(ordersRes.errorCode || 'RPC_ERROR');
+        // Se já existirem pedidos na tela, preservá-los e sinalizar que estão desatualizados
+        setIsStale(liveOrders.length > 0);
       }
 
       if (metricsRes.success && metricsRes.metrics) {
         setErpMetrics(metricsRes.metrics);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('[MerchantERP] Erro ao carregar dados do ERP:', err);
-      setLiveOrders(contextOrders);
+      setErrorMessage('Falha na comunicação com o servidor ao consultar pedidos.');
+      setErrorCode('NETWORK_ERROR');
+      setIsStale(liveOrders.length > 0);
     } finally {
       setIsLoading(false);
     }
@@ -74,7 +86,7 @@ export const MerchantERP: React.FC<MerchantERPProps> = ({ merchantPlan, storeId 
 
   useEffect(() => {
     loadOrdersAndMetrics();
-  }, [storeId, contextOrders.length]);
+  }, [storeId]);
 
   // Sincroniza pedido selecionado pela URL (ex: ?pedido=PED-4153)
   useEffect(() => {
@@ -345,6 +357,26 @@ export const MerchantERP: React.FC<MerchantERPProps> = ({ merchantPlan, storeId 
 
       </div>
 
+      {/* BANNER DE AVISO DE DADOS DESATUALIZADOS (EM CASO DE FALHA DE RECONEXÃO) */}
+      {errorMessage && liveOrders.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200/90 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-900 shadow-2xs">
+          <div className="flex items-start sm:items-center gap-2.5">
+            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
+            <span>
+              <strong>Atenção:</strong> Não foi possível sincronizar os dados mais recentes do ERP ({errorMessage}). Os registros abaixo estão preservados, mas podem estar desatualizados.
+            </span>
+          </div>
+          <button
+            onClick={loadOrdersAndMetrics}
+            disabled={isLoading}
+            className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition-colors shrink-0 cursor-pointer inline-flex items-center gap-1.5 self-end sm:self-auto"
+          >
+            <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
+            Tentar novamente
+          </button>
+        </div>
+      )}
+
       {/* TABELA DE PEDIDOS OPERACIONAIS DO ERP */}
       <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
@@ -360,7 +392,44 @@ export const MerchantERP: React.FC<MerchantERPProps> = ({ merchantPlan, storeId 
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
-              {filteredOrders.length > 0 ? (
+              {isLoading && liveOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-slate-500">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <RefreshCw className="w-6 h-6 animate-spin text-blue-600" />
+                      <span className="font-semibold text-slate-700 text-xs">Carregando pedidos de produção do ERP...</span>
+                      <span className="text-[11px] text-slate-400">Consultando banco de dados seguro</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : errorMessage && liveOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-10 px-4 text-center">
+                    <div className="max-w-md mx-auto flex flex-col items-center gap-3">
+                      <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center border border-rose-200 shrink-0">
+                        <AlertCircle className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-slate-900 text-sm">Falha ao consultar pedidos do ERP</h4>
+                        <p className="text-xs text-slate-500 mt-1 leading-relaxed">{errorMessage}</p>
+                        {errorCode && (
+                          <span className="inline-block mt-1 font-mono text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
+                            Código: {errorCode}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={loadOrdersAndMetrics}
+                        disabled={isLoading}
+                        className="mt-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+                        Tentar novamente
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredOrders.length > 0 ? (
                 filteredOrders.map((order) => {
                   const stageInfo = STAGE_LABELS[order.currentStage] || STAGE_LABELS.medicao;
                   const IconComp = stageInfo.icon;
@@ -447,10 +516,28 @@ export const MerchantERP: React.FC<MerchantERPProps> = ({ merchantPlan, storeId 
                     </tr>
                   );
                 })
+              ) : liveOrders.length > 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-10 text-center text-slate-400 text-xs">
+                    <p className="font-semibold text-slate-600">Nenhum pedido encontrado para o filtro selecionado.</p>
+                    <button
+                      onClick={() => { setSearchQuery(''); setStageFilter('todos'); }}
+                      className="mt-2 text-blue-600 hover:underline font-bold text-xs cursor-pointer"
+                    >
+                      Limpar filtros de busca
+                    </button>
+                  </td>
+                </tr>
               ) : (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-400 text-xs italic">
-                    Nenhum pedido encontrado no filtro selecionado.
+                  <td colSpan={6} className="py-12 text-center text-slate-400 text-xs">
+                    <div className="max-w-md mx-auto flex flex-col items-center gap-2">
+                      <Package className="w-8 h-8 text-slate-300" />
+                      <p className="font-bold text-slate-700 text-sm">Nenhum pedido em produção na esteira</p>
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        Ao fechar uma venda no CRM ou emitir um contrato comercial, o pedido aparecerá aqui automaticamente na etapa de formalização contratual.
+                      </p>
+                    </div>
                   </td>
                 </tr>
               )}

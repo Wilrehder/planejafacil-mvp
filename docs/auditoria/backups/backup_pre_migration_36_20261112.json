@@ -1,0 +1,71 @@
+{
+  "timestamp": "2026-11-12T02:45:30Z",
+  "project_id": "inqgxjdvuizsdtolrwfb",
+  "project_name": "planejafacil-saas",
+  "description": "Backup completo e recuperável dos dados de pedidos, logs e contratos antes da aplicação da Migration 36",
+  "tables": {
+    "orders": [
+      {
+        "id": "841bc943-1e78-4957-add4-af0f56d3c8c8",
+        "order_number": "PED-1001",
+        "tenant_id": "a8596096-d97e-4248-a7b8-5f6f9de0cb10",
+        "lead_assignment_id": "1b1283ec-8bd9-4f35-aacd-d8554369958b",
+        "client_name": "ANA CLARA",
+        "client_phone": "119012345678",
+        "delivery_address": "Rua Cabo Diogo Oliver 192",
+        "environment_description": "COZINHA",
+        "total_value": 19910,
+        "current_stage": "formalizacao_contratual",
+        "created_at": "2026-11-10T20:13:11.169464+00:00",
+        "updated_at": "2026-11-10T20:13:11.169464+00:00",
+        "estimated_budget": 10251,
+        "contracted_value": 19910,
+        "target_delivery_date": "2026-12-25",
+        "completed_at": null,
+        "stage_notes": null,
+        "has_pending_issues": false,
+        "pending_notes": null,
+        "medicao_done": false,
+        "project_approved": false,
+        "producao_done": false,
+        "montagem_done": false,
+        "client_confirmed_aceite": false,
+        "client_cpf": "54973661802",
+        "billing_address": "Rua Cabo Diogo Oliver 192 - Mogi das cruzes",
+        "installation_address": "Rua Cabo Diogo Oliver 192",
+        "desired_deadline": "45 dias",
+        "client_rg": "123366158",
+        "contract_status": "formalizacao_pendente",
+        "contract_token": "ctk_c011e868f5124f768f43ca19d19e5a1969527c072e8f5a15",
+        "contract_signed_at": null,
+        "contract_signed_by_name": null,
+        "contract_signed_by_cpf": null,
+        "contract_signature_ip": null,
+        "contract_signature_image": null,
+        "contract_pdf_url": null,
+        "client_email": "ananaotem@gmail.com",
+        "client_cep": "00000-000",
+        "client_city": "Suzano",
+        "client_state": "SP",
+        "seller_name": "FABIANO",
+        "contract_version": 1
+      }
+    ],
+    "order_documents": [],
+    "order_audit_logs": [
+      {
+        "id": "17af1295-114a-4e6b-9fa9-bf34b00375f5",
+        "order_id": "841bc943-1e78-4957-add4-af0f56d3c8c8",
+        "tenant_id": "a8596096-d97e-4248-a7b8-5f6f9de0cb10",
+        "user_id": "9ba65011-1636-470d-aec4-143adb5a8021",
+        "user_name": "FABIANO",
+        "user_role": "store_owner",
+        "action_message": "Orçamento aprovado comercialmente no CRM (Fechado). Pedido criado em Formalização Contratual.",
+        "stage_from": "crm_fechado",
+        "stage_to": "formalizacao_contratual",
+        "created_at": "2026-11-10T20:13:11.169464+00:00"
+      }
+    ],
+    "contract_signatures": []
+  }
+}

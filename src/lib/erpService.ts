@@ -64,17 +64,55 @@ function mapDocumentsToOrderSlots(order: any, rawDocs: any[] = []): Partial<Stor
   return result;
 }
 
-/**
- * Consulta todas as ordens de produção/serviço no ERP da loja
- */
-export async function fetchStoreOrders(storeIdOrTenantUuid: string): Promise<{
+export type ERPErrorCode = 'UNAUTHORIZED' | 'FORBIDDEN' | 'NETWORK_ERROR' | 'DATABASE_ERROR' | 'DATA_PARSE_ERROR' | 'UNKNOWN';
+
+export interface FetchOrdersResult {
   success: boolean;
   orders: StoreOrder[];
   tenantId?: string;
   error?: string;
-}> {
-  const tenantUuid =
-    STORE_ID_TO_TENANT_UUID[storeIdOrTenantUuid] || (storeIdOrTenantUuid === 'all' ? null : storeIdOrTenantUuid);
+  errorCode?: ERPErrorCode;
+}
+
+export function classifyERPError(rawMessage?: string, rawCode?: string): { message: string; code: ERPErrorCode } {
+  const msg = (rawMessage || '').toLowerCase();
+  const code = (rawCode || '').toUpperCase();
+
+  if (code === 'UNAUTHORIZED' || msg.includes('jwt') || msg.includes('autenticação obrigatória') || msg.includes('token')) {
+    return {
+      message: 'Sessão expirada ou não autenticada. Por favor, realize login novamente.',
+      code: 'UNAUTHORIZED',
+    };
+  }
+
+  if (code === 'FORBIDDEN' || msg.includes('acesso negado') || msg.includes('não autorizado') || msg.includes('42501')) {
+    return {
+      message: 'Acesso negado: sua conta não possui autorização para os pedidos desta loja.',
+      code: 'FORBIDDEN',
+    };
+  }
+
+  if (msg.includes('fetch') || msg.includes('network') || msg.includes('failed to fetch') || msg.includes('connection')) {
+    return {
+      message: 'Falha de conexão com os serviços do PlanejaFácil. Verifique sua rede e tente novamente.',
+      code: 'NETWORK_ERROR',
+    };
+  }
+
+  return {
+    message: 'Não foi possível carregar os pedidos no momento. Tente novamente em instantes.',
+    code: (code as ERPErrorCode) || 'DATABASE_ERROR',
+  };
+}
+
+/**
+ * Consulta todas as ordens de produção/serviço no ERP da loja
+ */
+export async function fetchStoreOrders(storeIdOrTenantUuid: string): Promise<FetchOrdersResult> {
+  const isDirectUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(storeIdOrTenantUuid);
+  const tenantUuid = isDirectUuid
+    ? storeIdOrTenantUuid
+    : STORE_ID_TO_TENANT_UUID[storeIdOrTenantUuid] || (storeIdOrTenantUuid === 'all' ? null : storeIdOrTenantUuid);
 
   try {
     const { data, error } = await supabase.rpc('get_store_orders', {
@@ -83,95 +121,109 @@ export async function fetchStoreOrders(storeIdOrTenantUuid: string): Promise<{
 
     if (error) {
       console.warn('[erpService] Falha ao consultar pedidos via get_store_orders:', error.message);
-      return { success: false, orders: [], error: error.message };
+      const classified = classifyERPError(error.message);
+      return { success: false, orders: [], error: classified.message, errorCode: classified.code };
     }
 
     if (!data || !data.success) {
+      const classified = classifyERPError(data?.error, data?.code);
       return {
         success: false,
         orders: [],
-        error: data?.error || 'Erro ao carregar pedidos da loja.',
+        error: classified.message,
+        errorCode: classified.code,
       };
     }
 
-    const rawList = data.orders || [];
-    const mappedOrders: StoreOrder[] = rawList.map((raw: any) => {
-      const docs: OrderDocumentItem[] = raw.documents || [];
-      const slots = mapDocumentsToOrderSlots(raw, docs);
+    try {
+      const rawList = data.orders || [];
+      const mappedOrders: StoreOrder[] = rawList.map((raw: any) => {
+        const docs: OrderDocumentItem[] = raw.documents || [];
+        const slots = mapDocumentsToOrderSlots(raw, docs);
+
+        return {
+          id: raw.orderNumber || raw.id,
+          uuid: raw.uuid,
+          orderNumber: raw.orderNumber,
+          tenantId: raw.tenantId,
+          assignmentId: raw.assignmentId,
+          leadId: raw.leadId || '',
+          clientName: raw.clientName,
+          phone: raw.phone,
+          address: raw.address,
+          city: raw.city,
+          state: raw.state,
+          environment: raw.environment,
+          totalValue: Number(raw.totalValue || 0),
+          contractedValue: Number(raw.contractedValue || raw.totalValue || 0),
+          estimatedBudget: Number(raw.estimatedBudget || raw.totalValue || 0),
+          targetDeliveryDate: raw.targetDeliveryDate,
+          completedAt: raw.completedAt,
+          currentStage: raw.currentStage as OrderStage,
+          stageNotes: raw.stageNotes,
+          hasPendingIssues: Boolean(raw.hasPendingIssues),
+          pendingNotes: raw.pendingNotes,
+          medicaoDone: Boolean(raw.medicaoDone || slots.medicaoDone),
+          projectApproved: Boolean(raw.projectApproved),
+          producaoDone: Boolean(raw.producaoDone || slots.producaoDone),
+          montagemDone: Boolean(raw.montagemDone || slots.montagemDone),
+          clientConfirmedAceite: Boolean(raw.clientConfirmedAceite || slots.clientConfirmedAceite),
+          clientCpf: raw.clientCpf,
+          clientRg: raw.clientRg,
+          billingAddress: raw.billingAddress,
+          installationAddress: raw.installationAddress,
+          desiredDeadline: raw.desiredDeadline,
+          paymentAllocations: raw.paymentAllocations,
+          commercialProposal: raw.commercialProposal,
+          orderNotes: raw.orderNotes,
+          contractStatus: raw.contractStatus,
+          contractToken: raw.contractToken,
+          contractVersion: raw.contractVersion,
+          contractSnapshot: raw.contractSnapshot,
+          contractSignedAt: raw.contractSignedAt,
+          contractSignedByName: raw.contractSignedByName,
+          contractSignedByCpf: raw.contractSignedByCpf,
+          contractSignatureIp: raw.contractSignatureIp,
+          contractSignatureImage: raw.contractSignatureImage,
+          contractPdfUrl: raw.contractPdfUrl,
+          createdAt: raw.createdAt,
+          updatedAt: raw.updatedAt,
+          storeId: TENANT_UUID_TO_STORE_ID[raw.tenantId] || raw.tenantId,
+          contractFile: slots.contractFile,
+          medicaoFile: slots.medicaoFile,
+          projectFile: slots.projectFile,
+          producaoFile: slots.producaoFile,
+          montagemFoto: slots.montagemFoto,
+          aceiteFile: slots.aceiteFile,
+          documents: docs,
+          timeline: (raw.timeline || []).map((t: any) => ({
+            id: t.id,
+            user: t.user,
+            userRole: t.userRole,
+            action: t.action,
+            timestamp: t.timestamp,
+          })),
+        };
+      });
 
       return {
-        id: raw.orderNumber || raw.id,
-        uuid: raw.uuid,
-        orderNumber: raw.orderNumber,
-        tenantId: raw.tenantId,
-        assignmentId: raw.assignmentId,
-        leadId: raw.leadId || '',
-        clientName: raw.clientName,
-        phone: raw.phone,
-        address: raw.address,
-        city: raw.city,
-        state: raw.state,
-        environment: raw.environment,
-        totalValue: Number(raw.totalValue || 0),
-        contractedValue: Number(raw.contractedValue || raw.totalValue || 0),
-        estimatedBudget: Number(raw.estimatedBudget || raw.totalValue || 0),
-        targetDeliveryDate: raw.targetDeliveryDate,
-        completedAt: raw.completedAt,
-        currentStage: raw.currentStage as OrderStage,
-        stageNotes: raw.stageNotes,
-        hasPendingIssues: Boolean(raw.hasPendingIssues),
-        pendingNotes: raw.pendingNotes,
-        medicaoDone: Boolean(raw.medicaoDone || slots.medicaoDone),
-        projectApproved: Boolean(raw.projectApproved),
-        producaoDone: Boolean(raw.producaoDone || slots.producaoDone),
-        montagemDone: Boolean(raw.montagemDone || slots.montagemDone),
-        clientConfirmedAceite: Boolean(raw.clientConfirmedAceite || slots.clientConfirmedAceite),
-        clientCpf: raw.clientCpf,
-        clientRg: raw.clientRg,
-        billingAddress: raw.billingAddress,
-        installationAddress: raw.installationAddress,
-        desiredDeadline: raw.desiredDeadline,
-        paymentAllocations: raw.paymentAllocations,
-        commercialProposal: raw.commercialProposal,
-        orderNotes: raw.orderNotes,
-        contractStatus: raw.contractStatus,
-        contractToken: raw.contractToken,
-        contractVersion: raw.contractVersion,
-        contractSnapshot: raw.contractSnapshot,
-        contractSignedAt: raw.contractSignedAt,
-        contractSignedByName: raw.contractSignedByName,
-        contractSignedByCpf: raw.contractSignedByCpf,
-        contractSignatureIp: raw.contractSignatureIp,
-        contractSignatureImage: raw.contractSignatureImage,
-        contractPdfUrl: raw.contractPdfUrl,
-        createdAt: raw.createdAt,
-        updatedAt: raw.updatedAt,
-        storeId: TENANT_UUID_TO_STORE_ID[raw.tenantId] || raw.tenantId,
-        contractFile: slots.contractFile,
-        medicaoFile: slots.medicaoFile,
-        projectFile: slots.projectFile,
-        producaoFile: slots.producaoFile,
-        montagemFoto: slots.montagemFoto,
-        aceiteFile: slots.aceiteFile,
-        documents: docs,
-        timeline: (raw.timeline || []).map((t: any) => ({
-          id: t.id,
-          user: t.user,
-          userRole: t.userRole,
-          action: t.action,
-          timestamp: t.timestamp,
-        })),
+        success: true,
+        orders: mappedOrders,
+        tenantId: data.tenant_id,
       };
-    });
-
-    return {
-      success: true,
-      orders: mappedOrders,
-      tenantId: data.tenant_id,
-    };
+    } catch (parseErr: any) {
+      console.error('[erpService] Falha ao processar e transformar dados de pedidos:', parseErr);
+      return {
+        success: false,
+        orders: [],
+        error: 'Inconsistência no formato dos dados de pedidos retornados pelo servidor.',
+        errorCode: 'DATA_PARSE_ERROR',
+      };
+    }
   } catch (err: any) {
     console.error('[erpService] Exceção ao buscar pedidos do ERP:', err);
-    return { success: false, orders: [], error: err.message };
+    const classified = classifyERPError(err.message);
+    return { success: false, orders: [], error: classified.message, errorCode: classified.code };
   }
 }
 
